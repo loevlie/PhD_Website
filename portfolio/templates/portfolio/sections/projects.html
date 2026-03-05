@@ -1,0 +1,38 @@
+<section class="section" id="projects">
+    <div class="container">
+        <h2 class="section-title fade-in">Projects</h2>
+        <div class="project-grid fade-in-group" id="project-grid">
+            {% for project in projects %}
+            <div class="project-card{% if forloop.counter > 6 %} project-hidden{% endif %}">
+                <div class="card tilt-card">
+                    <h3 class="project-card-title">
+                        {% if project.links %}
+                        <a href="{{ project.links.0.url }}" target="_blank" rel="noopener">{{ project.title }}</a>
+                        {% else %}
+                        {{ project.title }}
+                        {% endif %}
+                    </h3>
+                    <p class="project-card-desc">{{ project.description }}</p>
+                    <div class="project-card-tags">
+                        {% for tag in project.tags %}
+                        <span class="tag">{{ tag }}</span>
+                        {% endfor %}
+                    </div>
+                    {% if project.links %}
+                    <div class="project-card-links">
+                        {% for link in project.links %}
+                        <a href="{{ link.url }}" class="link-pill" target="_blank" rel="noopener">{{ link.label }}</a>
+                        {% endfor %}
+                    </div>
+                    {% endif %}
+                </div>
+            </div>
+            {% endfor %}
+        </div>
+        <div class="show-more-btn fade-in">
+            <button class="btn btn--outline" id="show-more-btn" onclick="toggleProjects()">
+                Show More Projects
+            </button>
+        </div>
+    </div>
+</section>

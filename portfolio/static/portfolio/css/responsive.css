@@ -1,0 +1,149 @@
+@media (max-width: 768px) {
+    :root {
+        --h1-size: 2.25rem;
+        --h2-size: 1.5rem;
+        --section-padding: 64px;
+    }
+
+    .nav-links {
+        display: none;
+    }
+
+    .hamburger {
+        display: flex;
+    }
+
+    .theme-toggle {
+        display: none;
+    }
+
+    .hero-content {
+        grid-template-columns: 1fr;
+        text-align: center;
+        justify-items: center;
+    }
+
+    .hero-interests {
+        text-align: center;
+    }
+
+    .hero-interests-list {
+        justify-content: center;
+    }
+
+    .pub-selected {
+        grid-template-columns: 1fr;
+    }
+
+    .project-grid {
+        grid-template-columns: 1fr;
+    }
+
+    .demos-wide {
+        padding: 0 24px;
+    }
+
+    .demos-grid {
+        grid-template-columns: 1fr;
+    }
+
+    .grid-2 {
+        grid-template-columns: 1fr;
+    }
+
+    .news-item {
+        flex-direction: column;
+        gap: 8px;
+    }
+
+    .news-date {
+        min-width: unset;
+    }
+
+    /* Disable particles on mobile */
+    #particle-canvas {
+        display: none !important;
+    }
+
+    /* Disable card tilt on mobile */
+    .tilt-card {
+        transform: none !important;
+    }
+
+    .tilt-card:hover {
+        transform: translateY(-4px) !important;
+    }
+
+    /* Year badge repositioning */
+    .pub-year-badge {
+        position: static;
+        display: inline-block;
+        margin-bottom: 8px;
+    }
+}
+
+@media (max-width: 640px) {
+    :root {
+        --h1-size: 2rem;
+        --section-padding: 48px;
+        --card-padding: 20px;
+    }
+
+    .demos-wide {
+        padding: 0 16px;
+    }
+
+    .container {
+        padding: 0 16px;
+    }
+
+    .navbar-inner {
+        padding: 0 16px;
+    }
+
+    .avatar-wrapper {
+        width: 160px;
+        height: 160px;
+        min-width: 160px;
+        min-height: 160px;
+    }
+
+    .hero {
+        min-height: auto;
+        padding-top: calc(var(--nav-height) + 48px);
+        padding-bottom: 48px;
+    }
+
+    .pub-links {
+        gap: 6px;
+    }
+
+    .timeline {
+        padding-left: 28px;
+    }
+}
+
+@media (max-width: 480px) {
+    :root {
+        --h1-size: 1.75rem;
+        --h2-size: 1.25rem;
+        --card-padding: 16px;
+    }
+
+    .nav-logo {
+        font-size: 1.125rem;
+    }
+
+    .hero-name {
+        font-size: 1.75rem;
+    }
+
+    .contact-social {
+        gap: 8px;
+    }
+
+    .social-icon {
+        width: 40px;
+        height: 40px;
+    }
+}

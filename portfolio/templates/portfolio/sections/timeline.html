@@ -1,0 +1,15 @@
+<section class="section" id="experience">
+    <div class="container">
+        <h2 class="section-title fade-in">Experience</h2>
+        <div class="timeline fade-in">
+            {% for entry in timeline %}
+            <div class="timeline-item">
+                <span class="timeline-year">{{ entry.year }}</span>
+                <h3 class="timeline-title">{{ entry.title }}</h3>
+                <p class="timeline-org">{{ entry.org }}</p>
+                <p class="timeline-desc">{{ entry.description }}</p>
+            </div>
+            {% endfor %}
+        </div>
+    </div>
+</section>

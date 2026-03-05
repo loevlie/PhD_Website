@@ -1,0 +1,18 @@
+<section class="section" id="opensource">
+    <div class="container">
+        <h2 class="section-title fade-in">Open Source</h2>
+        <div class="opensource-list fade-in-group">
+            {% for project in opensource %}
+            <div class="opensource-card">
+                <div class="card tilt-card">
+                    <h3 class="opensource-name">
+                        <a href="{{ project.url }}" target="_blank" rel="noopener">{{ project.name }}</a>
+                    </h3>
+                    <p class="opensource-role">{{ project.role }}</p>
+                    <p class="opensource-desc">{{ project.description }}</p>
+                </div>
+            </div>
+            {% endfor %}
+        </div>
+    </div>
+</section>

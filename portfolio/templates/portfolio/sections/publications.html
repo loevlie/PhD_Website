@@ -1,0 +1,61 @@
+{% load static portfolio_tags %}
+<section class="section" id="publications">
+    <div class="container">
+        <h2 class="section-title fade-in">Publications</h2>
+
+        <h3 class="pub-subsection-title fade-in">Selected Publications</h3>
+        <div class="pub-selected fade-in-group">
+            {% for pub in publications %}
+            {% if pub.selected %}
+            <div class="pub-featured card">
+                <div class="pub-featured-image">
+                    <img src="{% static pub.image %}" alt="{{ pub.title }}">
+                    {% if pub.image_credit %}
+                    <span class="pub-image-credit">{{ pub.image_credit }}</span>
+                    {% endif %}
+                </div>
+                <div class="pub-featured-body">
+                    <span class="pub-type">{{ pub.type }}</span>
+                    <h3 class="pub-title">{{ pub.title }}</h3>
+                    <p class="pub-authors">
+                        {% for author in pub.authors %}{% if not forloop.first %}, {% endif %}{{ author|highlight_author }}{% endfor %}
+                    </p>
+                    <p class="pub-venue">{{ pub.venue }}, {{ pub.year }}</p>
+                    {% if pub.links %}
+                    <div class="pub-links">
+                        {% for link in pub.links %}
+                        <a href="{{ link.url }}" class="link-pill" target="_blank" rel="noopener">{{ link.label }}</a>
+                        {% endfor %}
+                    </div>
+                    {% endif %}
+                </div>
+            </div>
+            {% endif %}
+            {% endfor %}
+        </div>
+
+        <h3 class="pub-subsection-title fade-in">Other Publications</h3>
+        <div class="pub-list fade-in-group">
+            {% for pub in publications %}
+            {% if not pub.selected %}
+            <div class="pub-card pub-card--{{ pub.type }}">
+                <span class="pub-year-badge">{{ pub.year }}</span>
+                <span class="pub-type">{{ pub.type }}</span>
+                <h3 class="pub-title">{{ pub.title }}</h3>
+                <p class="pub-authors">
+                    {% for author in pub.authors %}{% if not forloop.first %}, {% endif %}{{ author|highlight_author }}{% endfor %}
+                </p>
+                <p class="pub-venue">{{ pub.venue }}, {{ pub.year }}</p>
+                {% if pub.links %}
+                <div class="pub-links">
+                    {% for link in pub.links %}
+                    <a href="{{ link.url }}" class="link-pill" target="_blank" rel="noopener">{{ link.label }}</a>
+                    {% endfor %}
+                </div>
+                {% endif %}
+            </div>
+            {% endif %}
+            {% endfor %}
+        </div>
+    </div>
+</section>

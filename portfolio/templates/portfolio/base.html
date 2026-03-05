@@ -1,0 +1,67 @@
+{% load static %}
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>{{ hero.name }} — {{ hero.title }}</title>
+    <meta name="description" content="{{ hero.name }}, {{ hero.title }} at {{ hero.affiliation }}. Research in multimodal tabular foundation models.">
+
+    <!-- Three.js import map -->
+    <script type="importmap">
+    { "imports": {
+        "three": "https://unpkg.com/three@0.160.0/build/three.module.js",
+        "three/addons/": "https://unpkg.com/three@0.160.0/examples/jsm/"
+    }}
+    </script>
+
+    <!-- Fonts -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+
+    <!-- Theme: apply before CSS paints to prevent flash -->
+    <script>
+        (function() {
+            var mobile = window.matchMedia('(max-width: 768px)').matches;
+            if (mobile) return;
+            var t = localStorage.getItem('theme');
+            if (t === 'light' || (!t && window.matchMedia('(prefers-color-scheme: light)').matches)) {
+                document.documentElement.classList.add('light-mode');
+            }
+        })();
+    </script>
+    <style>
+        /* Hide the wrong icon before page renders — JS takes over after load */
+        .icon-sun { display: none !important; }
+        html.light-mode .icon-moon { display: none !important; }
+        html.light-mode .icon-sun { display: block !important; }
+    </style>
+
+    <!-- CSS -->
+    <link rel="stylesheet" href="{% static 'portfolio/css/variables.css' %}">
+    <link rel="stylesheet" href="{% static 'portfolio/css/base.css' %}">
+    <link rel="stylesheet" href="{% static 'portfolio/css/layout.css' %}">
+    <link rel="stylesheet" href="{% static 'portfolio/css/components.css' %}">
+    <link rel="stylesheet" href="{% static 'portfolio/css/sections.css' %}">
+    <link rel="stylesheet" href="{% static 'portfolio/css/animations.css' %}">
+    <link rel="stylesheet" href="{% static 'portfolio/css/responsive.css' %}">
+</head>
+<body>
+    <div class="scroll-progress" id="scroll-progress"></div>
+
+    {% block content %}{% endblock %}
+
+    <footer class="footer">
+        <div class="container">
+            <p class="footer-text">&copy; 2026 {{ hero.name }}</p>
+        </div>
+    </footer>
+
+    <script src="{% static 'portfolio/js/theme.js' %}"></script>
+    <script src="{% static 'portfolio/js/particles.js' %}"></script>
+    <script src="{% static 'portfolio/js/main.js' %}"></script>
+    <script type="module" src="{% static 'portfolio/js/nanoparticle.js' %}"></script>
+    <script type="module" src="{% static 'portfolio/js/depth-demo.js' %}"></script>
+</body>
+</html>

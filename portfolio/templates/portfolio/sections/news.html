@@ -1,0 +1,13 @@
+<section class="section" id="news">
+    <div class="container">
+        <h2 class="section-title fade-in">News</h2>
+        <div class="news-list fade-in-group">
+            {% for item in news %}
+            <div class="news-item{% if item.highlight %} news-item--highlight{% endif %}">
+                <span class="news-date">{{ item.date }}</span>
+                <span class="news-text">{{ item.text|safe }}</span>
+            </div>
+            {% endfor %}
+        </div>
+    </div>
+</section>
