@@ -1,6 +1,40 @@
 {% load static %}
 <section class="hero section" id="about">
     <canvas id="particle-canvas"></canvas>
+    <button class="hero-preview-toggle" aria-label="Toggle timeline preview" onclick="var card=document.querySelector('.hero-timeline-preview'); card.classList.toggle('visible'); this.classList.toggle('active')">Recent</button>
+    <div class="hero-timeline-preview">
+        <h3 class="hero-preview-label">Recent</h3>
+        <div class="hero-preview-items">
+            {% for entry in timeline %}{% if forloop.counter <= 3 %}
+            <div class="hero-preview-entry">
+                <span class="hero-preview-year">{{ entry.year }}</span>
+                <h4 class="hero-preview-title">{{ entry.title }}</h4>
+                <p class="hero-preview-org">{{ entry.org }}</p>
+            </div>
+            {% endif %}{% endfor %}
+        </div>
+        <a href="#experience" class="hero-preview-link">View full timeline &rarr;</a>
+    </div>
+    <script>
+    (function() {
+        var toggle = document.querySelector('.hero-preview-toggle');
+        var card = document.querySelector('.hero-timeline-preview');
+        var hero = document.getElementById('about');
+        function checkVisibility() {
+            var rect = hero.getBoundingClientRect();
+            var inView = rect.bottom > 100 && rect.top < window.innerHeight - 100;
+            if (!inView) {
+                toggle.style.display = 'none';
+                card.classList.remove('visible');
+                toggle.classList.remove('active');
+            } else {
+                toggle.style.display = '';
+            }
+        }
+        window.addEventListener('scroll', checkVisibility, { passive: true });
+        checkVisibility();
+    })();
+    </script>
     <div class="container">
         <div class="hero-content fade-in">
             <div class="hero-sidebar">

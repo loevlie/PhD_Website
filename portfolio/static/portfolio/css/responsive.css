@@ -23,6 +23,11 @@
         justify-items: center;
     }
 
+    .hero-timeline-preview,
+    .hero-preview-toggle {
+        display: none;
+    }
+
     .hero-interests {
         text-align: center;
     }

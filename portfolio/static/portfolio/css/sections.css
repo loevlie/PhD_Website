@@ -78,6 +78,113 @@
     line-height: 1.8;
 }
 
+.hero-preview-toggle {
+    position: fixed;
+    right: 0;
+    top: 50%;
+    transform: translateY(-50%);
+    writing-mode: vertical-lr;
+    font-size: var(--xs-size);
+    font-weight: 600;
+    text-transform: uppercase;
+    letter-spacing: 0.1em;
+    color: var(--accent-light);
+    background-color: var(--bg-secondary);
+    border: 1px solid var(--border-color);
+    border-right: none;
+    border-radius: 8px 0 0 8px;
+    padding: 14px 8px;
+    cursor: pointer;
+    z-index: 100;
+    transition: right 0.3s ease, background-color 0.2s ease, border-color 0.2s ease, color 0.2s ease;
+}
+
+.hero-preview-toggle:hover {
+    background-color: var(--accent-bg-subtle);
+    border-color: var(--accent);
+    color: var(--accent);
+}
+
+.hero-preview-toggle.active {
+    right: 258px;
+    background-color: var(--accent-bg-subtle);
+    border-color: var(--accent);
+    color: var(--accent);
+}
+
+.hero-timeline-preview {
+    position: fixed;
+    right: -260px;
+    top: 50%;
+    transform: translateY(-50%);
+    width: 240px;
+    background-color: var(--bg-secondary);
+    border: 1px solid var(--border-color);
+    border-radius: var(--card-radius);
+    padding: 20px;
+    opacity: 0;
+    transition: opacity 0.3s ease, right 0.3s ease;
+    pointer-events: none;
+    z-index: 100;
+    box-shadow: 0 8px 32px rgba(0, 0, 0, 0.15);
+}
+
+.hero-timeline-preview.visible {
+    opacity: 1;
+    right: 16px;
+    pointer-events: auto;
+}
+
+.hero-preview-label {
+    font-size: var(--xs-size);
+    font-weight: 600;
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+    color: var(--text-muted);
+    margin-bottom: 16px;
+}
+
+.hero-preview-items {
+    display: flex;
+    flex-direction: column;
+    gap: 14px;
+}
+
+.hero-preview-entry {
+    padding-left: 12px;
+    border-left: 2px solid var(--accent);
+}
+
+.hero-preview-year {
+    font-size: var(--xs-size);
+    font-weight: 600;
+    color: var(--accent-light);
+}
+
+.hero-preview-title {
+    font-size: var(--small-size);
+    font-weight: 600;
+    color: var(--text-primary);
+    line-height: 1.4;
+}
+
+.hero-preview-org {
+    font-size: var(--xs-size);
+    color: var(--text-muted);
+}
+
+.hero-preview-link {
+    display: inline-block;
+    margin-top: 16px;
+    font-size: var(--small-size);
+    font-weight: 500;
+    color: var(--accent-light);
+}
+
+.hero-preview-link:hover {
+    text-decoration: underline;
+}
+
 .hero-social {
     display: flex;
     gap: 10px;
