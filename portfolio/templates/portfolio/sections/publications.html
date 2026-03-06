@@ -15,7 +15,9 @@
                     {% endif %}
                 </div>
                 <div class="pub-featured-body">
-                    <span class="pub-type">{{ pub.type }}</span>
+                    <div class="pub-featured-meta">
+                        <span class="pub-type">{{ pub.type }}</span> · {{ pub.year }}
+                    </div>
                     <h3 class="pub-title">{{ pub.title }}</h3>
                     <p class="pub-authors">
                         {% for author in pub.authors %}{% if not forloop.first %}, {% endif %}{{ author|highlight_author }}{% endfor %}
