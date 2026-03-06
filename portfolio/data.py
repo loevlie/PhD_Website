@@ -8,7 +8,7 @@ HERO = {
     'title': 'ELLIS PhD Student',
     'affiliation': 'CWI & University of Amsterdam',
     'bio': (
-        'I am an ELLIS PhD student at <a href="https://www.cwi.nl/" target="_blank">CWI</a> '
+        'I am an ⭐ <a href="https://ellis.eu/research/phd-postdoc" target="_blank">ELLIS</a> PhD student at <a href="https://www.cwi.nl/" target="_blank">CWI</a> '
         'and the <a href="https://www.uva.nl/" target="_blank">University of Amsterdam</a>, '
         'working in the <a href="https://trlab.nl/" target="_blank">Table Representation Learning Lab (TRLab)</a> '
         'and the <a href="https://amlab.science.uva.nl/" target="_blank">Amsterdam Machine Learning Lab (AMLab)</a>. '
