@@ -10,7 +10,7 @@ HERO = {
     'bio': (
         'I am an ⭐ <a href="https://ellis.eu/research/phd-postdoc" target="_blank">ELLIS</a> PhD student at <a href="https://www.cwi.nl/" target="_blank">CWI</a> '
         'and the <a href="https://www.uva.nl/" target="_blank">University of Amsterdam</a>, '
-        'working in the <a href="https://trlab.nl/" target="_blank">Table Representation Learning Lab (TRLab)</a> '
+        'working in the <a href="https://trl-lab.github.io/" target="_blank">Table Representation Learning Lab (TRLab)</a> '
         'and the <a href="https://amlab.science.uva.nl/" target="_blank">Amsterdam Machine Learning Lab (AMLab)</a>. '
         'I am advised by <a href="https://madelonhulsebos.github.io/" target="_blank">Madelon Hulsebos</a> '
         '(TRLab, CWI) and co-advised by <a href="https://jwvdm.github.io/" target="_blank">Jan-Willem van de Meent</a> '
@@ -53,7 +53,7 @@ NEWS = [
             'Starting as an ELLIS PhD student at '
             '<a href="https://www.cwi.nl/" target="_blank">CWI</a> & '
             '<a href="https://www.uva.nl/" target="_blank">University of Amsterdam</a> in the '
-            '<a href="https://trlab.nl/" target="_blank">Table Representation Learning Lab</a>!'
+            '<a href="https://trl-lab.github.io/" target="_blank">Table Representation Learning Lab</a>!'
         ),
         'highlight': True,
     },
