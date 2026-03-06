@@ -8,6 +8,9 @@
                 <h3 class="timeline-title">{{ entry.title }}</h3>
                 <p class="timeline-org">{{ entry.org }}</p>
                 <p class="timeline-desc">{{ entry.description }}</p>
+                {% if entry.link %}
+                <a href="{{ entry.link }}" class="timeline-link" target="_blank" rel="noopener">{{ entry.link_label|default:"Read more" }} &rarr;</a>
+                {% endif %}
             </div>
             {% endfor %}
         </div>

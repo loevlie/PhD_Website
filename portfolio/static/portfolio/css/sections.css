@@ -659,6 +659,18 @@
     line-height: 1.6;
 }
 
+.timeline-link {
+    display: inline-block;
+    margin-top: 8px;
+    font-size: var(--small-size);
+    font-weight: 500;
+    color: var(--accent-light);
+}
+
+.timeline-link:hover {
+    text-decoration: underline;
+}
+
 /* Open Source */
 .opensource-list {
     display: flex;

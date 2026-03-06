@@ -317,6 +317,8 @@ TIMELINE = [
         'title': 'Senior CV & ML Engineer',
         'org': 'KEF Robotics',
         'description': 'Led a team of five engineers on a $500K NAMC project. Developed on-device object detection, monocular depth prediction, and 3D map generation for autonomous UAVs.',
+        'link': 'https://www.cheme.engineering.cmu.edu/news/2024/07/10-alum-spotlight-loevlie.html',
+        'link_label': 'CMU Spotlight',
     },
     {
         'year': '2021 — 2023',
