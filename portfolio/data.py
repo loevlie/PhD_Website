@@ -42,7 +42,8 @@ NEWS = [
         'date': '2026',
         'text': (
             'Won <strong>1st place</strong> out of 10 teams in the BrainStorm Neural Decoder Challenge &mdash; '
-            'real-time auditory decoding from 1024-channel ECoG with 95% accuracy and sub-ms inference.'
+            'real-time auditory decoding from 1024-channel ECoG with 95% accuracy and sub-ms inference. '
+            '<a href="https://qsimeon.github.io/brainstorm_bci_blog.html" target="_blank">Read our blog post &rarr;</a>'
         ),
         'highlight': True,
     },
