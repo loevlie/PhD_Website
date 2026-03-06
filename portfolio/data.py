@@ -88,7 +88,7 @@ PUBLICATIONS = [
         'image': 'portfolio/images/mil_bayes.png',
         'links': [
             {'label': 'Paper', 'url': 'https://arxiv.org/abs/2510.25759'},
-            {'label': 'Code', 'url': 'https://github.com/tufts-ml/TorchMIL'},
+            {'label': 'Code', 'url': 'https://github.com/Franblueee/torchmil'},
         ],
     },
     {
@@ -357,7 +357,7 @@ OPENSOURCE = [
     {
         'name': 'TorchMIL',
         'description': 'A PyTorch library for deep multiple instance learning in computational pathology. Includes standardized benchmarks and reproducible implementations of attention-based MIL methods.',
-        'url': 'https://github.com/tufts-ml/TorchMIL',
+        'url': 'https://github.com/Franblueee/torchmil',
         'role': 'Contributor',
     },
     {
