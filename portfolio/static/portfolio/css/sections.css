@@ -303,7 +303,7 @@
 .pub-selected {
     display: grid;
     grid-template-columns: repeat(2, 1fr);
-    gap: 28px;
+    gap: 24px;
     margin-bottom: 40px;
 }
 
@@ -392,19 +392,19 @@
 
 /* Text area beneath image — clean, spacious */
 .pub-featured-body {
-    padding: 20px 4px 0;
+    padding: 14px 4px 0;
     display: flex;
     flex-direction: column;
     flex: 1;
 }
 
 .pub-featured-meta {
-    font-size: 0.7rem;
+    font-size: 0.65rem;
     font-weight: 600;
     text-transform: uppercase;
     letter-spacing: 0.1em;
     color: var(--text-muted);
-    margin-bottom: 8px;
+    margin-bottom: 6px;
 }
 
 .pub-featured-meta .pub-type {
@@ -413,21 +413,21 @@
 }
 
 .pub-featured-body .pub-title {
-    font-size: 1.05rem;
+    font-size: 0.95rem;
     font-weight: 700;
-    line-height: 1.4;
+    line-height: 1.35;
     letter-spacing: -0.02em;
     color: var(--text-primary);
 }
 
 .pub-featured-body .pub-authors {
-    font-size: 0.8rem;
-    margin-bottom: 4px;
+    font-size: 0.75rem;
+    margin-bottom: 3px;
 }
 
 .pub-featured-body .pub-venue {
-    font-size: 0.8rem;
-    margin-bottom: 14px;
+    font-size: 0.75rem;
+    margin-bottom: 10px;
 }
 
 .pub-featured-body .pub-links {
