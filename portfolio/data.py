@@ -368,7 +368,7 @@ OPENSOURCE = [
 SOCIAL_LINKS = [
     {'name': 'GitHub', 'url': 'https://github.com/loevlie', 'icon': 'github'},
     {'name': 'Google Scholar', 'url': 'https://scholar.google.com/citations?user=oGkEIYkAAAAJ&hl=en', 'icon': 'scholar'},
-    {'name': 'ORCID', 'url': 'https://orcid.org/0000-0002-2822-7763', 'icon': 'orcid'},
+
     {'name': 'LinkedIn', 'url': 'https://www.linkedin.com/in/dennisloevlie', 'icon': 'linkedin'},
     {'name': 'Bluesky', 'url': 'https://bsky.app/profile/dennisloevlie.bsky.social', 'icon': 'bluesky'},
     {'name': 'Medium', 'url': 'https://medium.com/@dennyloevlie', 'icon': 'medium'},
