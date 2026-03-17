@@ -21,6 +21,48 @@
     z-index: 0;
 }
 
+/* Avatar flip card */
+.avatar-flip-container {
+    perspective: 800px;
+    cursor: pointer;
+}
+
+.avatar-flip-inner {
+    position: relative;
+    width: 100%;
+    height: 100%;
+    transition: transform 0.7s cubic-bezier(0.4, 0, 0.2, 1);
+    transform-style: preserve-3d;
+}
+
+.avatar-flip-container.flipped .avatar-flip-inner {
+    transform: rotateY(180deg);
+}
+
+.avatar-front,
+.avatar-back {
+    position: absolute;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    backface-visibility: hidden;
+    border-radius: 50%;
+    overflow: hidden;
+}
+
+.avatar-back {
+    transform: rotateY(180deg);
+}
+
+.avatar-video {
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+    object-position: center 20%;
+    border-radius: 50%;
+}
+
 .hero .container {
     position: relative;
     z-index: 1;

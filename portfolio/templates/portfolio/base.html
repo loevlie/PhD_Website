@@ -69,6 +69,34 @@
 
     <script src="{% static 'portfolio/js/theme.js' %}"></script>
     <script src="{% static 'portfolio/js/particles.js' %}"></script>
+    <script>
+    // Avatar video: play once, auto-flip to real photo, toggle on each hover
+    (function() {
+        var v = document.querySelector('.avatar-video');
+        var container = document.querySelector('.avatar-flip-container');
+        if (!v || !container) return;
+        if (window.matchMedia('(max-width: 768px)').matches) {
+            v.removeAttribute('autoplay');
+            v.src = '';
+            return;
+        }
+        var flipped = false;
+        // When video ends, hold last frame then auto-flip to real photo
+        v.addEventListener('ended', function() {
+            v.currentTime = v.duration;
+            v.pause();
+            setTimeout(function() {
+                flipped = true;
+                container.classList.add('flipped');
+            }, 600);
+        });
+        // Each hover toggles between cartoon and real photo
+        container.addEventListener('mouseenter', function() {
+            flipped = !flipped;
+            container.classList.toggle('flipped', flipped);
+        });
+    })();
+    </script>
     <script src="{% static 'portfolio/js/main.js' %}"></script>
     <script type="module" src="{% static 'portfolio/js/nanoparticle.js' %}"></script>
     <script type="module" src="{% static 'portfolio/js/depth-demo.js' %}"></script>

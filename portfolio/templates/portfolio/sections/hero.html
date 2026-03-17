@@ -38,8 +38,18 @@
     <div class="container">
         <div class="hero-content fade-in">
             <div class="hero-sidebar">
-                <div class="hero-image avatar-wrapper">
-                    <img src="{% static hero.profile_image %}" alt="{{ hero.name }}" class="avatar">
+                <div class="hero-image avatar-wrapper avatar-flip-container">
+                    <div class="avatar-flip-inner">
+                        <div class="avatar-front">
+                            <video class="avatar-video" autoplay muted playsinline preload="auto"
+                                   poster="{% static 'portfolio/images/hero-still.png' %}">
+                                <source src="{% static 'portfolio/images/hero-video.mp4' %}" type="video/mp4">
+                            </video>
+                        </div>
+                        <div class="avatar-back">
+                            <img src="{% static hero.profile_image %}" alt="{{ hero.name }}" class="avatar">
+                        </div>
+                    </div>
                 </div>
                 <h1 class="hero-name">{{ hero.name }}</h1>
                 <p class="hero-title">

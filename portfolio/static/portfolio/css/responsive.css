@@ -65,11 +65,6 @@
         min-width: unset;
     }
 
-    /* Disable particles on mobile */
-    #particle-canvas {
-        display: none !important;
-    }
-
     /* Disable card tilt on mobile */
     .tilt-card {
         transform: none !important;
