@@ -70,17 +70,24 @@
     <script src="{% static 'portfolio/js/theme.js' %}"></script>
     <script src="{% static 'portfolio/js/particles.js' %}"></script>
     <script>
-    // Avatar video: play once, auto-flip to real photo, toggle on each hover
+    // Avatar video: play once, auto-flip to real photo, toggle on interaction
     (function() {
         var v = document.querySelector('.avatar-video');
         var container = document.querySelector('.avatar-flip-container');
         if (!v || !container) return;
-        if (window.matchMedia('(max-width: 768px)').matches) {
-            v.removeAttribute('autoplay');
-            v.src = '';
-            return;
-        }
         var flipped = false;
+        var isTouch = 'ontouchstart' in window;
+
+        // iOS requires user gesture for video — try to play, fallback to still
+        var playPromise = v.play();
+        if (playPromise !== undefined) {
+            playPromise.catch(function() {
+                // Autoplay blocked — skip to flipped state (show real photo)
+                flipped = true;
+                container.classList.add('flipped');
+            });
+        }
+
         // When video ends, hold last frame then auto-flip to real photo
         v.addEventListener('ended', function() {
             v.currentTime = v.duration;
@@ -90,8 +97,10 @@
                 container.classList.add('flipped');
             }, 600);
         });
-        // Each hover toggles between cartoon and real photo
-        container.addEventListener('mouseenter', function() {
+
+        // Touch devices: tap to toggle. Desktop: hover to toggle.
+        var toggleEvent = isTouch ? 'click' : 'mouseenter';
+        container.addEventListener(toggleEvent, function() {
             flipped = !flipped;
             container.classList.toggle('flipped', flipped);
         });
