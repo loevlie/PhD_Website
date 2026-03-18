@@ -45,6 +45,26 @@ document.querySelectorAll('.mobile-nav-link').forEach(link => {
     });
 });
 
+// Nav "More" dropdown toggle
+(function () {
+    var dropdown = document.querySelector('.nav-dropdown');
+    if (!dropdown) return;
+    var toggle = dropdown.querySelector('.nav-dropdown-toggle');
+
+    toggle.addEventListener('click', function (e) {
+        e.preventDefault();
+        dropdown.classList.toggle('open');
+        toggle.setAttribute('aria-expanded', dropdown.classList.contains('open'));
+    });
+
+    document.addEventListener('click', function (e) {
+        if (!dropdown.contains(e.target)) {
+            dropdown.classList.remove('open');
+            toggle.setAttribute('aria-expanded', 'false');
+        }
+    });
+})();
+
 // Scroll-triggered fade-in with IntersectionObserver
 const fadeObserver = new IntersectionObserver(
     (entries) => {

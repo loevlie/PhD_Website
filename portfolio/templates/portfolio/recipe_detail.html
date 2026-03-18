@@ -1,0 +1,76 @@
+{% extends "portfolio/base.html" %}
+{% load static %}
+
+{% block title %}{{ recipe.title }} — Recipes{% endblock %}
+
+{% block content %}
+{% include "portfolio/sections/nav.html" %}
+
+<section class="section recipes-page" id="recipe-detail">
+    <div class="container">
+        <a href="{% url 'recipes' %}" class="recipes-back-link">&larr; All recipes</a>
+
+        <article class="recipe-card fade-in">
+            <div class="recipe-header">
+                <div class="recipe-emoji">{{ recipe.emoji }}</div>
+                <div>
+                    <h1 class="recipe-title">{{ recipe.title }}</h1>
+                    <p class="recipe-tagline">{{ recipe.tagline }}</p>
+                </div>
+            </div>
+
+            <div class="recipe-meta-row">
+                <span class="recipe-meta-item">
+                    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg>
+                    {{ recipe.time_minutes }} min
+                </span>
+                <span class="recipe-meta-item">
+                    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/></svg>
+                    {{ recipe.servings }} servings
+                </span>
+                <span class="recipe-meta-item">
+                    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 2L2 7l10 5 10-5-10-5z"/><path d="M2 17l10 5 10-5"/></svg>
+                    {{ recipe.difficulty }}
+                </span>
+            </div>
+
+            <div class="recipe-story">
+                <p>{{ recipe.description }}</p>
+                {% if recipe.credit_url %}
+                <p>Recipe inspired by <a href="{{ recipe.credit_url }}" target="_blank" rel="noopener">{{ recipe.credit_label }}</a>.</p>
+                {% endif %}
+            </div>
+
+            <div class="recipe-columns">
+                <div class="recipe-ingredients">
+                    <h3>Ingredients</h3>
+                    <ul>
+                        {% for ing in recipe.ingredients %}
+                        <li>
+                            {{ ing.item }}
+                            {% if ing.note %}<span class="recipe-note">({{ ing.note }})</span>{% endif %}
+                        </li>
+                        {% endfor %}
+                    </ul>
+                </div>
+
+                <div class="recipe-steps">
+                    <h3>Steps</h3>
+                    <ol>
+                        {% for step in recipe.steps %}
+                        <li>{{ step }}</li>
+                        {% endfor %}
+                    </ol>
+                </div>
+            </div>
+
+            <div class="recipe-tags">
+                {% for tag in recipe.tags %}
+                <span class="tag">{{ tag }}</span>
+                {% endfor %}
+            </div>
+        </article>
+
+    </div>
+</section>
+{% endblock %}

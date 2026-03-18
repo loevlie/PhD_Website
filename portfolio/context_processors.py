@@ -1,6 +1,6 @@
 from portfolio.data import (
     HERO, NEWS, PUBLICATIONS, PROJECTS, TIMELINE,
-    OPENSOURCE, SOCIAL_LINKS, NAV_LINKS,
+    OPENSOURCE, SOCIAL_LINKS, NAV_LINKS, RECIPES,
 )
 
 
@@ -14,4 +14,5 @@ def portfolio_data(request):
         'opensource': OPENSOURCE,
         'social_links': SOCIAL_LINKS,
         'nav_links': NAV_LINKS,
+        'recipes': RECIPES,
     }
