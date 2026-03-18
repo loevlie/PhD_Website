@@ -1,0 +1,84 @@
+{% extends "portfolio/base.html" %}
+{% load static %}
+
+{% block title %}Recipes — Dennis Loevlie{% endblock %}
+
+{% block content %}
+{% include "portfolio/sections/nav.html" %}
+
+<section class="section recipes-page" id="recipes">
+    <div class="container">
+        <a href="/" class="recipes-back-link">&larr; Back to portfolio</a>
+        <h1 class="recipes-page-title fade-in">Recipes</h1>
+        <p class="recipes-page-subtitle fade-in">A collection of comfort food from my Finnish roots and beyond.</p>
+
+        <!-- Recipe Card -->
+        <article class="recipe-card fade-in" id="finnish-salmon-soup">
+            <div class="recipe-header">
+                <div class="recipe-emoji">🍲</div>
+                <div>
+                    <h2 class="recipe-title">Finnish Salmon Soup</h2>
+                    <p class="recipe-tagline">Comforting Salmon Soup in Under 30 Minutes</p>
+                </div>
+            </div>
+
+            <div class="recipe-meta-row">
+                <span class="recipe-meta-item">
+                    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg>
+                    30 min
+                </span>
+                <span class="recipe-meta-item">
+                    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/></svg>
+                    2 servings
+                </span>
+                <span class="recipe-meta-item">
+                    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 2L2 7l10 5 10-5-10-5z"/><path d="M2 17l10 5 10-5"/></svg>
+                    Easy
+                </span>
+            </div>
+
+            <div class="recipe-story">
+                <p>One of my all-time favorite soups &mdash; comforting, easy, and ready in under 30 minutes. It's similar to one my bestemor likes to make.</p>
+                <p>Recipe inspired by <a href="https://www.instagram.com/reels/DCjpO8UM405/" target="_blank" rel="noopener">this post</a>.</p>
+            </div>
+
+            <div class="recipe-columns">
+                <div class="recipe-ingredients">
+                    <h3>Ingredients</h3>
+                    <ul>
+                        <li>400g salmon, cut into chunks <span class="recipe-note">(or your favorite fish!)</span></li>
+                        <li>250g potatoes, bite-sized <span class="recipe-note">(baby potatoes are my favorite)</span></li>
+                        <li>1 piece leek, sliced</li>
+                        <li>1 carrot, cut into chunks</li>
+                        <li>100ml cream</li>
+                        <li>500ml water</li>
+                        <li>1 fish broth cube</li>
+                        <li>1 bunch of dill, chopped</li>
+                        <li>1 lemon, zested and juiced</li>
+                        <li>1 tsp corn starch</li>
+                    </ul>
+                </div>
+
+                <div class="recipe-steps">
+                    <h3>Steps</h3>
+                    <ol>
+                        <li>Heat a tablespoon of olive oil in a large pot. Saut&eacute; the leeks with a pinch of salt for 2&ndash;3 minutes.</li>
+                        <li>Add the potatoes, carrots, water, and broth cube. Simmer for about 10 minutes, or until the veggies are almost tender.</li>
+                        <li>Gently stir in the salmon, lemon zest, dill, and cream. Bring to a boil, then reduce the heat and simmer for 5 minutes, until the fish is perfectly cooked.</li>
+                        <li>Mix corn starch with 1 tablespoon of hot water, then stir it into the soup to thicken slightly. Season with salt and pepper to taste.</li>
+                        <li>Ladle into bowls, squeeze in fresh lemon juice, and enjoy!</li>
+                    </ol>
+                </div>
+            </div>
+
+            <div class="recipe-tags">
+                <span class="tag">Comfort Food</span>
+                <span class="tag">Finnish</span>
+                <span class="tag">Seafood</span>
+                <span class="tag">Quick & Easy</span>
+            </div>
+        </article>
+
+    </div>
+</section>
+{% endblock %}
