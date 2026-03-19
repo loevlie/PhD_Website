@@ -1,0 +1,125 @@
+{% load static %}
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>{% block title %}Dennis Loevlie{% endblock %}</title>
+
+    <!-- Fonts -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+
+    <!-- Theme: apply before CSS paints -->
+    <script>
+        (function() {
+            if (localStorage.getItem('theme') === 'light') {
+                document.documentElement.classList.add('light-mode');
+            }
+        })();
+    </script>
+    <style>
+        .icon-sun { display: none !important; }
+        html.light-mode .icon-moon { display: none !important; }
+        html.light-mode .icon-sun { display: block !important; }
+    </style>
+
+    <!-- CSS -->
+    <link rel="stylesheet" href="{% static 'portfolio/css/variables.css' %}">
+    <link rel="stylesheet" href="{% static 'portfolio/css/base.css' %}">
+    <link rel="stylesheet" href="{% static 'portfolio/css/layout.css' %}">
+    <link rel="stylesheet" href="{% static 'portfolio/css/components.css' %}">
+    <link rel="stylesheet" href="{% static 'portfolio/css/sections.css' %}">
+    <link rel="stylesheet" href="{% static 'portfolio/css/animations.css' %}">
+    <link rel="stylesheet" href="{% static 'portfolio/css/responsive.css' %}">
+</head>
+<body>
+
+<!-- Personal site nav -->
+<nav class="navbar" id="navbar">
+    <div class="navbar-inner">
+        <a href="/" class="nav-logo" title="Back to portfolio">DL</a>
+        <div class="nav-links" id="nav-links">
+            <a href="/recipes/" class="nav-link {% block nav_recipes %}{% endblock %}">Recipes</a>
+            <a href="/blog/" class="nav-link {% block nav_blog %}{% endblock %}">Blog</a>
+            <a href="/footy/" class="nav-link {% block nav_footy %}{% endblock %}">Footy</a>
+        </div>
+        <button class="theme-toggle" id="theme-toggle" aria-label="Toggle light/dark mode">
+            <svg class="icon-moon" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                <path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z"/>
+            </svg>
+            <svg class="icon-sun" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                <circle cx="12" cy="12" r="5"/><line x1="12" y1="1" x2="12" y2="3"/><line x1="12" y1="21" x2="12" y2="23"/><line x1="4.22" y1="4.22" x2="5.64" y2="5.64"/><line x1="18.36" y1="18.36" x2="19.78" y2="19.78"/><line x1="1" y1="12" x2="3" y2="12"/><line x1="21" y1="12" x2="23" y2="12"/><line x1="4.22" y1="19.78" x2="5.64" y2="18.36"/><line x1="18.36" y1="5.64" x2="19.78" y2="4.22"/>
+            </svg>
+        </button>
+        <button class="hamburger" id="hamburger" aria-label="Toggle menu">
+            <span></span>
+            <span></span>
+            <span></span>
+        </button>
+    </div>
+</nav>
+
+<div class="mobile-menu" id="mobile-menu">
+    <a href="/recipes/" class="nav-link mobile-nav-link">Recipes</a>
+    <a href="/blog/" class="nav-link mobile-nav-link">Blog</a>
+    <a href="/footy/" class="nav-link mobile-nav-link">Footy</a>
+</div>
+
+{% block content %}{% endblock %}
+
+<footer class="footer">
+    <div class="container">
+        <p class="footer-text">&copy; 2026 Dennis Loevlie</p>
+        <p class="footer-extras"><a href="/">Portfolio</a></p>
+    </div>
+</footer>
+
+<script src="{% static 'portfolio/js/theme.js' %}"></script>
+<script>
+// Navbar scroll effect
+var navbar = document.getElementById('navbar');
+window.addEventListener('scroll', function() {
+    navbar.classList.toggle('scrolled', window.scrollY > 20);
+});
+
+// Hamburger menu
+var hamburger = document.getElementById('hamburger');
+var mobileMenu = document.getElementById('mobile-menu');
+hamburger.addEventListener('click', function() {
+    hamburger.classList.toggle('active');
+    mobileMenu.classList.toggle('open');
+    document.body.style.overflow = mobileMenu.classList.contains('open') ? 'hidden' : '';
+});
+document.querySelectorAll('.mobile-nav-link').forEach(function(link) {
+    link.addEventListener('click', function() {
+        hamburger.classList.remove('active');
+        mobileMenu.classList.remove('open');
+        document.body.style.overflow = '';
+    });
+});
+
+// Fade-in observer
+var fadeObserver = new IntersectionObserver(function(entries) {
+    entries.forEach(function(entry) {
+        if (entry.isIntersecting) {
+            entry.target.classList.add('visible');
+            fadeObserver.unobserve(entry.target);
+        }
+    });
+}, { threshold: 0.1, rootMargin: '0px 0px -40px 0px' });
+document.querySelectorAll('.fade-in, .fade-in-group').forEach(function(el) {
+    fadeObserver.observe(el);
+});
+
+// Active nav highlight
+var currentPath = window.location.pathname;
+document.querySelectorAll('.nav-links .nav-link').forEach(function(link) {
+    if (currentPath.startsWith(link.getAttribute('href')) && link.getAttribute('href') !== '/') {
+        link.classList.add('active');
+    }
+});
+</script>
+</body>
+</html>

@@ -1,18 +1,15 @@
-{% extends "portfolio/base.html" %}
-{% load static %}
+{% extends "portfolio/personal_base.html" %}
 
 {% block title %}Recipes — Dennis Loevlie{% endblock %}
+{% block nav_recipes %}active{% endblock %}
 
 {% block content %}
-{% include "portfolio/sections/nav.html" %}
-
 <section class="section recipes-page" id="recipes">
     <div class="container">
-        <a href="/" class="recipes-back-link">&larr; Back to portfolio</a>
         <h1 class="recipes-page-title fade-in">Recipes</h1>
         <p class="recipes-page-subtitle fade-in">A collection of comfort food from my Finnish roots and beyond.</p>
 
-        <!-- Search & Filter -->
+        <!-- Search -->
         <div class="recipe-search-bar fade-in">
             <svg class="recipe-search-icon" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
                 <circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/>
@@ -57,11 +54,9 @@
             {% endfor %}
         </div>
 
-        <!-- Empty state -->
         <div class="recipe-empty" id="recipe-empty" style="display: none;">
             <p>No recipes match your search.</p>
         </div>
-
     </div>
 </section>
 
@@ -74,7 +69,6 @@
     var filterBtns = document.querySelectorAll('.recipe-filter-tag');
     var activeFilter = 'all';
 
-    // Deduplicate filter tags
     var seen = {};
     filterBtns.forEach(function(btn) {
         var f = btn.dataset.filter;
@@ -86,7 +80,6 @@
     function filterCards() {
         var query = search.value.toLowerCase().trim();
         var visible = 0;
-
         cards.forEach(function(card) {
             var title = card.dataset.title;
             var tags = card.dataset.tags;
@@ -96,12 +89,10 @@
             card.style.display = show ? '' : 'none';
             if (show) visible++;
         });
-
         empty.style.display = visible === 0 ? '' : 'none';
     }
 
     search.addEventListener('input', filterCards);
-
     filterBtns.forEach(function(btn) {
         btn.addEventListener('click', function() {
             filterBtns.forEach(function(b) { b.classList.remove('active'); });

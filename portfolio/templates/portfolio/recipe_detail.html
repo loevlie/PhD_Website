@@ -1,11 +1,9 @@
-{% extends "portfolio/base.html" %}
-{% load static %}
+{% extends "portfolio/personal_base.html" %}
 
 {% block title %}{{ recipe.title }} — Recipes{% endblock %}
+{% block nav_recipes %}active{% endblock %}
 
 {% block content %}
-{% include "portfolio/sections/nav.html" %}
-
 <section class="section recipes-page" id="recipe-detail">
     <div class="container">
         <a href="{% url 'recipes' %}" class="recipes-back-link">&larr; All recipes</a>
@@ -70,7 +68,6 @@
                 {% endfor %}
             </div>
         </article>
-
     </div>
 </section>
 {% endblock %}

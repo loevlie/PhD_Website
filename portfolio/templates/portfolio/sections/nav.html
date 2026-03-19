@@ -5,16 +5,6 @@
             {% for link in nav_links %}
             <a href="{{ link.href }}" class="nav-link">{{ link.label }}</a>
             {% endfor %}
-            <!-- "More" dropdown for non-career pages -->
-            <div class="nav-dropdown">
-                <button class="nav-link nav-dropdown-toggle" aria-expanded="false">
-                    More
-                    <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round"><polyline points="6 9 12 15 18 9"/></svg>
-                </button>
-                <div class="nav-dropdown-menu">
-                    <a href="/recipes/" class="nav-dropdown-item">Recipes</a>
-                </div>
-            </div>
         </div>
         <button class="theme-toggle" id="theme-toggle" aria-label="Toggle light/dark mode">
             <svg class="icon-moon" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
@@ -36,7 +26,4 @@
     {% for link in nav_links %}
     <a href="{{ link.href }}" class="nav-link mobile-nav-link">{{ link.label }}</a>
     {% endfor %}
-    <div class="mobile-menu-divider"></div>
-    <span class="mobile-menu-label">More</span>
-    <a href="/recipes/" class="nav-link mobile-nav-link">Recipes</a>
 </div>
