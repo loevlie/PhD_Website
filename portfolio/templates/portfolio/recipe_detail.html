@@ -1,7 +1,19 @@
 {% extends "portfolio/personal_base.html" %}
+{% load static %}
 
 {% block title %}{{ recipe.title }} — Recipes{% endblock %}
 {% block nav_recipes %}active{% endblock %}
+
+{% block og_meta %}
+<meta property="og:title" content="{{ recipe.title }} — Recipes">
+<meta property="og:description" content="{{ recipe.tagline }}">
+<meta property="og:image" content="{% static 'portfolio/images/og-recipes.png' %}">
+<meta property="og:type" content="article">
+<meta name="twitter:card" content="summary_large_image">
+<meta name="twitter:title" content="{{ recipe.title }} — Recipes">
+<meta name="twitter:description" content="{{ recipe.tagline }}">
+<meta name="twitter:image" content="{% static 'portfolio/images/og-recipes.png' %}">
+{% endblock %}
 
 {% block content %}
 <section class="section recipes-page" id="recipe-detail">
@@ -35,7 +47,7 @@
             <div class="recipe-story">
                 <p>{{ recipe.description }}</p>
                 {% if recipe.credit_url %}
-                <p>Recipe inspired by <a href="{{ recipe.credit_url }}" target="_blank" rel="noopener">{{ recipe.credit_label }}</a>.</p>
+                <p>Recipe {{ recipe.credit_verb|default:"inspired by" }} <a href="{{ recipe.credit_url }}" target="_blank" rel="noopener">{{ recipe.credit_label }}</a>.</p>
                 {% endif %}
             </div>
 
