@@ -44,6 +44,14 @@
         grid-template-columns: 1fr;
     }
 
+    .project-featured {
+        grid-column: span 1;
+    }
+
+    .project-featured .project-card-title {
+        font-size: var(--body-size);
+    }
+
     .demos-wide {
         padding: 0 24px;
     }

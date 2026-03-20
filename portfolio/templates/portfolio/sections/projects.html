@@ -3,25 +3,54 @@
         <h2 class="section-title fade-in">Projects</h2>
         <div class="project-grid fade-in-group" id="project-grid">
             {% for project in projects %}
-            <div class="project-card{% if forloop.counter > 6 %} project-hidden{% endif %}">
+            <div class="project-card{% if project.featured %} project-featured{% endif %}{% if forloop.counter > 6 %} project-hidden{% endif %}">
                 <div class="card tilt-card">
-                    <h3 class="project-card-title">
-                        {% if project.links %}
-                        <a href="{{ project.links.0.url }}" target="_blank" rel="noopener">{{ project.title }}</a>
-                        {% else %}
-                        {{ project.title }}
+                    <div class="project-card-header">
+                        <h3 class="project-card-title">
+                            {% if project.links %}
+                            <a href="{{ project.links.0.url }}" target="_blank" rel="noopener">{{ project.title }}</a>
+                            {% else %}
+                            {{ project.title }}
+                            {% endif %}
+                        </h3>
+                        {% if project.github %}
+                        <span class="project-stars" data-repo="{{ project.github }}">
+                            <svg width="14" height="14" viewBox="0 0 16 16" fill="currentColor" aria-hidden="true">
+                                <path d="M8 .25a.75.75 0 01.673.418l1.882 3.815 4.21.612a.75.75 0 01.416 1.279l-3.046 2.97.719 4.192a.75.75 0 01-1.088.791L8 12.347l-3.766 1.98a.75.75 0 01-1.088-.79l.72-4.194L.818 6.374a.75.75 0 01.416-1.28l4.21-.611L7.327.668A.75.75 0 018 .25z"/>
+                            </svg>
+                            <span class="star-count" data-repo="{{ project.github }}">-</span>
+                        </span>
                         {% endif %}
-                    </h3>
+                    </div>
                     <p class="project-card-desc">{{ project.description }}</p>
-                    <div class="project-card-tags">
-                        {% for tag in project.tags %}
-                        <span class="tag">{{ tag }}</span>
-                        {% endfor %}
+                    <div class="project-card-meta">
+                        <div class="project-card-tags">
+                            {% for tag in project.tags %}
+                            <span class="tag">{{ tag }}</span>
+                            {% endfor %}
+                        </div>
+                        {% if project.language %}
+                        <span class="project-language">
+                            <span class="language-dot language-dot--{{ project.language|lower }}"></span>
+                            {{ project.language }}
+                        </span>
+                        {% endif %}
                     </div>
                     {% if project.links %}
                     <div class="project-card-links">
                         {% for link in project.links %}
-                        <a href="{{ link.url }}" class="link-pill" target="_blank" rel="noopener">{{ link.label }}</a>
+                        <a href="{{ link.url }}" class="link-pill" target="_blank" rel="noopener">
+                            {% if link.label == 'Code' %}
+                            <svg width="14" height="14" viewBox="0 0 16 16" fill="currentColor" aria-hidden="true"><path d="M8 0C3.58 0 0 3.58 0 8c0 3.54 2.29 6.53 5.47 7.59.4.07.55-.17.55-.38 0-.19-.01-.82-.01-1.49-2.01.37-2.53-.49-2.69-.94-.09-.23-.48-.94-.82-1.13-.28-.15-.68-.52-.01-.53.63-.01 1.08.58 1.23.82.72 1.21 1.87.87 2.33.66.07-.52.28-.87.51-1.07-1.78-.2-3.64-.89-3.64-3.95 0-.87.31-1.59.82-2.15-.08-.2-.36-1.02.08-2.12 0 0 .67-.21 2.2.82.64-.18 1.32-.27 2-.27.68 0 1.36.09 2 .27 1.53-1.04 2.2-.82 2.2-.82.44 1.1.16 1.92.08 2.12.51.56.82 1.27.82 2.15 0 3.07-1.87 3.75-3.65 3.95.29.25.54.73.54 1.48 0 1.07-.01 1.93-.01 2.2 0 .21.15.46.55.38A8.013 8.013 0 0016 8c0-4.42-3.58-8-8-8z"/></svg>
+                            {% elif link.label == 'Demo' %}
+                            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="12" r="10"/><polygon points="10 8 16 12 10 16 10 8"/></svg>
+                            {% elif link.label == 'PDF' %}
+                            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/></svg>
+                            {% else %}
+                            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M18 13v6a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h6"/><polyline points="15 3 21 3 21 9"/><line x1="10" y1="14" x2="21" y2="3"/></svg>
+                            {% endif %}
+                            {{ link.label }}
+                        </a>
                         {% endfor %}
                     </div>
                     {% endif %}

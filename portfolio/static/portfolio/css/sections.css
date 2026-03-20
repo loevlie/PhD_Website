@@ -570,17 +570,38 @@
     flex-direction: column;
 }
 
+.project-featured {
+    grid-column: span 2;
+}
+
+.project-featured .card {
+    background: linear-gradient(135deg, var(--bg-secondary) 0%, rgba(15, 118, 110, 0.06) 100%);
+    border-color: var(--accent);
+}
+
 .project-card .card {
     flex: 1;
     display: flex;
     flex-direction: column;
 }
 
+.project-card-header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 12px;
+    margin-bottom: 8px;
+}
+
 .project-card-title {
     font-size: var(--body-size);
     font-weight: 600;
     color: var(--text-primary);
-    margin-bottom: 8px;
+    margin-bottom: 0;
+}
+
+.project-featured .project-card-title {
+    font-size: var(--h3-size);
 }
 
 .project-card-title a {
@@ -591,6 +612,35 @@
     color: var(--accent-light);
 }
 
+.project-stars {
+    display: inline-flex;
+    align-items: center;
+    gap: 4px;
+    font-size: var(--xs-size);
+    font-weight: 500;
+    color: var(--text-muted);
+    white-space: nowrap;
+    padding: 3px 10px;
+    border-radius: 9999px;
+    background-color: var(--bg-tertiary);
+    border: 1px solid var(--border-color);
+    transition: color var(--transition-fast), border-color var(--transition-fast);
+}
+
+.project-stars svg {
+    color: var(--text-muted);
+    transition: color var(--transition-fast);
+}
+
+.project-card:hover .project-stars {
+    color: var(--accent-light);
+    border-color: var(--accent);
+}
+
+.project-card:hover .project-stars svg {
+    color: #f0b429;
+}
+
 .project-card-desc {
     font-size: var(--small-size);
     color: var(--text-secondary);
@@ -599,18 +649,50 @@
     line-height: 1.6;
 }
 
+.project-card-meta {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 12px;
+    margin-top: auto;
+}
+
 .project-card-tags {
     display: flex;
     gap: 6px;
     flex-wrap: wrap;
-    margin-top: auto;
 }
+
+.project-language {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    font-size: var(--xs-size);
+    color: var(--text-muted);
+    white-space: nowrap;
+}
+
+.language-dot {
+    width: 10px;
+    height: 10px;
+    border-radius: 50%;
+    display: inline-block;
+}
+
+.language-dot--python { background-color: #3572A5; }
+.language-dot--javascript { background-color: #f1e05a; }
+.language-dot--typescript { background-color: #3178c6; }
+.language-dot--jupyter { background-color: #DA5B0B; }
 
 .project-card-links {
     display: flex;
     gap: 6px;
     flex-wrap: wrap;
     margin-top: 12px;
+}
+
+.project-card-links .link-pill svg {
+    flex-shrink: 0;
 }
 
 .project-hidden {

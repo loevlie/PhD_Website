@@ -100,6 +100,40 @@ function toggleProjects() {
     }
 }
 
+// ── GitHub Star Counts ──
+(function () {
+    const starEls = document.querySelectorAll('.star-count[data-repo]');
+    if (!starEls.length) return;
+
+    // Collect unique repos
+    const repos = [...new Set([...starEls].map(el => el.dataset.repo))];
+
+    repos.forEach(repo => {
+        // Check sessionStorage cache first
+        const cached = sessionStorage.getItem('gh-stars-' + repo);
+        if (cached !== null) {
+            updateStars(repo, cached);
+            return;
+        }
+
+        fetch('https://api.github.com/repos/' + repo, { headers: { Accept: 'application/vnd.github.v3+json' } })
+            .then(r => r.ok ? r.json() : null)
+            .then(data => {
+                if (!data) return;
+                const count = data.stargazers_count;
+                sessionStorage.setItem('gh-stars-' + repo, count);
+                updateStars(repo, count);
+            })
+            .catch(() => {});
+    });
+
+    function updateStars(repo, count) {
+        document.querySelectorAll('.star-count[data-repo="' + repo + '"]').forEach(el => {
+            el.textContent = Number(count) >= 1000 ? (Number(count) / 1000).toFixed(1) + 'k' : count;
+        });
+    }
+})();
+
 // ── Scroll Progress Bar ──
 const scrollProgress = document.getElementById('scroll-progress');
 window.addEventListener('scroll', () => {
