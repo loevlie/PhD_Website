@@ -8,14 +8,14 @@ HERO = {
     'title': 'ELLIS PhD Student',
     'affiliation': 'CWI & University of Amsterdam',
     'bio': (
-        'I am an ⭐ <a href="https://ellis.eu/research/phd-postdoc" target="_blank">ELLIS</a> PhD student at <a href="https://www.cwi.nl/" target="_blank">CWI</a> '
+        'I am an ⭐ <a href="https://ellis.eu/research/phd-postdoc" target="_blank">ELLIS</a> PhD student at the <a href="https://www.cwi.nl/" target="_blank">Centrum Wiskunde & Informatica (CWI)</a> '
         'and the <a href="https://www.uva.nl/" target="_blank">University of Amsterdam</a>, '
         'working in the <a href="https://trl-lab.github.io/" target="_blank">Table Representation Learning Lab (TRLab)</a> '
         'and the <a href="https://amlab.science.uva.nl/" target="_blank">Amsterdam Machine Learning Lab (AMLab)</a>. '
         'I am advised by <a href="https://madelonhulsebos.github.io/" target="_blank">Madelon Hulsebos</a> '
         '(TRLab, CWI) and co-advised by <a href="https://jwvdm.github.io/" target="_blank">Jan-Willem van de Meent</a> '
         '(AMLab, UvA). '
-        'My research focuses on <strong>multimodal tabular foundation models</strong>.'
+        'My research focuses on <strong>tabular foundation models</strong>.'
     ),
     'bio_continued': (
         'Previously, I completed my M.S. in Computer Science at '
@@ -159,6 +159,14 @@ PUBLICATIONS = [
 
 PROJECTS = [
     {
+        'title': 'NeurOpt',
+        'description': 'LLM-guided machine learning optimization tool that automates hyperparameter tuning and neural architecture search by analyzing training curves to propose experiments.',
+        'tags': ['LLM', 'Optimization', 'PyTorch'],
+        'links': [
+            {'label': 'Code', 'url': 'https://github.com/loevlie/neuropt'},
+        ],
+    },
+    {
         'title': 'Gaussian Splatting PyTorch',
         'description': 'Implementation of 3D Gaussian Splatting for real-time radiance field rendering in PyTorch.',
         'tags': ['PyTorch', '3D Vision', 'Rendering'],
@@ -299,7 +307,7 @@ TIMELINE = [
         'year': '2026 —',
         'title': 'ELLIS PhD Student',
         'org': 'CWI & University of Amsterdam',
-        'description': 'Researching multimodal tabular foundation models. Advised by Madelon Hulsebos (TRLab, CWI) and co-advised by Jan-Willem van de Meent (AMLab, UvA).',
+        'description': 'Researching tabular foundation models. Advised by Madelon Hulsebos (TRLab, CWI) and co-advised by Jan-Willem van de Meent (AMLab, UvA).',
     },
     {
         'year': '2025',
