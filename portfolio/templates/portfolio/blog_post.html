@@ -30,7 +30,7 @@
 <!-- Reading progress -->
 <div id="blog-progress" class="fixed top-0 left-0 h-0.5 bg-gradient-to-r from-accent to-indigo-400 z-[60] pointer-events-none transition-[width] duration-75" style="width:0%"></div>
 
-<article class="max-w-article mx-auto px-6 pt-12 pb-16">
+<article class="max-w-article lg:max-w-[940px] mx-auto px-6 pt-12 pb-16">
     <!-- Back link -->
     <a href="{% url 'blog' %}" class="inline-flex items-center gap-1.5 text-sm text-content-muted hover:text-accent transition-colors mb-10">
         <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="19" y1="12" x2="5" y2="12"/><polyline points="12 19 5 12 12 5"/></svg>
@@ -77,18 +77,8 @@
 
     <div class="gradient-divider mb-10"></div>
 
-    <!-- Table of Contents -->
-    {% if post.toc_html %}
-    <nav class="bg-surface-1 border border-border rounded-xl p-5 mb-10" x-data="{ tocOpen: window.innerWidth >= 768 }">
-        <button @click="tocOpen = !tocOpen" class="flex items-center justify-between w-full text-left">
-            <span class="text-xs font-semibold text-content-muted uppercase tracking-wider">Table of Contents</span>
-            <svg :class="tocOpen && 'rotate-180'" class="w-4 h-4 text-content-muted transition-transform" viewBox="0 0 10 10" fill="none" stroke="currentColor" stroke-width="1.5"><polyline points="2 4 5 7 8 4"/></svg>
-        </button>
-        <div x-show="tocOpen" x-cloak x-transition class="mt-4 blog-toc-links text-sm text-content-muted space-y-1 [&_a]:block [&_a]:py-1.5 [&_a]:hover:text-accent [&_a]:transition-colors [&_a]:border-l-2 [&_a]:border-transparent [&_a]:hover:border-accent [&_a]:pl-3 [&_a]:-ml-px [&_ul]:pl-4 [&_ul]:mt-1 [&_li]:list-none">
-            {{ post.toc_html|safe }}
-        </div>
-    </nav>
-    {% endif %}
+    <!-- Two-column layout: article + sticky sidebar ToC on desktop -->
+    <div class="relative lg:grid lg:grid-cols-[1fr_220px] lg:gap-12">
 
     <!-- Article body -->
     <div class="blog-prose text-text text-base md:text-lg leading-[1.6]
@@ -107,6 +97,20 @@
                 [&_em]:text-content-secondary">
         {{ post.content_html|safe }}
     </div>
+
+    <!-- Desktop sticky sidebar ToC -->
+    {% if post.toc_html %}
+    <aside class="hidden lg:block" id="sidebar-toc">
+        <div class="sticky top-20">
+            <div class="text-[0.6875rem] font-semibold text-content-muted uppercase tracking-wider mb-3">On this page</div>
+            <nav class="sidebar-toc-links text-[0.8125rem] text-content-muted space-y-0.5 [&_a]:block [&_a]:py-1 [&_a]:border-l-2 [&_a]:border-transparent [&_a]:pl-3 [&_a]:transition-colors [&_a]:leading-snug [&_a]:hover:text-accent [&_a]:hover:border-accent [&_ul]:pl-3 [&_ul]:mt-0.5 [&_li]:list-none" id="sidebar-toc-nav">
+                {{ post.toc_html|safe }}
+            </nav>
+        </div>
+    </aside>
+    {% endif %}
+
+    </div><!-- end grid -->
 
     <!-- Share + footer -->
     <footer class="mt-16 pt-8 border-t border-border">
@@ -130,7 +134,7 @@
     </footer>
 
     <!-- Newsletter -->
-    <div class="mt-12 p-8 bg-gradient-to-br from-surface-1 to-accent-subtle border border-accent/20 rounded-2xl text-center">
+    <div id="newsletter" class="blog-newsletter-section mt-12 p-8 bg-gradient-to-br from-surface-1 to-accent-subtle border border-accent/20 rounded-2xl text-center scroll-mt-20">
         <h3 class="text-lg font-semibold text-content mb-2">Stay updated</h3>
         <p class="text-sm text-content-secondary mb-5">Get notified when I publish new posts on ML research and deep learning.</p>
         <form action="https://buttondown.com/api/emails/embed-subscribe/dennisloevlie" method="post" target="popupwindow"
@@ -183,6 +187,69 @@
         </script>
     </div>
 </article>
+
+{% if post.toc_html %}
+<!-- Mobile floating ToC button + overlay -->
+<div x-data="{ tocOpen: false }" class="lg:hidden">
+    <!-- Floating button -->
+    <button @click="tocOpen = true"
+            class="fixed bottom-6 left-6 z-40 flex items-center gap-2 px-4 py-2.5 rounded-full bg-mantle border border-surface-2 shadow-lg text-content-muted hover:text-content text-sm font-medium transition-all hover:shadow-xl"
+            x-show="!tocOpen">
+        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="3" y1="6" x2="21" y2="6"/><line x1="3" y1="12" x2="15" y2="12"/><line x1="3" y1="18" x2="18" y2="18"/></svg>
+        Sections
+    </button>
+
+    <!-- Overlay -->
+    <div x-show="tocOpen" x-cloak
+         x-transition:enter="transition ease-out duration-200"
+         x-transition:enter-start="opacity-0"
+         x-transition:enter-end="opacity-100"
+         x-transition:leave="transition ease-in duration-150"
+         x-transition:leave-start="opacity-100"
+         x-transition:leave-end="opacity-0"
+         @click="tocOpen = false"
+         class="fixed inset-0 z-40 bg-crust/60 backdrop-blur-sm">
+    </div>
+
+    <!-- Slide-up panel -->
+    <div x-show="tocOpen" x-cloak
+         x-transition:enter="transition ease-out duration-200"
+         x-transition:enter-start="translate-y-full"
+         x-transition:enter-end="translate-y-0"
+         x-transition:leave="transition ease-in duration-150"
+         x-transition:leave-start="translate-y-0"
+         x-transition:leave-end="translate-y-full"
+         class="fixed bottom-0 left-0 right-0 z-50 bg-mantle border-t border-surface-2 rounded-t-2xl max-h-[70vh] overflow-y-auto p-6">
+        <div class="flex items-center justify-between mb-4">
+            <span class="text-xs font-semibold text-content-muted uppercase tracking-wider">Sections</span>
+            <button @click="tocOpen = false" class="p-1 text-content-muted hover:text-content">
+                <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
+            </button>
+        </div>
+        <nav class="text-sm text-content-muted space-y-1 [&_a]:block [&_a]:py-2.5 [&_a]:px-3 [&_a]:rounded-lg [&_a]:hover:bg-surface-2 [&_a]:hover:text-content [&_a]:transition-colors [&_ul]:pl-4 [&_ul]:mt-1 [&_li]:list-none"
+             @click="tocOpen = false">
+            {{ post.toc_html|safe }}
+        </nav>
+    </div>
+</div>
+{% endif %}
+
+<!-- Floating subscribe pill -->
+<div x-data="{ visible: true }" class="fixed bottom-6 right-6 z-40" x-show="visible"
+     x-init="
+        let nl = document.querySelector('.blog-newsletter-section');
+        if (nl) {
+            let ob = new IntersectionObserver(function(entries) { visible = !entries[0].isIntersecting; }, { threshold: 0.1 });
+            ob.observe(nl);
+        }
+     "
+     x-transition>
+    <a href="#newsletter"
+       class="flex items-center gap-2 px-4 py-2.5 rounded-full bg-accent hover:bg-accent-hover text-white text-sm font-medium shadow-lg transition-all hover:shadow-xl">
+        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M4 4h16c1.1 0 2 .9 2 2v12c0 1.1-.9 2-2 2H4c-1.1 0-2-.9-2-2V6c0-1.1.9-2 2-2z"/><polyline points="22,6 12,13 2,6"/></svg>
+        Subscribe
+    </a>
+</div>
 
 <!-- JSON-LD -->
 <script type="application/ld+json">
@@ -275,6 +342,29 @@
         block.style.position = 'relative';
         block.appendChild(btn);
     });
+
+    // Sidebar ToC scrollspy — highlight active section
+    var sidebarNav = document.getElementById('sidebar-toc-nav');
+    if (sidebarNav) {
+        var tocLinks = sidebarNav.querySelectorAll('a[href^="#"]');
+        var headings = [];
+        tocLinks.forEach(function(link) {
+            var id = link.getAttribute('href').slice(1);
+            var el = document.getElementById(id);
+            if (el) headings.push({ el: el, link: link });
+        });
+        window.addEventListener('scroll', function() {
+            var current = '';
+            headings.forEach(function(h) {
+                if (h.el.getBoundingClientRect().top <= 100) current = h.el.id;
+            });
+            tocLinks.forEach(function(link) {
+                var isActive = link.getAttribute('href') === '#' + current;
+                link.style.color = isActive ? 'var(--ctp-lavender)' : '';
+                link.style.borderColor = isActive ? 'var(--ctp-lavender)' : 'transparent';
+            });
+        }, { passive: true });
+    }
 
     // Giscus theme sync
     window.addEventListener('themechange', function(e) {
