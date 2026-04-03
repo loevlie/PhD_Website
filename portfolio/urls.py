@@ -21,4 +21,5 @@ urlpatterns = [
     path('publications/', views.publications, name='publications'),
     path('projects/', views.projects, name='projects'),
     path('sitemap.xml', sitemap, {'sitemaps': sitemaps}, name='sitemap'),
+    path('robots.txt', views.robots_txt, name='robots_txt'),
 ]

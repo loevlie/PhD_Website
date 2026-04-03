@@ -54,3 +54,13 @@ def publications(request):
 
 def projects(request):
     return render(request, 'portfolio/projects.html')
+
+
+def robots_txt(request):
+    from django.http import HttpResponse
+    from django.template.loader import render_to_string
+    content = render_to_string('portfolio/robots.txt', {
+        'scheme': request.scheme,
+        'host': request.get_host(),
+    })
+    return HttpResponse(content, content_type='text/plain')
