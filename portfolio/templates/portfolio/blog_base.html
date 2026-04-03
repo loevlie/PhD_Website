@@ -177,10 +177,15 @@
             opacity: 0;
         }
 
-        /* Code blocks: use Catppuccin flavor colors */
+        /* Code blocks: always Mocha for max readability, with flavor-aware border */
         .blog-prose .highlight {
-            background: var(--ctp-crust) !important;
-            border: 1px solid var(--ctp-surface0) !important;
+            --hl-crust: #11111b; --hl-mantle: #181825; --hl-surface0: #313244;
+            --hl-text: #cdd6f4; --hl-overlay0: #6c7086; --hl-overlay2: #9399b2;
+            --hl-mauve: #cba6f7; --hl-green: #a6e3a1; --hl-blue: #89b4fa;
+            --hl-yellow: #f9e2af; --hl-peach: #fab387; --hl-sky: #89dceb;
+            --hl-red: #f38ba8; --hl-lavender: #b4befe;
+            background: var(--hl-crust) !important;
+            border: 1px solid var(--hl-surface0) !important;
             border-radius: 10px !important;
             padding: 1rem 1.25rem !important;
             overflow-x: auto !important;
@@ -189,23 +194,27 @@
             line-height: 1.75 !important;
             margin: 1.75rem 0 !important;
             position: relative;
-            color: var(--ctp-text) !important;
-            box-shadow: 0 4px 16px rgba(0, 0, 0, 0.12), 0 0 0 1px rgba(0, 0, 0, 0.06);
+            color: var(--hl-text) !important;
+            box-shadow: 0 4px 16px rgba(0, 0, 0, 0.15), 0 0 0 1px rgba(0, 0, 0, 0.08);
         }
+        /* For dark flavors, use the actual flavor's crust/surface for a cohesive feel */
+        .frappe .blog-prose .highlight { --hl-crust: #232634; --hl-mantle: #292c3c; --hl-surface0: #414559; --hl-text: #c6d0f5; --hl-overlay0: #737994; --hl-overlay2: #949cbb; --hl-mauve: #ca9ee6; --hl-green: #a6d189; --hl-blue: #8caaee; --hl-yellow: #e5c890; --hl-peach: #ef9f76; --hl-sky: #99d1db; --hl-red: #e78284; --hl-lavender: #babbf1; }
+        .macchiato .blog-prose .highlight { --hl-crust: #181926; --hl-mantle: #1e2030; --hl-surface0: #363a4f; --hl-text: #cad3f5; --hl-overlay0: #6e738d; --hl-overlay2: #939ab7; --hl-mauve: #c6a0f6; --hl-green: #a6da95; --hl-blue: #8aadf4; --hl-yellow: #eed49f; --hl-peach: #f5a97f; --hl-sky: #91d7e3; --hl-red: #ed8796; --hl-lavender: #b7bdf8; }
+
         .blog-prose .highlight pre { margin: 0 !important; padding: 0 !important; background: none !important; color: inherit !important; }
         .blog-prose .highlight code { background: none !important; padding: 0 !important; font-size: inherit !important; color: inherit !important; }
-        /* Syntax colors — all via Catppuccin CSS vars */
-        .blog-prose .highlight .c, .blog-prose .highlight .cm, .blog-prose .highlight .c1, .blog-prose .highlight .cs { color: var(--ctp-overlay0) !important; }
-        .blog-prose .highlight .k, .blog-prose .highlight .kn, .blog-prose .highlight .kd, .blog-prose .highlight .kc { color: var(--ctp-mauve) !important; }
-        .blog-prose .highlight .s, .blog-prose .highlight .s1, .blog-prose .highlight .s2, .blog-prose .highlight .sa { color: var(--ctp-green) !important; }
-        .blog-prose .highlight .n, .blog-prose .highlight .na { color: var(--ctp-text) !important; }
-        .blog-prose .highlight .nf, .blog-prose .highlight .fm { color: var(--ctp-blue) !important; }
-        .blog-prose .highlight .nb { color: var(--ctp-yellow) !important; }
-        .blog-prose .highlight .mi, .blog-prose .highlight .mf, .blog-prose .highlight .mh { color: var(--ctp-peach) !important; }
-        .blog-prose .highlight .o, .blog-prose .highlight .ow { color: var(--ctp-sky) !important; }
-        .blog-prose .highlight .p { color: var(--ctp-overlay2) !important; }
-        .blog-prose .highlight .bp { color: var(--ctp-red) !important; }
-        .blog-prose .highlight .nn { color: var(--ctp-blue) !important; }
+        /* Syntax colors */
+        .blog-prose .highlight .c, .blog-prose .highlight .cm, .blog-prose .highlight .c1, .blog-prose .highlight .cs { color: var(--hl-overlay0) !important; }
+        .blog-prose .highlight .k, .blog-prose .highlight .kn, .blog-prose .highlight .kd, .blog-prose .highlight .kc { color: var(--hl-mauve) !important; }
+        .blog-prose .highlight .s, .blog-prose .highlight .s1, .blog-prose .highlight .s2, .blog-prose .highlight .sa { color: var(--hl-green) !important; }
+        .blog-prose .highlight .n, .blog-prose .highlight .na { color: var(--hl-text) !important; }
+        .blog-prose .highlight .nf, .blog-prose .highlight .fm { color: var(--hl-blue) !important; }
+        .blog-prose .highlight .nb { color: var(--hl-yellow) !important; }
+        .blog-prose .highlight .mi, .blog-prose .highlight .mf, .blog-prose .highlight .mh { color: var(--hl-peach) !important; }
+        .blog-prose .highlight .o, .blog-prose .highlight .ow { color: var(--hl-sky) !important; }
+        .blog-prose .highlight .p { color: var(--hl-overlay2) !important; }
+        .blog-prose .highlight .bp { color: var(--hl-red) !important; }
+        .blog-prose .highlight .nn { color: var(--hl-blue) !important; }
 
         /* Code block language label */
         .code-lang-label {
@@ -216,9 +225,9 @@
             font-family: 'JetBrains Mono', monospace;
             text-transform: uppercase;
             letter-spacing: 0.06em;
-            color: var(--ctp-overlay0);
-            border-bottom: 1px solid var(--ctp-surface0);
-            background: var(--ctp-mantle);
+            color: var(--hl-overlay0);
+            border-bottom: 1px solid var(--hl-surface0);
+            background: var(--hl-mantle);
             border-radius: 10px 10px 0 0;
         }
         .highlight.has-lang { padding-top: 2.5rem !important; }
@@ -228,13 +237,13 @@
             position: absolute; top: 8px; right: 8px;
             display: flex; align-items: center; justify-content: center;
             width: 32px; height: 32px; border-radius: 6px;
-            background: var(--ctp-mantle); border: 1px solid var(--ctp-surface0);
-            color: var(--ctp-overlay0); cursor: pointer;
+            background: var(--hl-mantle); border: 1px solid var(--hl-surface0);
+            color: var(--hl-overlay0); cursor: pointer;
             opacity: 0; transition: opacity 0.15s, color 0.15s, border-color 0.15s;
         }
         .highlight.has-lang .code-copy-btn { top: 34px; }
         .highlight:hover .code-copy-btn { opacity: 1; }
-        .code-copy-btn:hover { color: var(--ctp-lavender); border-color: var(--ctp-lavender); }
+        .code-copy-btn:hover { color: var(--hl-lavender); border-color: var(--hl-lavender); }
 
         /* Inline code */
         .blog-prose code:not(.highlight code) {
