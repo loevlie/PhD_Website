@@ -34,79 +34,82 @@
                     mono: ['JetBrains Mono', 'Fira Code', 'monospace'],
                 },
                 colors: {
-                    surface: {
-                        0: 'var(--surface-0)',
-                        1: 'var(--surface-1)',
-                        2: 'var(--surface-2)',
-                    },
-                    content: {
-                        DEFAULT: 'var(--content)',
-                        secondary: 'var(--content-secondary)',
-                        muted: 'var(--content-muted)',
-                    },
-                    accent: {
-                        DEFAULT: 'var(--accent)',
-                        hover: 'var(--accent-hover)',
-                        subtle: 'var(--accent-subtle)',
-                    },
-                    border: 'var(--border)',
+                    /* Catppuccin semantic names — auto-switch via CSS vars */
+                    base:     'var(--ctp-base)',
+                    mantle:   'var(--ctp-mantle)',
+                    crust:    'var(--ctp-crust)',
+                    surface:  { 0: 'var(--ctp-surface0)', 1: 'var(--ctp-surface1)', 2: 'var(--ctp-surface2)' },
+                    overlay:  { 0: 'var(--ctp-overlay0)', 1: 'var(--ctp-overlay1)', 2: 'var(--ctp-overlay2)' },
+                    text:     'var(--ctp-text)',
+                    subtext:  { 0: 'var(--ctp-subtext0)', 1: 'var(--ctp-subtext1)' },
+                    /* Catppuccin accent colors */
+                    rosewater:'var(--ctp-rosewater)',
+                    flamingo: 'var(--ctp-flamingo)',
+                    pink:     'var(--ctp-pink)',
+                    mauve:    'var(--ctp-mauve)',
+                    red:      'var(--ctp-red)',
+                    maroon:   'var(--ctp-maroon)',
+                    peach:    'var(--ctp-peach)',
+                    yellow:   'var(--ctp-yellow)',
+                    green:    'var(--ctp-green)',
+                    teal:     'var(--ctp-teal)',
+                    sky:      'var(--ctp-sky)',
+                    sapphire: 'var(--ctp-sapphire)',
+                    blue:     'var(--ctp-blue)',
+                    lavender: 'var(--ctp-lavender)',
+                    /* Aliases for convenience */
+                    border:   'var(--ctp-surface0)',
+                    content:  { DEFAULT: 'var(--ctp-text)', secondary: 'var(--ctp-subtext1)', muted: 'var(--ctp-overlay0)' },
+                    accent:   { DEFAULT: 'var(--ctp-lavender)', hover: 'var(--ctp-mauve)', subtle: 'var(--ctp-lavender-subtle)' },
                 },
                 maxWidth: {
                     'article': '680px',
                     'blog': '1080px',
                 },
-                typography: {
-                    DEFAULT: {
-                        css: {
-                            maxWidth: '680px',
-                        }
-                    }
-                }
             }
         }
     }
     </script>
 
-    <!-- CSS custom properties for theming -->
     <style>
-        /* Catppuccin Latte (light) */
+        /* Catppuccin Latte (light) — all 26 colors */
         :root {
-            --surface-0: #eff1f5;
-            --surface-1: #e6e9ef;
-            --surface-2: #dce0e8;
-            --content: #4c4f69;
-            --content-secondary: #5c5f77;
-            --content-muted: #7c7f93;
-            --accent: #7287fd;
-            --accent-hover: #5c6ddd;
-            --accent-subtle: rgba(114, 135, 253, 0.1);
-            --border: #ccd0da;
+            --ctp-rosewater: #dc8a78; --ctp-flamingo: #dd7878; --ctp-pink: #ea76cb;
+            --ctp-mauve: #8839ef; --ctp-red: #d20f39; --ctp-maroon: #e64553;
+            --ctp-peach: #fe640b; --ctp-yellow: #df8e1d; --ctp-green: #40a02b;
+            --ctp-teal: #179299; --ctp-sky: #04a5e5; --ctp-sapphire: #209fb5;
+            --ctp-blue: #1e66f5; --ctp-lavender: #7287fd;
+            --ctp-text: #4c4f69; --ctp-subtext1: #5c5f77; --ctp-subtext0: #6c6f85;
+            --ctp-overlay2: #7c7f93; --ctp-overlay1: #8c8fa1; --ctp-overlay0: #9ca0b0;
+            --ctp-surface2: #acb0be; --ctp-surface1: #bcc0cc; --ctp-surface0: #ccd0da;
+            --ctp-base: #eff1f5; --ctp-mantle: #e6e9ef; --ctp-crust: #dce0e8;
+            --ctp-lavender-subtle: rgba(114, 135, 253, 0.1);
         }
 
-        /* Catppuccin Mocha (dark) */
+        /* Catppuccin Mocha (dark) — all 26 colors */
         .dark {
-            --surface-0: #1e1e2e;
-            --surface-1: #181825;
-            --surface-2: #313244;
-            --content: #cdd6f4;
-            --content-secondary: #a6adc8;
-            --content-muted: #6c7086;
-            --accent: #b4befe;
-            --accent-hover: #cba6f7;
-            --accent-subtle: rgba(180, 190, 254, 0.1);
-            --border: #313244;
+            --ctp-rosewater: #f5e0dc; --ctp-flamingo: #f2cdcd; --ctp-pink: #f5c2e7;
+            --ctp-mauve: #cba6f7; --ctp-red: #f38ba8; --ctp-maroon: #eba0ac;
+            --ctp-peach: #fab387; --ctp-yellow: #f9e2af; --ctp-green: #a6e3a1;
+            --ctp-teal: #94e2d5; --ctp-sky: #89dceb; --ctp-sapphire: #74c7ec;
+            --ctp-blue: #89b4fa; --ctp-lavender: #b4befe;
+            --ctp-text: #cdd6f4; --ctp-subtext1: #bac2de; --ctp-subtext0: #a6adc8;
+            --ctp-overlay2: #9399b2; --ctp-overlay1: #7f849c; --ctp-overlay0: #6c7086;
+            --ctp-surface2: #585b70; --ctp-surface1: #45475a; --ctp-surface0: #313244;
+            --ctp-base: #1e1e2e; --ctp-mantle: #181825; --ctp-crust: #11111b;
+            --ctp-lavender-subtle: rgba(180, 190, 254, 0.1);
         }
 
         /* Smooth color transitions */
         html { transition: background-color 0.2s ease, color 0.2s ease; }
 
         /* Selection highlight */
-        ::selection { background: var(--accent-subtle); color: var(--accent); }
+        ::selection { background: var(--accent-subtle); color: var(--ctp-lavender); }
 
         /* Scrollbar styling */
         ::-webkit-scrollbar { width: 6px; }
-        ::-webkit-scrollbar-track { background: var(--surface-0); }
-        ::-webkit-scrollbar-thumb { background: var(--border); border-radius: 3px; }
+        ::-webkit-scrollbar-track { background: var(--ctp-base); }
+        ::-webkit-scrollbar-thumb { background: var(--ctp-surface0); border-radius: 3px; }
 
         /* Image captions: em directly after img */
         .blog-prose img + em,
@@ -114,7 +117,7 @@
             display: block;
             text-align: center;
             font-size: 0.8125rem;
-            color: var(--content-muted);
+            color: var(--ctp-overlay0);
             margin-top: -1.5rem;
             margin-bottom: 2rem;
             font-style: italic;
@@ -123,14 +126,14 @@
         /* Gradient divider */
         .gradient-divider {
             height: 1px;
-            background: linear-gradient(90deg, transparent, var(--border), transparent);
+            background: linear-gradient(90deg, transparent, var(--ctp-surface0), transparent);
         }
 
         /* Callout box (for future use: add {: .callout } after blockquote) */
         .callout {
             background: var(--accent-subtle);
             border: 1px solid rgba(99, 102, 241, 0.15);
-            border-left: 3px solid var(--accent);
+            border-left: 3px solid var(--ctp-lavender);
             border-radius: 8px;
             padding: 1rem 1.25rem;
             margin: 1.5rem 0;
@@ -213,13 +216,13 @@
 
         /* Inline code */
         .blog-prose code:not(.highlight code) {
-            background: var(--surface-2);
+            background: var(--ctp-surface0);
             padding: 2px 7px;
             border-radius: 5px;
             font-family: 'JetBrains Mono', monospace;
             font-size: 0.84em;
-            color: var(--accent);
-            border: 1px solid var(--border);
+            color: var(--ctp-lavender);
+            border: 1px solid var(--ctp-surface0);
         }
 
         /* KaTeX */
@@ -228,20 +231,20 @@
 
 
         /* ToC permalink */
-        .toc-link { margin-left: 6px; opacity: 0; color: var(--content-muted); transition: opacity 0.15s; font-size: 0.85em; }
+        .toc-link { margin-left: 6px; opacity: 0; color: var(--ctp-overlay0); transition: opacity 0.15s; font-size: 0.85em; }
         h2:hover .toc-link, h3:hover .toc-link { opacity: 1; }
 
         /* First paragraph lead text */
         .blog-prose > p:first-child {
             font-size: 1.125rem;
-            color: var(--content);
+            color: var(--ctp-text);
             line-height: 1.75;
         }
 
         /* Animated link underline */
         .blog-prose a {
             text-decoration: none !important;
-            background-image: linear-gradient(var(--accent), var(--accent));
+            background-image: linear-gradient(var(--ctp-lavender), var(--ctp-lavender));
             background-size: 0% 1px;
             background-position: left bottom;
             background-repeat: no-repeat;
@@ -270,21 +273,21 @@
 
     {% block extra_head %}{% endblock %}
 </head>
-<body class="bg-surface-0 text-content font-sans antialiased">
+<body class="bg-base text-text font-sans antialiased">
 
     <!-- Navigation -->
-    <nav class="fixed top-0 left-0 right-0 z-50 bg-surface-0/80 backdrop-blur-lg border-b border-border" x-data="{ mobileOpen: false }">
+    <nav class="fixed top-0 left-0 right-0 z-50 bg-base/80 backdrop-blur-lg border-b border-border" x-data="{ mobileOpen: false }">
         <div class="max-w-blog mx-auto px-6 h-16 flex items-center justify-between">
             <!-- Logo -->
-            <a href="/blog/" class="text-lg font-semibold text-content hover:text-accent transition-colors">
+            <a href="/blog/" class="text-lg font-semibold text-texthover:text-accent transition-colors">
                 DL<span class="text-accent">.</span>blog
             </a>
 
             <!-- Desktop links -->
             <div class="hidden md:flex items-center gap-8">
-                <a href="/blog/" class="text-sm text-content-secondary hover:text-content transition-colors">Posts</a>
-                <a href="/" class="text-sm text-content-secondary hover:text-content transition-colors">Portfolio</a>
-                <a href="/blog/feed/" class="text-sm text-content-muted hover:text-content transition-colors" title="RSS Feed">
+                <a href="/blog/" class="text-sm text-content-secondary hover:text-texttransition-colors">Posts</a>
+                <a href="/" class="text-sm text-content-secondary hover:text-texttransition-colors">Portfolio</a>
+                <a href="/blog/feed/" class="text-sm text-content-muted hover:text-texttransition-colors" title="RSS Feed">
                     <svg width="16" height="16" viewBox="0 0 24 24" fill="currentColor"><path d="M6.503 20.752c0 1.794-1.456 3.248-3.251 3.248-1.796 0-3.252-1.454-3.252-3.248 0-1.794 1.456-3.248 3.252-3.248 1.795.001 3.251 1.454 3.251 3.248zm-6.503-12.572v4.811c6.05.062 10.96 4.966 11.022 11.009h4.817c-.062-8.71-7.118-15.758-15.839-15.82zm0-8.18v4.819c12.951.115 23.357 10.629 23.461 23.465h4.539c-.11-15.629-12.862-28.326-28-28.284z"/></svg>
                 </a>
                 <button @click="darkMode = !darkMode" class="p-2 rounded-lg hover:bg-surface-2 transition-colors text-content-muted hover:text-content" aria-label="Toggle theme">
@@ -302,11 +305,11 @@
 
         <!-- Mobile menu -->
         <div x-show="mobileOpen" x-cloak x-transition:enter="transition ease-out duration-200" x-transition:enter-start="opacity-0 -translate-y-2" x-transition:enter-end="opacity-100 translate-y-0" x-transition:leave="transition ease-in duration-150" x-transition:leave-start="opacity-100 translate-y-0" x-transition:leave-end="opacity-0 -translate-y-2"
-             class="md:hidden border-t border-border bg-surface-0/95 backdrop-blur-lg px-6 py-4 flex flex-col gap-3">
-            <a href="/blog/" @click="mobileOpen = false" class="text-base text-content-secondary hover:text-content py-2">Posts</a>
-            <a href="/" @click="mobileOpen = false" class="text-base text-content-secondary hover:text-content py-2">Portfolio</a>
-            <a href="/blog/feed/" class="text-base text-content-muted hover:text-content py-2">RSS Feed</a>
-            <button @click="darkMode = !darkMode" class="text-left text-base text-content-muted hover:text-content py-2">
+             class="md:hidden border-t border-border bg-base/95 backdrop-blur-lg px-6 py-4 flex flex-col gap-3">
+            <a href="/blog/" @click="mobileOpen = false" class="text-base text-content-secondary hover:text-textpy-2">Posts</a>
+            <a href="/" @click="mobileOpen = false" class="text-base text-content-secondary hover:text-textpy-2">Portfolio</a>
+            <a href="/blog/feed/" class="text-base text-content-muted hover:text-textpy-2">RSS Feed</a>
+            <button @click="darkMode = !darkMode" class="text-left text-base text-content-muted hover:text-textpy-2">
                 <span x-text="darkMode ? '☀️ Light mode' : '🌙 Dark mode'"></span>
             </button>
         </div>
@@ -322,10 +325,10 @@
         <div class="max-w-blog mx-auto px-6 py-12 flex flex-col md:flex-row items-center justify-between gap-4 text-sm text-content-muted">
             <p>&copy; 2026 Dennis Loevlie</p>
             <div class="flex items-center gap-6">
-                <a href="/" class="hover:text-content transition-colors">Portfolio</a>
-                <a href="/blog/feed/" class="hover:text-content transition-colors">RSS</a>
-                <a href="https://github.com/loevlie" target="_blank" rel="noopener" class="hover:text-content transition-colors">GitHub</a>
-                <a href="https://bsky.app/profile/dennisloevlie.bsky.social" target="_blank" rel="noopener" class="hover:text-content transition-colors">Bluesky</a>
+                <a href="/" class="hover:text-texttransition-colors">Portfolio</a>
+                <a href="/blog/feed/" class="hover:text-texttransition-colors">RSS</a>
+                <a href="https://github.com/loevlie" target="_blank" rel="noopener" class="hover:text-texttransition-colors">GitHub</a>
+                <a href="https://bsky.app/profile/dennisloevlie.bsky.social" target="_blank" rel="noopener" class="hover:text-texttransition-colors">Bluesky</a>
             </div>
         </div>
     </footer>
