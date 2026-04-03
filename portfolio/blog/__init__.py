@@ -64,6 +64,23 @@ def _restore_latex(html, placeholders):
     return html
 
 
+def _inject_code_langs(html, raw_content):
+    """Add data-lang attributes to highlight divs based on fenced code block languages."""
+    # Extract languages from fenced code blocks in order
+    langs = re.findall(r'```(\w+)', raw_content)
+
+    # Replace each <div class="highlight"> with one that includes data-lang
+    idx = [0]
+    def replacer(m):
+        i = idx[0]
+        idx[0] += 1
+        if i < len(langs):
+            return f'<div class="highlight" data-lang="{langs[i]}">'
+        return m.group(0)
+
+    return re.sub(r'<div class="highlight">', replacer, html)
+
+
 def render_markdown(content):
     """Convert markdown string to HTML with syntax highlighting and ToC."""
     content, latex_placeholders = _protect_latex(content)
@@ -81,6 +98,8 @@ def render_markdown(content):
     html = _restore_latex(html, latex_placeholders)
     # Add loading="lazy" to all images
     html = html.replace('<img ', '<img loading="lazy" ')
+    # Inject language data attributes on code blocks
+    html = _inject_code_langs(html, content)
     toc_html = getattr(md, 'toc', '')
 
     return html, toc_html

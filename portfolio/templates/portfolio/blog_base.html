@@ -69,30 +69,32 @@
 
     <!-- CSS custom properties for theming -->
     <style>
+        /* Catppuccin Latte (light) */
         :root {
-            --surface-0: #ffffff;
-            --surface-1: #f8fafc;
-            --surface-2: #f1f5f9;
-            --content: #0f172a;
-            --content-secondary: #334155;
-            --content-muted: #64748b;
-            --accent: #6366f1;
-            --accent-hover: #4f46e5;
-            --accent-subtle: rgba(99, 102, 241, 0.08);
-            --border: #e2e8f0;
+            --surface-0: #eff1f5;
+            --surface-1: #e6e9ef;
+            --surface-2: #dce0e8;
+            --content: #4c4f69;
+            --content-secondary: #5c5f77;
+            --content-muted: #7c7f93;
+            --accent: #7287fd;
+            --accent-hover: #5c6ddd;
+            --accent-subtle: rgba(114, 135, 253, 0.1);
+            --border: #ccd0da;
         }
 
+        /* Catppuccin Mocha (dark) */
         .dark {
-            --surface-0: #0c0c0f;
-            --surface-1: #141418;
-            --surface-2: #1e1e24;
-            --content: #e2e8f0;
-            --content-secondary: #94a3b8;
-            --content-muted: #64748b;
-            --accent: #818cf8;
-            --accent-hover: #a5b4fc;
-            --accent-subtle: rgba(129, 140, 248, 0.1);
-            --border: #1e293b;
+            --surface-0: #1e1e2e;
+            --surface-1: #181825;
+            --surface-2: #313244;
+            --content: #cdd6f4;
+            --content-secondary: #a6adc8;
+            --content-muted: #6c7086;
+            --accent: #b4befe;
+            --accent-hover: #cba6f7;
+            --accent-subtle: rgba(180, 190, 254, 0.1);
+            --border: #313244;
         }
 
         /* Smooth color transitions */
@@ -150,8 +152,8 @@
 
         /* Code blocks: always dark, like VS Code / Vercel / Linear */
         .blog-prose .highlight {
-            background: #1e1e2e !important;
-            border: 1px solid #2a2a3c !important;
+            background: #11111b !important;
+            border: 1px solid #313244 !important;
             border-radius: 10px !important;
             padding: 1rem 1.25rem !important;
             overflow-x: auto !important;
@@ -161,6 +163,7 @@
             margin: 1.75rem 0 !important;
             position: relative;
             color: #cdd6f4 !important;
+            box-shadow: 0 4px 16px rgba(0, 0, 0, 0.2), 0 0 0 1px rgba(0, 0, 0, 0.1);
         }
         .blog-prose .highlight pre { margin: 0 !important; padding: 0 !important; background: none !important; color: inherit !important; }
         .blog-prose .highlight code { background: none !important; padding: 0 !important; font-size: inherit !important; color: inherit !important; }
@@ -188,9 +191,9 @@
             font-family: 'JetBrains Mono', monospace;
             text-transform: uppercase;
             letter-spacing: 0.06em;
-            color: #6c7086;
-            border-bottom: 1px solid #2a2a3c;
-            background: #181825;
+            color: #585b70;
+            border-bottom: 1px solid #313244;
+            background: #0d0d17;
             border-radius: 10px 10px 0 0;
         }
         .highlight.has-lang { padding-top: 2.5rem !important; }
@@ -200,22 +203,23 @@
             position: absolute; top: 8px; right: 8px;
             display: flex; align-items: center; justify-content: center;
             width: 32px; height: 32px; border-radius: 6px;
-            background: #181825; border: 1px solid #2a2a3c;
-            color: #6c7086; cursor: pointer;
+            background: #181825; border: 1px solid #313244;
+            color: #585b70; cursor: pointer;
             opacity: 0; transition: opacity 0.15s, color 0.15s, border-color 0.15s;
         }
         .highlight.has-lang .code-copy-btn { top: 34px; }
         .highlight:hover .code-copy-btn { opacity: 1; }
-        .code-copy-btn:hover { color: #cba6f7; border-color: #cba6f7; }
+        .code-copy-btn:hover { color: #b4befe; border-color: #b4befe; }
 
         /* Inline code */
         .blog-prose code:not(.highlight code) {
             background: var(--surface-2);
-            padding: 2px 6px;
-            border-radius: 4px;
+            padding: 2px 7px;
+            border-radius: 5px;
             font-family: 'JetBrains Mono', monospace;
-            font-size: 0.85em;
+            font-size: 0.84em;
             color: var(--accent);
+            border: 1px solid var(--border);
         }
 
         /* KaTeX */

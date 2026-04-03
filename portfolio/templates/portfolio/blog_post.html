@@ -247,22 +247,10 @@
         });
     }
 
-    // Code block language labels + copy buttons
-    document.querySelectorAll('.blog-prose .highlight').forEach(function(block) {
-        var text = block.textContent.trim();
-        var lang = '';
-
-        // Detect from Pygments span classes
-        if (block.querySelector('.kn, .kd')) {
-            // Has keyword spans — it's a real code block
-            if (text.match(/(import |from |class |def |torch\.|print\()/)) lang = 'python';
-            else if (text.match(/(const |let |var |function |=>)/)) lang = 'javascript';
-            else if (text.match(/(fn |let |mut |pub |use )/)) lang = 'rust';
-        }
-        // Output blocks (no Pygments spans, starts with >>>)
-        if (!lang && text.match(/^>>>/)) lang = 'output';
-
-        if (lang && lang !== 'output') {
+    // Code block language labels
+    document.querySelectorAll('.blog-prose .highlight[data-lang]').forEach(function(block) {
+        var lang = block.dataset.lang;
+        if (lang) {
             var label = document.createElement('div');
             label.className = 'code-lang-label';
             label.textContent = lang;
