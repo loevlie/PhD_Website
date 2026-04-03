@@ -1,9 +1,9 @@
 @import "tailwindcss";
 
 /* Scan Django templates for classes */
-@source "../../../templates/portfolio/blog_base.html";
-@source "../../../templates/portfolio/blog.html";
-@source "../../../templates/portfolio/blog_post.html";
+@source "./templates/portfolio/blog_base.html";
+@source "./templates/portfolio/blog.html";
+@source "./templates/portfolio/blog_post.html";
 
 /* Custom theme */
 @theme {
