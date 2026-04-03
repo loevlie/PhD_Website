@@ -190,6 +190,7 @@
             border-radius: 10px !important;
             padding: 1rem 1.25rem !important;
             overflow-x: auto !important;
+            -webkit-overflow-scrolling: touch;
             font-family: 'JetBrains Mono', monospace !important;
             font-size: 0.875rem !important;
             line-height: 1.5 !important;
@@ -204,8 +205,8 @@
         .frappe .blog-prose .highlight { --hl-crust: #232634; --hl-mantle: #292c3c; --hl-surface0: #414559; --hl-text: #c6d0f5; --hl-overlay0: #737994; --hl-overlay2: #949cbb; --hl-mauve: #ca9ee6; --hl-green: #a6d189; --hl-blue: #8caaee; --hl-yellow: #e5c890; --hl-peach: #ef9f76; --hl-sky: #99d1db; --hl-red: #e78284; --hl-lavender: #babbf1; }
         .macchiato .blog-prose .highlight { --hl-crust: #181926; --hl-mantle: #1e2030; --hl-surface0: #363a4f; --hl-text: #cad3f5; --hl-overlay0: #6e738d; --hl-overlay2: #939ab7; --hl-mauve: #c6a0f6; --hl-green: #a6da95; --hl-blue: #8aadf4; --hl-yellow: #eed49f; --hl-peach: #f5a97f; --hl-sky: #91d7e3; --hl-red: #ed8796; --hl-lavender: #b7bdf8; }
 
-        .blog-prose .highlight pre { margin: 0 !important; padding: 0 !important; background: none !important; color: inherit !important; }
-        .blog-prose .highlight code { background: none !important; padding: 0 !important; font-size: inherit !important; color: inherit !important; }
+        .blog-prose .highlight pre { margin: 0 !important; padding: 0 !important; background: none !important; color: inherit !important; overflow-x: auto !important; white-space: pre !important; }
+        .blog-prose .highlight code { background: none !important; padding: 0 !important; font-size: inherit !important; color: inherit !important; white-space: pre !important; }
         /* Syntax colors */
         .blog-prose .highlight .c, .blog-prose .highlight .cm, .blog-prose .highlight .c1, .blog-prose .highlight .cs { color: var(--hl-overlay0) !important; }
         .blog-prose .highlight .k, .blog-prose .highlight .kn, .blog-prose .highlight .kd, .blog-prose .highlight .kc { color: var(--hl-mauve) !important; }
