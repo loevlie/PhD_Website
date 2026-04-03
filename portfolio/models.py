@@ -1,3 +1,29 @@
 from django.db import models
+from django.urls import reverse
 
-# Create your models here.
+from taggit.managers import TaggableManager
+
+
+class Post(models.Model):
+    title = models.CharField(max_length=200)
+    slug = models.SlugField(max_length=200, unique=True)
+    excerpt = models.TextField(blank=True, help_text="Short description for cards and meta tags")
+    body = models.TextField(help_text="Markdown content")
+    date = models.DateField(help_text="Original publication date")
+    updated = models.DateField(blank=True, null=True)
+    author = models.CharField(max_length=100, default='Dennis Loevlie')
+    medium_url = models.URLField(blank=True, help_text="Canonical URL if originally published elsewhere")
+    draft = models.BooleanField(default=False)
+    created_at = models.DateTimeField(auto_now_add=True)
+    modified_at = models.DateTimeField(auto_now=True)
+
+    tags = TaggableManager(blank=True)
+
+    class Meta:
+        ordering = ['-date']
+
+    def __str__(self):
+        return self.title
+
+    def get_absolute_url(self):
+        return reverse('blog_post', args=[self.slug])

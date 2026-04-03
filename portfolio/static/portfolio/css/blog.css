@@ -17,6 +17,42 @@
     line-height: 1.6;
 }
 
+/* Search */
+.blog-search {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    padding: 10px 16px;
+    background-color: var(--bg-secondary);
+    border: 1px solid var(--border-color);
+    border-radius: 8px;
+    margin-bottom: 24px;
+    transition: border-color var(--transition-fast);
+}
+
+.blog-search:focus-within {
+    border-color: var(--accent);
+}
+
+.blog-search-icon {
+    flex-shrink: 0;
+    color: var(--text-muted);
+}
+
+.blog-search-input {
+    flex: 1;
+    background: none;
+    border: none;
+    outline: none;
+    font-family: inherit;
+    font-size: var(--body-size);
+    color: var(--text-primary);
+}
+
+.blog-search-input::placeholder {
+    color: var(--text-muted);
+}
+
 .blog-filter-tags {
     display: flex;
     gap: 8px;
@@ -470,6 +506,69 @@
 .code-copy-btn:hover {
     color: var(--accent-light);
     border-color: var(--accent);
+}
+
+/* ── Newsletter ── */
+.blog-newsletter {
+    margin-top: 48px;
+    padding: 32px;
+    background: linear-gradient(135deg, var(--bg-secondary) 0%, rgba(15, 118, 110, 0.06) 100%);
+    border: 1px solid var(--accent);
+    border-radius: var(--card-radius);
+    text-align: center;
+}
+
+.blog-newsletter-title {
+    font-size: var(--h3-size);
+    font-weight: 600;
+    color: var(--text-primary);
+    margin-bottom: 8px;
+}
+
+.blog-newsletter-desc {
+    font-size: var(--small-size);
+    color: var(--text-secondary);
+    margin-bottom: 20px;
+}
+
+.blog-newsletter-form {
+    display: flex;
+    gap: 8px;
+    max-width: 420px;
+    margin: 0 auto;
+}
+
+.blog-newsletter-input {
+    flex: 1;
+    padding: 10px 16px;
+    background-color: var(--bg-primary);
+    border: 1px solid var(--border-color);
+    border-radius: 8px;
+    font-family: inherit;
+    font-size: var(--small-size);
+    color: var(--text-primary);
+    outline: none;
+    transition: border-color var(--transition-fast);
+}
+
+.blog-newsletter-input:focus {
+    border-color: var(--accent);
+}
+
+.blog-newsletter-input::placeholder {
+    color: var(--text-muted);
+}
+
+.blog-newsletter-btn {
+    padding: 10px 24px;
+    border-radius: 8px;
+    white-space: nowrap;
+}
+
+@media (max-width: 480px) {
+    .blog-newsletter-form {
+        flex-direction: column;
+    }
 }
 
 /* ── Comments ── */

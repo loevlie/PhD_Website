@@ -90,7 +90,28 @@ def estimate_reading_time(content):
     return max(1, math.ceil(words / 200))
 
 
-def _parse_post(filepath):
+def _post_to_dict(post_obj):
+    """Convert a Post model instance to the standard post dict."""
+    content_html, toc_html = render_markdown(post_obj.body)
+    return {
+        'slug': post_obj.slug,
+        'title': post_obj.title,
+        'date': post_obj.date,
+        'updated': post_obj.updated,
+        'author': post_obj.author,
+        'tags': list(post_obj.tags.names()),
+        'excerpt': post_obj.excerpt,
+        'image': '',
+        'draft': post_obj.draft,
+        'medium_url': post_obj.medium_url,
+        'reading_time': estimate_reading_time(post_obj.body),
+        'content_html': content_html,
+        'toc_html': toc_html,
+        'word_count': len(post_obj.body.split()),
+    }
+
+
+def _parse_file_post(filepath):
     """Parse a single markdown file into a post dict."""
     post = frontmatter.load(filepath)
     slug = filepath.stem
@@ -121,28 +142,53 @@ def _parse_post(filepath):
     }
 
 
+def _has_db():
+    """Check if the Post table exists (database is set up)."""
+    try:
+        from portfolio.models import Post
+        Post.objects.exists()
+        return True
+    except Exception:
+        return False
+
+
 def get_all_posts(include_drafts=False):
-    """Load all blog posts, sorted by date descending."""
+    """Load all blog posts from DB (if available) or markdown files."""
+    if _has_db():
+        from portfolio.models import Post
+        qs = Post.objects.all()
+        if not include_drafts:
+            qs = qs.filter(draft=False)
+        return [_post_to_dict(p) for p in qs]
+
+    # Fallback to file-based posts
     posts = []
     if not POSTS_DIR.exists():
         return posts
-
     for filepath in POSTS_DIR.glob('*.md'):
-        post = _parse_post(filepath)
+        post = _parse_file_post(filepath)
         if post['draft'] and not include_drafts:
             continue
         posts.append(post)
-
     posts.sort(key=lambda p: p['date'], reverse=True)
     return posts
 
 
 def get_post(slug):
-    """Load a single blog post by slug. Returns None if not found."""
+    """Load a single blog post by slug."""
+    if _has_db():
+        from portfolio.models import Post
+        try:
+            p = Post.objects.get(slug=slug, draft=False)
+            return _post_to_dict(p)
+        except Post.DoesNotExist:
+            pass
+
+    # Fallback to file
     filepath = POSTS_DIR / f'{slug}.md'
     if not filepath.exists():
         return None
-    post = _parse_post(filepath)
+    post = _parse_file_post(filepath)
     if post['draft']:
         return None
     return post
