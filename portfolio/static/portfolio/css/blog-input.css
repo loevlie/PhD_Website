@@ -1,0 +1,52 @@
+@import "tailwindcss";
+
+/* Scan Django templates for classes */
+@source "../../../templates/portfolio/blog_base.html";
+@source "../../../templates/portfolio/blog.html";
+@source "../../../templates/portfolio/blog_post.html";
+
+/* Custom theme */
+@theme {
+    --font-sans: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
+    --font-mono: 'JetBrains Mono', 'Fira Code', monospace;
+
+    /* Catppuccin semantic colors via CSS vars */
+    --color-base: var(--ctp-base);
+    --color-mantle: var(--ctp-mantle);
+    --color-crust: var(--ctp-crust);
+    --color-surface-0: var(--ctp-mantle);
+    --color-surface-1: var(--ctp-crust);
+    --color-surface-2: var(--ctp-surface0);
+    --color-overlay-0: var(--ctp-overlay0);
+    --color-overlay-1: var(--ctp-overlay1);
+    --color-overlay-2: var(--ctp-overlay2);
+    --color-text: var(--ctp-text);
+    --color-subtext-0: var(--ctp-subtext0);
+    --color-subtext-1: var(--ctp-subtext1);
+
+    --color-rosewater: var(--ctp-rosewater);
+    --color-flamingo: var(--ctp-flamingo);
+    --color-pink: var(--ctp-pink);
+    --color-mauve: var(--ctp-mauve);
+    --color-red: var(--ctp-red);
+    --color-maroon: var(--ctp-maroon);
+    --color-peach: var(--ctp-peach);
+    --color-yellow: var(--ctp-yellow);
+    --color-green: var(--ctp-green);
+    --color-teal: var(--ctp-teal);
+    --color-sky: var(--ctp-sky);
+    --color-sapphire: var(--ctp-sapphire);
+    --color-blue: var(--ctp-blue);
+    --color-lavender: var(--ctp-lavender);
+
+    --color-border: var(--ctp-surface0);
+    --color-content: var(--ctp-text);
+    --color-content-secondary: var(--ctp-subtext1);
+    --color-content-muted: var(--ctp-subtext0);
+    --color-accent: var(--ctp-lavender);
+    --color-accent-hover: var(--ctp-mauve);
+    --color-accent-subtle: var(--ctp-lavender-subtle);
+
+    --max-width-article: 680px;
+    --max-width-blog: 1080px;
+}

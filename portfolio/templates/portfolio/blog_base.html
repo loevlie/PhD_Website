@@ -28,54 +28,8 @@
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
 
-    <!-- Tailwind CSS v4 CDN -->
-    <script src="https://cdn.tailwindcss.com"></script>
-    <script>
-    tailwind.config = {
-        darkMode: 'class',
-        theme: {
-            extend: {
-                fontFamily: {
-                    sans: ['Inter', '-apple-system', 'BlinkMacSystemFont', 'sans-serif'],
-                    mono: ['JetBrains Mono', 'Fira Code', 'monospace'],
-                },
-                colors: {
-                    /* Catppuccin semantic names — auto-switch via CSS vars */
-                    base:     'var(--ctp-base)',
-                    mantle:   'var(--ctp-mantle)',
-                    crust:    'var(--ctp-crust)',
-                    surface:  { 0: 'var(--ctp-mantle)', 1: 'var(--ctp-crust)', 2: 'var(--ctp-surface0)' },
-                    overlay:  { 0: 'var(--ctp-overlay0)', 1: 'var(--ctp-overlay1)', 2: 'var(--ctp-overlay2)' },
-                    text:     'var(--ctp-text)',
-                    subtext:  { 0: 'var(--ctp-subtext0)', 1: 'var(--ctp-subtext1)' },
-                    /* Catppuccin accent colors */
-                    rosewater:'var(--ctp-rosewater)',
-                    flamingo: 'var(--ctp-flamingo)',
-                    pink:     'var(--ctp-pink)',
-                    mauve:    'var(--ctp-mauve)',
-                    red:      'var(--ctp-red)',
-                    maroon:   'var(--ctp-maroon)',
-                    peach:    'var(--ctp-peach)',
-                    yellow:   'var(--ctp-yellow)',
-                    green:    'var(--ctp-green)',
-                    teal:     'var(--ctp-teal)',
-                    sky:      'var(--ctp-sky)',
-                    sapphire: 'var(--ctp-sapphire)',
-                    blue:     'var(--ctp-blue)',
-                    lavender: 'var(--ctp-lavender)',
-                    /* Aliases for convenience */
-                    border:   'var(--ctp-surface0)',
-                    content:  { DEFAULT: 'var(--ctp-text)', secondary: 'var(--ctp-subtext1)', muted: 'var(--ctp-subtext0)' },
-                    accent:   { DEFAULT: 'var(--ctp-lavender)', hover: 'var(--ctp-mauve)', subtle: 'var(--ctp-lavender-subtle)' },
-                },
-                maxWidth: {
-                    'article': '680px',
-                    'blog': '1080px',
-                },
-            }
-        }
-    }
-    </script>
+    <!-- Tailwind CSS (pre-built, no CDN flash) -->
+    <link rel="stylesheet" href="{% static 'portfolio/css/blog-tw.css' %}">
 
     <style>
         /* Catppuccin — all 4 flavors, all 26 colors each */
