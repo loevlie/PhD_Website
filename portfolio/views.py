@@ -45,7 +45,10 @@ def blog_post(request, slug):
     post = get_post(slug)
     if post is None:
         raise Http404("Post not found")
-    return render(request, 'portfolio/blog_post.html', {'post': post})
+    # Get related posts (all others, max 3)
+    all_posts = get_all_posts()
+    related = [p for p in all_posts if p['slug'] != slug][:3]
+    return render(request, 'portfolio/blog_post.html', {'post': post, 'related_posts': related})
 
 
 def publications(request):

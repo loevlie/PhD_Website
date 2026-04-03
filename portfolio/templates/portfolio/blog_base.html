@@ -1,0 +1,316 @@
+{% load static %}
+<!DOCTYPE html>
+<html lang="en" x-data="{ darkMode: localStorage.getItem('theme') === 'dark' || (!localStorage.getItem('theme') && window.matchMedia('(prefers-color-scheme: dark)').matches) }" x-init="$watch('darkMode', val => { localStorage.setItem('theme', val ? 'dark' : 'light'); document.documentElement.classList.toggle('dark', val) })" :class="{ 'dark': darkMode }">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>{% block title %}Blog — Dennis Loevlie{% endblock %}</title>
+
+    {% block meta %}
+    <meta name="description" content="Thoughts on ML research, deep learning, and software engineering.">
+    {% endblock %}
+
+    {% block og_meta %}
+    <meta property="og:title" content="Blog — Dennis Loevlie">
+    <meta property="og:description" content="Thoughts on ML research, deep learning, and software engineering.">
+    <meta property="og:type" content="website">
+    <meta name="twitter:card" content="summary_large_image">
+    {% endblock %}
+
+    <!-- Fonts -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
+
+    <!-- Tailwind CSS v4 CDN -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script>
+    tailwind.config = {
+        darkMode: 'class',
+        theme: {
+            extend: {
+                fontFamily: {
+                    sans: ['Inter', '-apple-system', 'BlinkMacSystemFont', 'sans-serif'],
+                    mono: ['JetBrains Mono', 'Fira Code', 'monospace'],
+                },
+                colors: {
+                    surface: {
+                        0: 'var(--surface-0)',
+                        1: 'var(--surface-1)',
+                        2: 'var(--surface-2)',
+                    },
+                    content: {
+                        DEFAULT: 'var(--content)',
+                        secondary: 'var(--content-secondary)',
+                        muted: 'var(--content-muted)',
+                    },
+                    accent: {
+                        DEFAULT: 'var(--accent)',
+                        hover: 'var(--accent-hover)',
+                        subtle: 'var(--accent-subtle)',
+                    },
+                    border: 'var(--border)',
+                },
+                maxWidth: {
+                    'article': '680px',
+                    'blog': '1080px',
+                },
+                typography: {
+                    DEFAULT: {
+                        css: {
+                            maxWidth: '680px',
+                        }
+                    }
+                }
+            }
+        }
+    }
+    </script>
+
+    <!-- CSS custom properties for theming -->
+    <style>
+        :root {
+            --surface-0: #ffffff;
+            --surface-1: #f8fafc;
+            --surface-2: #f1f5f9;
+            --content: #0f172a;
+            --content-secondary: #334155;
+            --content-muted: #64748b;
+            --accent: #6366f1;
+            --accent-hover: #4f46e5;
+            --accent-subtle: rgba(99, 102, 241, 0.08);
+            --border: #e2e8f0;
+        }
+
+        .dark {
+            --surface-0: #0c0c0f;
+            --surface-1: #141418;
+            --surface-2: #1e1e24;
+            --content: #e2e8f0;
+            --content-secondary: #94a3b8;
+            --content-muted: #64748b;
+            --accent: #818cf8;
+            --accent-hover: #a5b4fc;
+            --accent-subtle: rgba(129, 140, 248, 0.1);
+            --border: #1e293b;
+        }
+
+        /* Smooth color transitions */
+        html { transition: background-color 0.2s ease, color 0.2s ease; }
+
+        /* Selection highlight */
+        ::selection { background: var(--accent-subtle); color: var(--accent); }
+
+        /* Scrollbar styling */
+        ::-webkit-scrollbar { width: 6px; }
+        ::-webkit-scrollbar-track { background: var(--surface-0); }
+        ::-webkit-scrollbar-thumb { background: var(--border); border-radius: 3px; }
+
+        /* Image captions: em directly after img */
+        .blog-prose img + em,
+        .blog-prose p:has(> img) + p > em:only-child {
+            display: block;
+            text-align: center;
+            font-size: 0.8125rem;
+            color: var(--content-muted);
+            margin-top: -1.5rem;
+            margin-bottom: 2rem;
+            font-style: italic;
+        }
+
+        /* Gradient divider */
+        .gradient-divider {
+            height: 1px;
+            background: linear-gradient(90deg, transparent, var(--border), transparent);
+        }
+
+        /* Callout box (for future use: add {: .callout } after blockquote) */
+        .callout {
+            background: var(--accent-subtle);
+            border: 1px solid rgba(99, 102, 241, 0.15);
+            border-left: 3px solid var(--accent);
+            border-radius: 8px;
+            padding: 1rem 1.25rem;
+            margin: 1.5rem 0;
+            font-style: normal;
+        }
+
+        /* Smooth fade in for article content */
+        @keyframes fade-up {
+            from { opacity: 0; transform: translateY(12px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+        .animate-fade-up {
+            animation: fade-up 0.5s ease forwards;
+        }
+        .animate-fade-up-delay {
+            animation: fade-up 0.5s ease 0.15s forwards;
+            opacity: 0;
+        }
+
+        /* Pygments overrides for Tailwind blog */
+        .blog-prose .highlight {
+            background: var(--surface-2) !important;
+            border: 1px solid var(--border) !important;
+            border-radius: 8px !important;
+            padding: 1rem !important;
+            overflow-x: auto !important;
+            font-family: 'JetBrains Mono', monospace !important;
+            font-size: 0.875rem !important;
+            line-height: 1.7 !important;
+            margin: 1.5rem 0 !important;
+            position: relative;
+        }
+        .blog-prose .highlight pre { margin: 0 !important; padding: 0 !important; background: none !important; }
+        .blog-prose .highlight code { background: none !important; padding: 0 !important; font-size: inherit !important; color: inherit !important; }
+
+        /* Code block language label */
+        .code-lang-label {
+            position: absolute;
+            top: 0;
+            left: 0;
+            right: 0;
+            padding: 4px 12px;
+            font-size: 0.6875rem;
+            font-family: 'JetBrains Mono', monospace;
+            text-transform: uppercase;
+            letter-spacing: 0.05em;
+            color: var(--content-muted);
+            border-bottom: 1px solid var(--border);
+            background: var(--surface-1);
+            border-radius: 8px 8px 0 0;
+        }
+        .highlight.has-lang { padding-top: 2.25rem !important; }
+
+        /* Inline code */
+        .blog-prose code:not(.highlight code) {
+            background: var(--surface-2);
+            padding: 2px 6px;
+            border-radius: 4px;
+            font-family: 'JetBrains Mono', monospace;
+            font-size: 0.85em;
+            color: var(--accent);
+        }
+
+        /* KaTeX */
+        .math-display { overflow-x: auto; padding: 12px 0; margin: 1.5rem 0; text-align: center; }
+        .math-inline { display: inline; }
+
+        /* Code copy button */
+        .code-copy-btn {
+            position: absolute; top: 8px; right: 8px;
+            display: flex; align-items: center; justify-content: center;
+            width: 32px; height: 32px; border-radius: 6px;
+            background: var(--surface-1); border: 1px solid var(--border);
+            color: var(--content-muted); cursor: pointer;
+            opacity: 0; transition: opacity 0.15s, color 0.15s, border-color 0.15s;
+        }
+        .highlight:hover .code-copy-btn { opacity: 1; }
+        .code-copy-btn:hover { color: var(--accent); border-color: var(--accent); }
+
+        /* ToC permalink */
+        .toc-link { margin-left: 6px; opacity: 0; color: var(--content-muted); transition: opacity 0.15s; font-size: 0.85em; }
+        h2:hover .toc-link, h3:hover .toc-link { opacity: 1; }
+
+        /* First paragraph lead text */
+        .blog-prose > p:first-child {
+            font-size: 1.125rem;
+            color: var(--content);
+            line-height: 1.75;
+        }
+
+        /* Animated link underline */
+        .blog-prose a {
+            text-decoration: none !important;
+            background-image: linear-gradient(var(--accent), var(--accent));
+            background-size: 0% 1px;
+            background-position: left bottom;
+            background-repeat: no-repeat;
+            transition: background-size 0.25s ease;
+        }
+        .blog-prose a:hover {
+            background-size: 100% 1px;
+        }
+
+        /* Giscus theme sync */
+        .giscus { margin-top: 1rem; }
+    </style>
+
+    <!-- Alpine.js -->
+    <script defer src="https://cdn.jsdelivr.net/npm/alpinejs@3.x.x/dist/cdn.min.js"></script>
+
+    <!-- Three.js import map (ready for future interactive visuals) -->
+    <script type="importmap">
+    {
+        "imports": {
+            "three": "https://unpkg.com/three@0.160.0/build/three.module.js",
+            "three/addons/": "https://unpkg.com/three@0.160.0/examples/jsm/"
+        }
+    }
+    </script>
+
+    {% block extra_head %}{% endblock %}
+</head>
+<body class="bg-surface-0 text-content font-sans antialiased">
+
+    <!-- Navigation -->
+    <nav class="fixed top-0 left-0 right-0 z-50 bg-surface-0/80 backdrop-blur-lg border-b border-border" x-data="{ mobileOpen: false }">
+        <div class="max-w-blog mx-auto px-6 h-16 flex items-center justify-between">
+            <!-- Logo -->
+            <a href="/blog/" class="text-lg font-semibold text-content hover:text-accent transition-colors">
+                DL<span class="text-accent">.</span>blog
+            </a>
+
+            <!-- Desktop links -->
+            <div class="hidden md:flex items-center gap-8">
+                <a href="/blog/" class="text-sm text-content-secondary hover:text-content transition-colors">Posts</a>
+                <a href="/" class="text-sm text-content-secondary hover:text-content transition-colors">Portfolio</a>
+                <a href="/blog/feed/" class="text-sm text-content-muted hover:text-content transition-colors" title="RSS Feed">
+                    <svg width="16" height="16" viewBox="0 0 24 24" fill="currentColor"><path d="M6.503 20.752c0 1.794-1.456 3.248-3.251 3.248-1.796 0-3.252-1.454-3.252-3.248 0-1.794 1.456-3.248 3.252-3.248 1.795.001 3.251 1.454 3.251 3.248zm-6.503-12.572v4.811c6.05.062 10.96 4.966 11.022 11.009h4.817c-.062-8.71-7.118-15.758-15.839-15.82zm0-8.18v4.819c12.951.115 23.357 10.629 23.461 23.465h4.539c-.11-15.629-12.862-28.326-28-28.284z"/></svg>
+                </a>
+                <button @click="darkMode = !darkMode" class="p-2 rounded-lg hover:bg-surface-2 transition-colors text-content-muted hover:text-content" aria-label="Toggle theme">
+                    <svg x-show="!darkMode" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z"/></svg>
+                    <svg x-show="darkMode" x-cloak width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="5"/><line x1="12" y1="1" x2="12" y2="3"/><line x1="12" y1="21" x2="12" y2="23"/><line x1="4.22" y1="4.22" x2="5.64" y2="5.64"/><line x1="18.36" y1="18.36" x2="19.78" y2="19.78"/><line x1="1" y1="12" x2="3" y2="12"/><line x1="21" y1="12" x2="23" y2="12"/><line x1="4.22" y1="19.78" x2="5.64" y2="18.36"/><line x1="18.36" y1="5.64" x2="19.78" y2="4.22"/></svg>
+                </button>
+            </div>
+
+            <!-- Mobile hamburger -->
+            <button @click="mobileOpen = !mobileOpen" class="md:hidden p-2 rounded-lg hover:bg-surface-2 text-content-muted" aria-label="Menu">
+                <svg x-show="!mobileOpen" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="3" y1="6" x2="21" y2="6"/><line x1="3" y1="12" x2="21" y2="12"/><line x1="3" y1="18" x2="21" y2="18"/></svg>
+                <svg x-show="mobileOpen" x-cloak width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
+            </button>
+        </div>
+
+        <!-- Mobile menu -->
+        <div x-show="mobileOpen" x-cloak x-transition:enter="transition ease-out duration-200" x-transition:enter-start="opacity-0 -translate-y-2" x-transition:enter-end="opacity-100 translate-y-0" x-transition:leave="transition ease-in duration-150" x-transition:leave-start="opacity-100 translate-y-0" x-transition:leave-end="opacity-0 -translate-y-2"
+             class="md:hidden border-t border-border bg-surface-0/95 backdrop-blur-lg px-6 py-4 flex flex-col gap-3">
+            <a href="/blog/" @click="mobileOpen = false" class="text-base text-content-secondary hover:text-content py-2">Posts</a>
+            <a href="/" @click="mobileOpen = false" class="text-base text-content-secondary hover:text-content py-2">Portfolio</a>
+            <a href="/blog/feed/" class="text-base text-content-muted hover:text-content py-2">RSS Feed</a>
+            <button @click="darkMode = !darkMode" class="text-left text-base text-content-muted hover:text-content py-2">
+                <span x-text="darkMode ? '☀️ Light mode' : '🌙 Dark mode'"></span>
+            </button>
+        </div>
+    </nav>
+
+    <!-- Content -->
+    <main class="pt-16">
+        {% block content %}{% endblock %}
+    </main>
+
+    <!-- Footer -->
+    <footer class="border-t border-border mt-24">
+        <div class="max-w-blog mx-auto px-6 py-12 flex flex-col md:flex-row items-center justify-between gap-4 text-sm text-content-muted">
+            <p>&copy; 2026 Dennis Loevlie</p>
+            <div class="flex items-center gap-6">
+                <a href="/" class="hover:text-content transition-colors">Portfolio</a>
+                <a href="/blog/feed/" class="hover:text-content transition-colors">RSS</a>
+                <a href="https://github.com/loevlie" target="_blank" rel="noopener" class="hover:text-content transition-colors">GitHub</a>
+                <a href="https://bsky.app/profile/dennisloevlie.bsky.social" target="_blank" rel="noopener" class="hover:text-content transition-colors">Bluesky</a>
+            </div>
+        </div>
+    </footer>
+
+    {% block scripts %}{% endblock %}
+</body>
+</html>
