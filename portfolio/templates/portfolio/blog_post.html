@@ -17,6 +17,7 @@
 <meta name="twitter:title" content="{{ post.title }} — Dennis Loevlie">
 <meta name="twitter:description" content="{{ post.excerpt }}">
 {% if post.medium_url %}<link rel="canonical" href="{{ post.medium_url }}">{% endif %}
+<link rel="alternate" type="application/rss+xml" title="Dennis Loevlie — Blog" href="{% url 'blog_feed' %}">
 {% endblock %}
 
 {% block extra_head %}
@@ -26,6 +27,9 @@
 {% endblock %}
 
 {% block content %}
+<!-- Reading progress bar -->
+<div class="blog-progress" id="blog-progress"></div>
+
 <section class="section blog-post-page">
     <div class="container">
         <a href="{% url 'blog' %}" class="blog-back-link">&larr; All posts</a>
@@ -82,30 +86,81 @@
                 {% endif %}
             </footer>
         </article>
+
+        <!-- Giscus Comments -->
+        <div class="blog-comments">
+            <h2 class="blog-comments-title">Comments</h2>
+            <script src="https://giscus.app/client.js"
+                data-repo="loevlie/PhD_Website"
+                data-repo-id="R_kgDORfhvhw"
+                data-category="Blog Comments"
+                data-category-id="DIC_kwDORfhvh84C59cS"
+                data-mapping="pathname"
+                data-strict="0"
+                data-reactions-enabled="1"
+                data-emit-metadata="0"
+                data-input-position="top"
+                data-theme="noborder_dark"
+                data-lang="en"
+                data-loading="lazy"
+                crossorigin="anonymous"
+                async>
+            </script>
+        </div>
     </div>
 </section>
 
-<!-- JSON-LD Structured Data -->
+<!-- JSON-LD: TechArticle + BreadcrumbList -->
 <script type="application/ld+json">
-{
-    "@context": "https://schema.org",
-    "@type": "BlogPosting",
-    "headline": "{{ post.title }}",
-    "description": "{{ post.excerpt }}",
-    "author": {
-        "@type": "Person",
-        "name": "{{ post.author }}",
-        "url": "/"
+[
+    {
+        "@context": "https://schema.org",
+        "@type": ["Article", "TechArticle"],
+        "headline": "{{ post.title }}",
+        "description": "{{ post.excerpt }}",
+        "author": {
+            "@type": "Person",
+            "name": "{{ post.author }}",
+            "url": "/"
+        },
+        "datePublished": "{{ post.date|date:'Y-m-d' }}",
+        {% if post.updated %}"dateModified": "{{ post.updated|date:'Y-m-d' }}",{% endif %}
+        "publisher": {
+            "@type": "Person",
+            "name": "{{ post.author }}"
+        },
+        "mainEntityOfPage": {
+            "@type": "WebPage",
+            "@id": "{{ request.build_absolute_uri }}"
+        },
+        "wordCount": {{ post.word_count }},
+        "timeRequired": "PT{{ post.reading_time }}M",
+        "keywords": [{% for tag in post.tags %}"{{ tag }}"{% if not forloop.last %}, {% endif %}{% endfor %}]
     },
-    "datePublished": "{{ post.date|date:'Y-m-d' }}",
-    {% if post.updated %}"dateModified": "{{ post.updated|date:'Y-m-d' }}",{% endif %}
-    "publisher": {
-        "@type": "Person",
-        "name": "{{ post.author }}"
-    },
-    "wordCount": {{ post.word_count }},
-    "timeRequired": "PT{{ post.reading_time }}M"
-}
+    {
+        "@context": "https://schema.org",
+        "@type": "BreadcrumbList",
+        "itemListElement": [
+            {
+                "@type": "ListItem",
+                "position": 1,
+                "name": "Home",
+                "item": "/"
+            },
+            {
+                "@type": "ListItem",
+                "position": 2,
+                "name": "Blog",
+                "item": "/blog/"
+            },
+            {
+                "@type": "ListItem",
+                "position": 3,
+                "name": "{{ post.title }}"
+            }
+        ]
+    }
+]
 </script>
 
 <!-- KaTeX -->
@@ -118,4 +173,55 @@
         ],
         throwOnError: false
     });"></script>
+
+<!-- Reading progress + copy-to-clipboard for code blocks -->
+<script>
+(function() {
+    // Reading progress bar
+    var progress = document.getElementById('blog-progress');
+    var article = document.querySelector('.blog-article');
+    if (progress && article) {
+        window.addEventListener('scroll', function() {
+            var rect = article.getBoundingClientRect();
+            var total = article.offsetHeight - window.innerHeight;
+            var scrolled = -rect.top;
+            var pct = Math.max(0, Math.min(100, (scrolled / total) * 100));
+            progress.style.width = pct + '%';
+        }, { passive: true });
+    }
+
+    // Copy-to-clipboard buttons on code blocks
+    document.querySelectorAll('.prose .highlight').forEach(function(block) {
+        var btn = document.createElement('button');
+        btn.className = 'code-copy-btn';
+        btn.title = 'Copy code';
+        btn.innerHTML = '<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="9" y="9" width="13" height="13" rx="2" ry="2"/><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"/></svg>';
+        btn.addEventListener('click', function() {
+            var code = block.querySelector('pre').textContent;
+            navigator.clipboard.writeText(code).then(function() {
+                btn.innerHTML = '<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"/></svg>';
+                setTimeout(function() {
+                    btn.innerHTML = '<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="9" y="9" width="13" height="13" rx="2" ry="2"/><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"/></svg>';
+                }, 2000);
+            });
+        });
+        block.style.position = 'relative';
+        block.appendChild(btn);
+    });
+
+    // Giscus theme sync
+    function setGiscusTheme(theme) {
+        var iframe = document.querySelector('iframe.giscus-frame');
+        if (iframe) {
+            iframe.contentWindow.postMessage(
+                { giscus: { setConfig: { theme: theme === 'light' ? 'noborder_light' : 'noborder_dark' } } },
+                'https://giscus.app'
+            );
+        }
+    }
+    window.addEventListener('themechange', function(e) {
+        setGiscusTheme(e.detail.theme);
+    });
+})();
+</script>
 {% endblock %}

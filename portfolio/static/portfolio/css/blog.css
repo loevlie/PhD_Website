@@ -431,6 +431,65 @@
     color: var(--accent-light);
 }
 
+/* ── Reading Progress Bar ── */
+.blog-progress {
+    position: fixed;
+    top: 0;
+    left: 0;
+    height: 3px;
+    width: 0%;
+    background: linear-gradient(90deg, var(--accent), var(--accent-light));
+    z-index: 10001;
+    transition: width 50ms linear;
+    pointer-events: none;
+}
+
+/* ── Code Copy Button ── */
+.code-copy-btn {
+    position: absolute;
+    top: 8px;
+    right: 8px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    width: 32px;
+    height: 32px;
+    border-radius: 6px;
+    background-color: var(--bg-secondary);
+    border: 1px solid var(--border-color);
+    color: var(--text-muted);
+    cursor: pointer;
+    opacity: 0;
+    transition: opacity var(--transition-fast), color var(--transition-fast), border-color var(--transition-fast);
+}
+
+.highlight:hover .code-copy-btn {
+    opacity: 1;
+}
+
+.code-copy-btn:hover {
+    color: var(--accent-light);
+    border-color: var(--accent);
+}
+
+/* ── Comments ── */
+.blog-comments {
+    margin-top: 64px;
+    padding-top: 32px;
+    border-top: 1px solid var(--border-color);
+}
+
+.blog-comments-title {
+    font-size: var(--h3-size);
+    font-weight: 600;
+    color: var(--text-primary);
+    margin-bottom: 24px;
+}
+
+.giscus {
+    margin-top: 16px;
+}
+
 /* ── Responsive ── */
 @media (max-width: 768px) {
     .blog-article-title {

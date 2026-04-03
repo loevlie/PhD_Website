@@ -15,6 +15,7 @@ ALLOWED_HOSTS = os.environ.get('ALLOWED_HOSTS', '*').split(',')
 
 INSTALLED_APPS = [
     'django.contrib.staticfiles',
+    'django.contrib.sitemaps',
     'portfolio',
 ]
 
