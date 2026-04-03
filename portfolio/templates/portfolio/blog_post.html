@@ -51,17 +51,17 @@
             </header>
 
             {% if post.toc_html %}
-            <nav class="blog-toc fade-in">
+            <nav class="blog-toc">
                 <div class="blog-toc-title">Table of Contents</div>
                 {{ post.toc_html|safe }}
             </nav>
             {% endif %}
 
-            <div class="blog-article-body prose fade-in">
+            <div class="blog-article-body prose">
                 {{ post.content_html|safe }}
             </div>
 
-            <footer class="blog-article-footer fade-in">
+            <footer class="blog-article-footer">
                 <div class="blog-share">
                     <span class="blog-share-label">Share</span>
                     <a href="https://twitter.com/intent/tweet?text={{ post.title|urlencode }}&url={{ request.build_absolute_uri|urlencode }}" target="_blank" rel="noopener" class="blog-share-btn" title="Share on Twitter">
