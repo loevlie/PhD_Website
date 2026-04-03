@@ -191,8 +191,8 @@
             padding: 1rem 1.25rem !important;
             overflow-x: auto !important;
             font-family: 'JetBrains Mono', monospace !important;
-            font-size: 0.8125rem !important;
-            line-height: 1.75 !important;
+            font-size: 0.875rem !important;
+            line-height: 1.5 !important;
             margin: 1.75rem 0 !important;
             position: relative;
             color: var(--hl-text) !important;
@@ -250,12 +250,12 @@
 
         /* Inline code */
         .blog-prose code:not(.highlight code) {
-            background: var(--ctp-surface0);
-            padding: 2px 7px;
-            border-radius: 5px;
+            background: var(--ctp-mantle);
+            padding: 0.15em 0.35em;
+            border-radius: 0.25rem;
             font-family: 'JetBrains Mono', monospace;
-            font-size: 0.84em;
-            color: var(--ctp-lavender);
+            font-size: 0.875em;
+            color: var(--ctp-mauve);
             border: 1px solid var(--ctp-surface0);
         }
 
@@ -272,20 +272,23 @@
         .blog-prose > p:first-child {
             font-size: 1.125rem;
             color: var(--ctp-text);
-            line-height: 1.75;
+            line-height: 1.6;
         }
 
-        /* Animated link underline */
+        /* Slightly heavier font weight in dark modes for readability */
+        .frappe .blog-prose, .macchiato .blog-prose, .mocha .blog-prose {
+            font-weight: 450;
+        }
+
+        /* Link underline */
         .blog-prose a {
-            text-decoration: none !important;
-            background-image: linear-gradient(var(--ctp-lavender), var(--ctp-lavender));
-            background-size: 0% 1px;
-            background-position: left bottom;
-            background-repeat: no-repeat;
-            transition: background-size 0.25s ease;
+            text-decoration: underline !important;
+            text-decoration-color: var(--ctp-lavender-subtle) !important;
+            text-underline-offset: 2px;
+            transition: text-decoration-color 0.15s ease;
         }
         .blog-prose a:hover {
-            background-size: 100% 1px;
+            text-decoration-color: var(--ctp-lavender) !important;
         }
 
         /* Giscus theme sync */
