@@ -34,9 +34,10 @@
             <span></span>
         </button>
     </div>
+</nav>
 
-    <!-- Mobile disclosure panel (slides down under navbar) -->
-    <div class="mobile-panel" id="mobile-panel">
+<!-- Mobile disclosure panel (outside navbar to avoid overflow/backdrop-filter clipping) -->
+<div class="mobile-panel" id="mobile-panel">
         <div class="mobile-panel-inner">
             {% for link in nav_links %}
             {% if link.children %}
@@ -65,7 +66,7 @@
             </div>
         </div>
     </div>
-</nav>
+</div>
 
 <script>
 (function() {
