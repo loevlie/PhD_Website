@@ -173,6 +173,22 @@
     color: var(--accent-light);
 }
 
+/* Cover Image */
+.blog-cover-image {
+    margin-bottom: 32px;
+    border-radius: var(--card-radius);
+    overflow: hidden;
+    border: 1px solid var(--border-color);
+}
+
+.blog-cover-image img {
+    width: 100%;
+    height: auto;
+    display: block;
+    max-height: 400px;
+    object-fit: cover;
+}
+
 /* Article Header */
 .blog-article-header {
     margin-bottom: 40px;
@@ -250,9 +266,10 @@
 
 /* ── Article Body / Prose Typography ── */
 .prose {
-    max-width: 100%;
+    max-width: 65ch;
     line-height: 1.8;
     color: var(--text-secondary);
+    font-size: 1.0625rem;
 }
 
 .prose h2 {

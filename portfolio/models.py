@@ -12,6 +12,7 @@ class Post(models.Model):
     date = models.DateField(help_text="Original publication date")
     updated = models.DateField(blank=True, null=True)
     author = models.CharField(max_length=100, default='Dennis Loevlie')
+    image = models.CharField(max_length=300, blank=True, help_text="Static path for cover image, e.g. portfolio/images/blog/cover.jpg")
     medium_url = models.URLField(blank=True, help_text="Canonical URL if originally published elsewhere")
     draft = models.BooleanField(default=False)
     created_at = models.DateTimeField(auto_now_add=True)

@@ -79,6 +79,8 @@ def render_markdown(content):
 
     html = md.convert(content)
     html = _restore_latex(html, latex_placeholders)
+    # Add loading="lazy" to all images
+    html = html.replace('<img ', '<img loading="lazy" ')
     toc_html = getattr(md, 'toc', '')
 
     return html, toc_html
@@ -101,7 +103,7 @@ def _post_to_dict(post_obj):
         'author': post_obj.author,
         'tags': list(post_obj.tags.names()),
         'excerpt': post_obj.excerpt,
-        'image': '',
+        'image': post_obj.image,
         'draft': post_obj.draft,
         'medium_url': post_obj.medium_url,
         'reading_time': estimate_reading_time(post_obj.body),

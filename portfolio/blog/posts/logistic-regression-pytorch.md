@@ -5,6 +5,7 @@ updated: 2024-01-04
 author: "Dennis Loevlie"
 tags: ["PyTorch", "Machine Learning", "Logistic Regression", "Python"]
 excerpt: "A introduction to applying logistic regression for binary classification using PyTorch."
+image: "portfolio/images/blog/lr-cover.jpeg"
 medium_url: "https://medium.com/data-science/logistic-regression-with-pytorch-3c8bbea594be"
 ---
 
