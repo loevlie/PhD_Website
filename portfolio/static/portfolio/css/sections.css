@@ -345,8 +345,7 @@
 .pub-selected {
     display: grid;
     grid-template-columns: repeat(2, 1fr);
-    gap: 24px;
-    margin-bottom: 40px;
+    gap: 20px;
 }
 
 /* Override .card base — featured cards are fully custom */
@@ -556,6 +555,232 @@
     display: flex;
     gap: 8px;
     flex-wrap: wrap;
+}
+
+/* Publications – compact list (dedicated page) */
+.pub-compact-list {
+    display: flex;
+    flex-direction: column;
+    gap: 0;
+}
+
+.pub-compact-item {
+    display: flex;
+    gap: 24px;
+    padding: 20px 0;
+    border-bottom: 1px solid var(--border-color);
+}
+
+.pub-compact-item:first-child {
+    padding-top: 0;
+}
+
+.pub-compact-item:last-child {
+    border-bottom: none;
+}
+
+.pub-compact-year {
+    flex-shrink: 0;
+    width: 48px;
+    font-size: var(--small-size);
+    font-weight: 700;
+    color: var(--text-muted);
+    padding-top: 2px;
+}
+
+.pub-compact-body {
+    flex: 1;
+    min-width: 0;
+}
+
+.pub-compact-top {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    margin-bottom: 4px;
+}
+
+.pub-compact-top .pub-type {
+    margin-bottom: 0;
+}
+
+.pub-compact-star {
+    color: #f0b429;
+    font-size: var(--small-size);
+}
+
+.pub-compact-title {
+    font-size: var(--body-size);
+    font-weight: 600;
+    color: var(--text-primary);
+    line-height: 1.4;
+    margin-bottom: 4px;
+}
+
+.pub-compact-authors {
+    font-size: var(--small-size);
+    color: var(--text-secondary);
+    margin-bottom: 2px;
+    line-height: 1.5;
+}
+
+.pub-compact-venue {
+    font-size: var(--small-size);
+    color: var(--text-muted);
+    font-style: italic;
+    margin-bottom: 8px;
+}
+
+.pub-compact-item .pub-links {
+    gap: 6px;
+}
+
+.pub-compact-item .link-pill {
+    font-size: 0.7rem;
+    padding: 2px 10px;
+}
+
+@media (max-width: 480px) {
+    .pub-compact-item {
+        flex-direction: column;
+        gap: 4px;
+    }
+
+    .pub-compact-year {
+        width: auto;
+    }
+}
+
+/* Open Source Contributions (inline) */
+.oss-contributions {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    flex-wrap: wrap;
+    margin-top: 32px;
+    padding-top: 24px;
+    border-top: 1px solid var(--border-color);
+}
+
+.oss-label {
+    font-size: var(--xs-size);
+    font-weight: 600;
+    color: var(--text-muted);
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+    white-space: nowrap;
+}
+
+.oss-items {
+    display: flex;
+    gap: 8px;
+    flex-wrap: wrap;
+}
+
+.oss-chip {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    padding: 5px 14px;
+    border-radius: 9999px;
+    font-size: var(--small-size);
+    font-weight: 500;
+    color: var(--text-secondary);
+    background-color: var(--bg-secondary);
+    border: 1px solid var(--border-color);
+    transition: all var(--transition-fast);
+}
+
+.oss-chip:hover {
+    border-color: var(--accent);
+    color: var(--accent-light);
+    background-color: var(--bg-tertiary);
+}
+
+.oss-chip svg {
+    flex-shrink: 0;
+    opacity: 0.6;
+}
+
+.oss-chip:hover svg {
+    opacity: 1;
+}
+
+/* Writing */
+.writing-grid {
+    display: flex;
+    flex-direction: column;
+    gap: 16px;
+}
+
+.writing-card {
+    text-decoration: none;
+    display: block;
+}
+
+.writing-card .card {
+    position: relative;
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
+}
+
+.writing-card-meta {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    font-size: var(--xs-size);
+    color: var(--text-muted);
+}
+
+.writing-card-dot {
+    opacity: 0.5;
+}
+
+.writing-card-title {
+    font-size: var(--h3-size);
+    font-weight: 600;
+    color: var(--text-primary);
+    margin: 4px 0;
+    transition: color var(--transition-fast);
+}
+
+.writing-card:hover .writing-card-title {
+    color: var(--accent-light);
+}
+
+.writing-card-excerpt {
+    font-size: var(--small-size);
+    color: var(--text-secondary);
+    line-height: 1.6;
+    margin-bottom: 12px;
+}
+
+.writing-card-tags {
+    display: flex;
+    gap: 6px;
+    flex-wrap: wrap;
+}
+
+.writing-card-arrow {
+    position: absolute;
+    top: var(--card-padding);
+    right: var(--card-padding);
+    color: var(--text-muted);
+    opacity: 0;
+    transform: translateX(-8px);
+    transition: all var(--transition-base);
+}
+
+.writing-card:hover .writing-card-arrow {
+    opacity: 1;
+    transform: translateX(0);
+    color: var(--accent-light);
+}
+
+.writing-more {
+    margin-top: 24px;
+    text-align: center;
 }
 
 /* Projects */

@@ -6,7 +6,7 @@ window.addEventListener('scroll', () => {
 
 // Active nav link tracking
 const sections = document.querySelectorAll('.section, section');
-const navLinks = document.querySelectorAll('.nav-links .nav-link');
+const allNavLinks = document.querySelectorAll('.nav-links .nav-link, .nav-links .nav-dropdown-item');
 
 function updateActiveLink() {
     let current = '';
@@ -16,10 +16,17 @@ function updateActiveLink() {
             current = section.getAttribute('id');
         }
     });
-    navLinks.forEach(link => {
-        link.classList.remove('active');
+    // Clear all active states
+    document.querySelectorAll('.nav-links .nav-link').forEach(l => l.classList.remove('active'));
+    // Set active on matching link (direct or dropdown item)
+    allNavLinks.forEach(link => {
         if (link.getAttribute('href') === '#' + current) {
             link.classList.add('active');
+            // If inside a dropdown, also activate the parent
+            const dropdown = link.closest('.nav-dropdown');
+            if (dropdown) {
+                dropdown.querySelector('.nav-link--dropdown').classList.add('active');
+            }
         }
     });
 }

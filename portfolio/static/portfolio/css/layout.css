@@ -11,6 +11,7 @@
     border-bottom: 1px solid transparent;
     z-index: 1000;
     transition: border-color var(--transition-base), box-shadow var(--transition-base);
+    overflow: visible;
 }
 
 .navbar.scrolled {
@@ -74,6 +75,85 @@
 
 .nav-link.active::after {
     width: 100%;
+}
+
+/* Nav Dropdowns */
+.nav-dropdown {
+    position: relative;
+}
+
+button.nav-link--dropdown {
+    background: none;
+    border: none;
+    font-family: inherit;
+    display: inline-flex;
+    align-items: center;
+    gap: 4px;
+    cursor: pointer;
+}
+
+.nav-chevron {
+    transition: transform var(--transition-fast);
+}
+
+.nav-dropdown.open .nav-chevron {
+    transform: rotate(180deg);
+}
+
+.nav-dropdown-menu {
+    position: fixed;
+    min-width: 140px;
+    background-color: var(--bg-secondary);
+    border: 1px solid var(--border-color);
+    border-radius: 8px;
+    padding: 6px;
+    box-shadow: var(--shadow-lg);
+    opacity: 0;
+    visibility: hidden;
+    pointer-events: none;
+    transform: translateY(4px);
+    transition: opacity var(--transition-fast), transform var(--transition-fast), visibility var(--transition-fast);
+    z-index: 1001;
+}
+
+.nav-dropdown.open .nav-dropdown-menu {
+    opacity: 1;
+    visibility: visible;
+    pointer-events: auto;
+    transform: translateY(0);
+}
+
+.nav-dropdown-item {
+    display: block;
+    padding: 8px 14px;
+    font-size: var(--small-size);
+    color: var(--text-secondary);
+    border-radius: 6px;
+    transition: background-color var(--transition-fast), color var(--transition-fast);
+    white-space: nowrap;
+}
+
+.nav-dropdown-item:hover {
+    background-color: var(--bg-tertiary);
+    color: var(--accent-light);
+}
+
+/* Mobile dropdown groups */
+.mobile-dropdown-group {
+    display: flex;
+    flex-direction: column;
+}
+
+.mobile-dropdown-label {
+    font-size: 1.25rem;
+    font-weight: 600;
+    color: var(--text-muted);
+    padding: 0 0 4px 0;
+}
+
+.mobile-nav-link--child {
+    padding-left: 16px;
+    font-size: 1.1rem !important;
 }
 
 /* Hamburger */
@@ -178,7 +258,7 @@
 
 .section-title {
     font-size: var(--h2-size);
-    margin-bottom: 48px;
+    margin-bottom: 32px;
     position: relative;
     display: inline-block;
 }
@@ -192,6 +272,39 @@
     height: 3px;
     background-color: var(--accent);
     border-radius: 2px;
+}
+
+/* View-all links */
+.section-view-all {
+    margin-top: 24px;
+    text-align: center;
+}
+
+/* Listing pages (publications, projects full list) */
+.listing-page {
+    padding-top: calc(var(--nav-height) + 48px);
+}
+
+.listing-page-title {
+    font-size: var(--h1-size);
+    font-weight: 700;
+    color: var(--text-primary);
+    margin-bottom: 8px;
+}
+
+.listing-page-subtitle {
+    font-size: var(--body-size);
+    color: var(--text-secondary);
+    margin-bottom: 40px;
+    line-height: 1.6;
+}
+
+.listing-page-section-title {
+    font-size: var(--h2-size);
+    font-weight: 600;
+    color: var(--text-primary);
+    margin-top: 48px;
+    margin-bottom: 24px;
 }
 
 /* Grid */

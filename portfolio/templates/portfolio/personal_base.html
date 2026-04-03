@@ -8,14 +8,10 @@
 
     <!-- Open Graph / social sharing -->
     {% block og_meta %}
-    <meta property="og:title" content="Recipes — Dennis Loevlie">
-    <meta property="og:description" content="A collection of my favorite recipes.">
-    <meta property="og:image" content="{% static 'portfolio/images/og-recipes.png' %}">
+    <meta property="og:title" content="Dennis Loevlie">
+    <meta property="og:description" content="ELLIS PhD Student at CWI & University of Amsterdam.">
     <meta property="og:type" content="website">
     <meta name="twitter:card" content="summary_large_image">
-    <meta name="twitter:title" content="Recipes — Dennis Loevlie">
-    <meta name="twitter:description" content="A collection of my favorite recipes.">
-    <meta name="twitter:image" content="{% static 'portfolio/images/og-recipes.png' %}">
     {% endblock %}
 
     <!-- Fonts -->
@@ -45,17 +41,36 @@
     <link rel="stylesheet" href="{% static 'portfolio/css/sections.css' %}">
     <link rel="stylesheet" href="{% static 'portfolio/css/animations.css' %}">
     <link rel="stylesheet" href="{% static 'portfolio/css/responsive.css' %}">
+    {% block extra_head %}{% endblock %}
 </head>
 <body>
 
-<!-- Personal site nav -->
 <nav class="navbar" id="navbar">
     <div class="navbar-inner">
         <a href="/" class="nav-logo" title="Back to portfolio">DL</a>
         <div class="nav-links" id="nav-links">
-            <a href="/recipes/" class="nav-link {% block nav_recipes %}{% endblock %}">Recipes</a>
-            <a href="/blog/" class="nav-link {% block nav_blog %}{% endblock %}">Blog</a>
-            <a href="/footy/" class="nav-link {% block nav_footy %}{% endblock %}">Footy</a>
+            <a href="/" class="nav-link">Home</a>
+            {% for link in nav_links %}
+            {% if link.children %}
+            <div class="nav-dropdown">
+                <button class="nav-link nav-link--dropdown" data-section="{{ link.href }}">
+                    {{ link.label }}
+                    <svg class="nav-chevron" width="10" height="10" viewBox="0 0 10 10" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="2 4 5 7 8 4"/></svg>
+                </button>
+                <div class="nav-dropdown-menu">
+                    {% for child in link.children %}
+                    <a href="{% if child.href|first == '#' %}/{{ child.href }}{% else %}{{ child.href }}{% endif %}" class="nav-dropdown-item">{{ child.label }}</a>
+                    {% endfor %}
+                </div>
+            </div>
+            {% else %}
+            {% if link.href|first == '#' %}
+            <a href="/{{ link.href }}" class="nav-link">{{ link.label }}</a>
+            {% else %}
+            <a href="{{ link.href }}" class="nav-link">{{ link.label }}</a>
+            {% endif %}
+            {% endif %}
+            {% endfor %}
         </div>
         <button class="theme-toggle" id="theme-toggle" aria-label="Toggle light/dark mode">
             <svg class="icon-moon" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
@@ -74,9 +89,19 @@
 </nav>
 
 <div class="mobile-menu" id="mobile-menu">
-    <a href="/recipes/" class="nav-link mobile-nav-link">Recipes</a>
-    <a href="/blog/" class="nav-link mobile-nav-link">Blog</a>
-    <a href="/footy/" class="nav-link mobile-nav-link">Footy</a>
+    <a href="/" class="nav-link mobile-nav-link">Home</a>
+    {% for link in nav_links %}
+    {% if link.children %}
+    <div class="mobile-dropdown-group">
+        <span class="mobile-dropdown-label">{{ link.label }}</span>
+        {% for child in link.children %}
+        <a href="{% if child.href|first == '#' %}/{{ child.href }}{% else %}{{ child.href }}{% endif %}" class="nav-link mobile-nav-link mobile-nav-link--child">{{ child.label }}</a>
+        {% endfor %}
+    </div>
+    {% else %}
+    <a href="{% if link.href|first == '#' %}/{{ link.href }}{% else %}{{ link.href }}{% endif %}" class="nav-link mobile-nav-link">{{ link.label }}</a>
+    {% endif %}
+    {% endfor %}
 </div>
 
 {% block content %}{% endblock %}
@@ -84,7 +109,7 @@
 <footer class="footer">
     <div class="container">
         <p class="footer-text">&copy; 2026 Dennis Loevlie</p>
-        <p class="footer-extras"><a href="/">Portfolio</a></p>
+        <p class="footer-extras"><a href="/">Portfolio</a> &middot; <a href="/blog/">Blog</a> &middot; <a href="/recipes/">Recipes</a></p>
     </div>
 </footer>
 
@@ -125,13 +150,53 @@ document.querySelectorAll('.fade-in, .fade-in-group').forEach(function(el) {
     fadeObserver.observe(el);
 });
 
-// Active nav highlight
+// Active nav highlight for current page
 var currentPath = window.location.pathname;
-document.querySelectorAll('.nav-links .nav-link').forEach(function(link) {
-    if (currentPath.startsWith(link.getAttribute('href')) && link.getAttribute('href') !== '/') {
+document.querySelectorAll('.nav-links .nav-link, .nav-links .nav-dropdown-item').forEach(function(link) {
+    var href = link.getAttribute('href');
+    if (href && href !== '/' && currentPath.startsWith(href)) {
         link.classList.add('active');
+        var dropdown = link.closest('.nav-dropdown');
+        if (dropdown) {
+            dropdown.querySelector('.nav-link--dropdown').classList.add('active');
+        }
     }
 });
+
+// Dropdown toggle (same as main nav)
+document.querySelectorAll('.nav-dropdown').forEach(function(dd) {
+    var btn = dd.querySelector('.nav-link--dropdown');
+    var menu = dd.querySelector('.nav-dropdown-menu');
+    btn.addEventListener('click', function(e) {
+        e.preventDefault();
+        e.stopPropagation();
+        var wasOpen = dd.classList.contains('open');
+        document.querySelectorAll('.nav-dropdown.open').forEach(function(d) { d.classList.remove('open'); });
+        if (!wasOpen) {
+            menu.style.visibility = 'hidden';
+            menu.style.opacity = '0';
+            menu.style.display = 'block';
+            menu.style.pointerEvents = 'none';
+            var rect = btn.getBoundingClientRect();
+            var menuW = menu.offsetWidth;
+            var left = rect.left + rect.width / 2 - menuW / 2;
+            left = Math.max(8, Math.min(left, window.innerWidth - menuW - 8));
+            menu.style.top = (rect.bottom + 8) + 'px';
+            menu.style.left = left + 'px';
+            menu.style.display = '';
+            menu.style.visibility = '';
+            menu.style.opacity = '';
+            menu.style.pointerEvents = '';
+            dd.classList.add('open');
+        }
+    });
+});
+document.addEventListener('click', function() {
+    document.querySelectorAll('.nav-dropdown.open').forEach(function(d) { d.classList.remove('open'); });
+});
+window.addEventListener('scroll', function() {
+    document.querySelectorAll('.nav-dropdown.open').forEach(function(d) { d.classList.remove('open'); });
+}, { passive: true });
 </script>
 </body>
 </html>

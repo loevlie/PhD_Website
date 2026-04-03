@@ -1,0 +1,48 @@
+{% extends "portfolio/personal_base.html" %}
+{% load static portfolio_tags %}
+
+{% block title %}Publications — Dennis Loevlie{% endblock %}
+
+{% block og_meta %}
+<meta property="og:title" content="Publications — Dennis Loevlie">
+<meta property="og:description" content="Research publications in machine learning and tabular foundation models.">
+<meta property="og:type" content="website">
+<meta name="twitter:card" content="summary_large_image">
+<meta name="twitter:title" content="Publications — Dennis Loevlie">
+<meta name="twitter:description" content="Research publications in machine learning and tabular foundation models.">
+{% endblock %}
+
+{% block content %}
+<section class="section listing-page">
+    <div class="container">
+        <h1 class="listing-page-title fade-in">Publications</h1>
+        <p class="listing-page-subtitle fade-in">Research papers, posters, and conference proceedings.</p>
+
+        <div class="pub-compact-list fade-in-group">
+            {% for pub in publications %}
+            <div class="pub-compact-item fade-in">
+                <div class="pub-compact-year">{{ pub.year }}</div>
+                <div class="pub-compact-body">
+                    <div class="pub-compact-top">
+                        <span class="pub-type">{{ pub.type }}</span>
+                        {% if pub.selected %}<span class="pub-compact-star" title="Selected">&#9733;</span>{% endif %}
+                    </div>
+                    <h3 class="pub-compact-title">{{ pub.title }}</h3>
+                    <p class="pub-compact-authors">
+                        {% for author in pub.authors %}{% if not forloop.first %}, {% endif %}{{ author|highlight_author }}{% endfor %}
+                    </p>
+                    <p class="pub-compact-venue">{{ pub.venue }}</p>
+                    {% if pub.links %}
+                    <div class="pub-links">
+                        {% for link in pub.links %}
+                        <a href="{{ link.url }}" class="link-pill" target="_blank" rel="noopener">{{ link.label }}</a>
+                        {% endfor %}
+                    </div>
+                    {% endif %}
+                </div>
+            </div>
+            {% endfor %}
+        </div>
+    </div>
+</section>
+{% endblock %}

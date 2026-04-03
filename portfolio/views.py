@@ -2,6 +2,7 @@ from django.shortcuts import render
 from django.http import Http404
 
 from portfolio.data import RECIPES
+from portfolio.blog import get_all_posts, get_post
 
 
 def index(request):
@@ -20,8 +21,23 @@ def recipe_detail(request, slug):
 
 
 def blog(request):
-    return render(request, 'portfolio/blog.html')
+    posts = get_all_posts()
+    tag = request.GET.get('tag')
+    if tag:
+        posts = [p for p in posts if tag in p['tags']]
+    return render(request, 'portfolio/blog.html', {'posts': posts, 'active_tag': tag})
 
 
-def footy(request):
-    return render(request, 'portfolio/footy.html')
+def blog_post(request, slug):
+    post = get_post(slug)
+    if post is None:
+        raise Http404("Post not found")
+    return render(request, 'portfolio/blog_post.html', {'post': post})
+
+
+def publications(request):
+    return render(request, 'portfolio/publications.html')
+
+
+def projects(request):
+    return render(request, 'portfolio/projects.html')

@@ -1,0 +1,148 @@
+import math
+import re
+from datetime import date
+from pathlib import Path
+
+import frontmatter
+import markdown
+from markdown.extensions.codehilite import CodeHiliteExtension
+from markdown.extensions.toc import TocExtension
+
+POSTS_DIR = Path(__file__).parent / 'posts'
+
+# LaTeX protection: replace $...$ and $$...$$ with placeholders before markdown processing
+_DISPLAY_MATH_RE = re.compile(r'\$\$(.+?)\$\$', re.DOTALL)
+_INLINE_MATH_RE = re.compile(r'(?<!\$)\$(?!\$)(.+?)(?<!\$)\$(?!\$)')
+
+
+def _protect_latex(content):
+    """Replace LaTeX delimiters with HTML spans that KaTeX will render client-side."""
+    placeholders = []
+
+    def replace_display(m):
+        idx = len(placeholders)
+        placeholders.append(('display', m.group(1)))
+        return f'\n\n<div class="math-display" data-math-idx="{idx}"></div>\n\n'
+
+    def replace_inline(m):
+        idx = len(placeholders)
+        placeholders.append(('inline', m.group(1)))
+        return f'<span class="math-inline" data-math-idx="{idx}"></span>'
+
+    # Protect code blocks first
+    code_blocks = []
+    def save_code(m):
+        code_blocks.append(m.group(0))
+        return f'CODEBLOCK{len(code_blocks) - 1}END'
+
+    content = re.sub(r'```[\s\S]*?```', save_code, content)
+    content = re.sub(r'`[^`]+`', save_code, content)
+
+    content = _DISPLAY_MATH_RE.sub(replace_display, content)
+    content = _INLINE_MATH_RE.sub(replace_inline, content)
+
+    # Restore code blocks
+    for i, block in enumerate(code_blocks):
+        content = content.replace(f'CODEBLOCK{i}END', block)
+
+    return content, placeholders
+
+
+def _restore_latex(html, placeholders):
+    """Replace placeholder spans with actual LaTeX content for KaTeX."""
+    for i, (mode, tex) in enumerate(placeholders):
+        if mode == 'display':
+            html = html.replace(
+                f'<div class="math-display" data-math-idx="{i}"></div>',
+                f'<div class="math-display">$${tex}$$</div>'
+            )
+        else:
+            html = html.replace(
+                f'<span class="math-inline" data-math-idx="{i}"></span>',
+                f'<span class="math-inline">${tex}$</span>'
+            )
+    return html
+
+
+def render_markdown(content):
+    """Convert markdown string to HTML with syntax highlighting and ToC."""
+    content, latex_placeholders = _protect_latex(content)
+
+    md = markdown.Markdown(extensions=[
+        'fenced_code',
+        CodeHiliteExtension(css_class='highlight', guess_lang=False, linenums=False),
+        'tables',
+        TocExtension(toc_depth='2-3', permalink=True, permalink_class='toc-link'),
+        'smarty',
+        'attr_list',
+    ])
+
+    html = md.convert(content)
+    html = _restore_latex(html, latex_placeholders)
+    toc_html = getattr(md, 'toc', '')
+
+    return html, toc_html
+
+
+def estimate_reading_time(content):
+    """Estimate reading time in minutes (200 wpm)."""
+    words = len(content.split())
+    return max(1, math.ceil(words / 200))
+
+
+def _parse_post(filepath):
+    """Parse a single markdown file into a post dict."""
+    post = frontmatter.load(filepath)
+    slug = filepath.stem
+
+    raw_content = post.content
+    content_html, toc_html = render_markdown(raw_content)
+    reading_time = estimate_reading_time(raw_content)
+
+    post_date = post.get('date', date.today())
+    if isinstance(post_date, str):
+        post_date = date.fromisoformat(post_date)
+
+    return {
+        'slug': slug,
+        'title': post.get('title', slug.replace('-', ' ').title()),
+        'date': post_date,
+        'updated': post.get('updated'),
+        'author': post.get('author', 'Dennis Loevlie'),
+        'tags': post.get('tags', []),
+        'excerpt': post.get('excerpt', ''),
+        'image': post.get('image', ''),
+        'draft': post.get('draft', False),
+        'medium_url': post.get('medium_url', ''),
+        'reading_time': reading_time,
+        'content_html': content_html,
+        'toc_html': toc_html,
+        'word_count': len(raw_content.split()),
+    }
+
+
+def get_all_posts(include_drafts=False):
+    """Load all blog posts, sorted by date descending."""
+    posts = []
+    if not POSTS_DIR.exists():
+        return posts
+
+    for filepath in POSTS_DIR.glob('*.md'):
+        post = _parse_post(filepath)
+        if post['draft'] and not include_drafts:
+            continue
+        posts.append(post)
+
+    posts.sort(key=lambda p: p['date'], reverse=True)
+    return posts
+
+
+def get_post(slug):
+    """Load a single blog post by slug. Returns None if not found."""
+    filepath = POSTS_DIR / f'{slug}.md'
+    if not filepath.exists():
+        return None
+    post = _parse_post(filepath)
+    if post['draft']:
+        return None
+    return post

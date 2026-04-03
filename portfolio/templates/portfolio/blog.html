@@ -1,18 +1,105 @@
 {% extends "portfolio/personal_base.html" %}
+{% load static %}
 
 {% block title %}Blog — Dennis Loevlie{% endblock %}
 {% block nav_blog %}active{% endblock %}
 
-{% block content %}
-<section class="section coming-soon-page">
-    <div class="container">
-        <h1 class="recipes-page-title fade-in">Blog</h1>
-        <p class="recipes-page-subtitle fade-in">Thoughts on ML research, life in Amsterdam, and whatever else comes to mind.</p>
+{% block extra_head %}
+<link rel="stylesheet" href="{% static 'portfolio/css/blog.css' %}">
+{% endblock %}
 
-        <div class="coming-soon fade-in">
-            <span class="coming-soon-icon">✍️</span>
-            <p>Coming soon.</p>
+{% block og_meta %}
+<meta property="og:title" content="Blog — Dennis Loevlie">
+<meta property="og:description" content="Thoughts on ML research, deep learning, and software engineering.">
+<meta property="og:type" content="website">
+<meta name="twitter:card" content="summary_large_image">
+<meta name="twitter:title" content="Blog — Dennis Loevlie">
+<meta name="twitter:description" content="Thoughts on ML research, deep learning, and software engineering.">
+{% endblock %}
+
+{% block content %}
+<section class="section blog-page">
+    <div class="container">
+        <h1 class="blog-page-title fade-in">Blog</h1>
+        <p class="blog-page-subtitle fade-in">Thoughts on ML research, life in Amsterdam, and whatever else comes to mind.</p>
+
+        {% if posts %}
+        <div class="blog-filter-tags fade-in" id="blog-filter-tags">
+            <button class="blog-filter-tag{% if not active_tag %} active{% endif %}" data-filter="all">All</button>
         </div>
+
+        <div class="blog-grid fade-in-group" id="blog-grid">
+            {% for post in posts %}
+            <a href="{% url 'blog_post' post.slug %}" class="blog-card" data-tags="{{ post.tags|join:',' }}">
+                <div class="card">
+                    <div class="blog-card-meta">
+                        <time datetime="{{ post.date|date:'Y-m-d' }}">{{ post.date|date:'F j, Y' }}</time>
+                        <span class="blog-reading-time">
+                            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg>
+                            {{ post.reading_time }} min read
+                        </span>
+                    </div>
+                    <h2 class="blog-card-title">{{ post.title }}</h2>
+                    <p class="blog-card-excerpt">{{ post.excerpt }}</p>
+                    <div class="blog-card-tags">
+                        {% for tag in post.tags %}
+                        <span class="tag">{{ tag }}</span>
+                        {% endfor %}
+                    </div>
+                </div>
+            </a>
+            {% endfor %}
+        </div>
+        {% else %}
+        <div class="blog-empty fade-in">
+            <p>No posts yet. Check back soon!</p>
+        </div>
+        {% endif %}
     </div>
 </section>
+
+<script>
+(function() {
+    // Collect unique tags from posts
+    var cards = document.querySelectorAll('.blog-card');
+    var tagSet = new Set();
+    cards.forEach(function(card) {
+        var tags = card.dataset.tags.split(',');
+        tags.forEach(function(t) { if (t) tagSet.add(t); });
+    });
+
+    // Build filter buttons
+    var container = document.getElementById('blog-filter-tags');
+    if (!container) return;
+    tagSet.forEach(function(tag) {
+        var btn = document.createElement('button');
+        btn.className = 'blog-filter-tag';
+        btn.dataset.filter = tag;
+        btn.textContent = tag;
+        {% if active_tag %}
+        if (tag === '{{ active_tag }}') btn.classList.add('active');
+        {% endif %}
+        container.appendChild(btn);
+    });
+
+    // Filter logic
+    container.addEventListener('click', function(e) {
+        var btn = e.target.closest('.blog-filter-tag');
+        if (!btn) return;
+        container.querySelectorAll('.blog-filter-tag').forEach(function(b) {
+            b.classList.remove('active');
+        });
+        btn.classList.add('active');
+        var filter = btn.dataset.filter;
+        cards.forEach(function(card) {
+            if (filter === 'all') {
+                card.style.display = '';
+            } else {
+                var tags = card.dataset.tags.split(',');
+                card.style.display = tags.indexOf(filter) !== -1 ? '' : 'none';
+            }
+        });
+    });
+})();
+</script>
 {% endblock %}

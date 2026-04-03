@@ -391,11 +391,26 @@ SOCIAL_LINKS = [
 NAV_LINKS = [
     {'label': 'About', 'href': '#about'},
     {'label': 'News', 'href': '#news'},
-    {'label': 'Publications', 'href': '#publications'},
-    {'label': 'Projects', 'href': '#projects'},
-    {'label': 'Demos', 'href': '#demos'},
     {'label': 'Experience', 'href': '#experience'},
-    {'label': 'Open Source', 'href': '#opensource'},
+    {
+        'label': 'Publications',
+        'href': '#publications',
+        'children': [
+            {'label': 'Selected', 'href': '#publications'},
+            {'label': 'Full List', 'href': '/publications/'},
+        ],
+    },
+    {
+        'label': 'Explore',
+        'href': '#projects',
+        'children': [
+            {'label': 'Featured Projects', 'href': '#projects'},
+            {'label': 'All Projects', 'href': '/projects/'},
+            {'label': 'Demos', 'href': '#demos'},
+            {'label': 'Blog', 'href': '/blog/'},
+            {'label': 'Recipes', 'href': '/recipes/'},
+        ],
+    },
     {'label': 'Contact', 'href': '#contact'},
 ]
 

@@ -93,7 +93,7 @@
 @media (max-width: 640px) {
     :root {
         --h1-size: 2rem;
-        --section-padding: 48px;
+        --section-padding: 40px;
         --card-padding: 20px;
     }
 
