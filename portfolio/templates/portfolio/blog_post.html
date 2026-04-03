@@ -234,21 +234,70 @@
 </div>
 {% endif %}
 
-<!-- Floating subscribe pill -->
-<div x-data="{ visible: true }" class="fixed bottom-6 right-6 z-40" x-show="visible"
+<!-- Floating subscribe pill + modal -->
+<div x-data="{ showPill: true, showModal: false, submitted: false }"
      x-init="
         let nl = document.querySelector('.blog-newsletter-section');
         if (nl) {
-            let ob = new IntersectionObserver(function(entries) { visible = !entries[0].isIntersecting; }, { threshold: 0.1 });
-            ob.observe(nl);
+            new IntersectionObserver(function(e) { showPill = !e[0].isIntersecting; }, { threshold: 0.1 }).observe(nl);
         }
-     "
-     x-transition>
-    <a href="#newsletter"
-       class="flex items-center gap-2 px-4 py-2.5 rounded-full bg-accent hover:bg-accent-hover text-white text-sm font-medium shadow-lg transition-all hover:shadow-xl">
+     ">
+
+    <!-- Pill button -->
+    <button @click="showModal = true" x-show="showPill && !showModal" x-transition
+            class="fixed bottom-6 right-6 z-40 flex items-center gap-2 px-4 py-2.5 rounded-full bg-accent/90 hover:bg-accent text-white text-sm font-medium shadow-lg backdrop-blur-sm transition-all hover:shadow-xl hover:scale-105">
         <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M4 4h16c1.1 0 2 .9 2 2v12c0 1.1-.9 2-2 2H4c-1.1 0-2-.9-2-2V6c0-1.1.9-2 2-2z"/><polyline points="22,6 12,13 2,6"/></svg>
         Subscribe
-    </a>
+    </button>
+
+    <!-- Backdrop -->
+    <div x-show="showModal" x-cloak
+         x-transition:enter="transition ease-out duration-200" x-transition:enter-start="opacity-0" x-transition:enter-end="opacity-100"
+         x-transition:leave="transition ease-in duration-150" x-transition:leave-start="opacity-100" x-transition:leave-end="opacity-0"
+         @click="showModal = false"
+         class="fixed inset-0 z-50 bg-crust/50 backdrop-blur-sm"></div>
+
+    <!-- Modal -->
+    <div x-show="showModal" x-cloak
+         x-transition:enter="transition ease-out duration-200" x-transition:enter-start="opacity-0 scale-95 translate-y-4" x-transition:enter-end="opacity-100 scale-100 translate-y-0"
+         x-transition:leave="transition ease-in duration-150" x-transition:leave-start="opacity-100 scale-100" x-transition:leave-end="opacity-0 scale-95 translate-y-4"
+         class="fixed inset-0 z-50 flex items-center justify-center p-6 pointer-events-none">
+        <div @click.stop class="pointer-events-auto w-full max-w-sm bg-mantle border border-surface-2 rounded-2xl shadow-2xl p-6 relative">
+
+            <!-- Close -->
+            <button @click="showModal = false" class="absolute top-4 right-4 text-content-muted hover:text-content transition-colors">
+                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
+            </button>
+
+            <!-- Content -->
+            <div x-show="!submitted">
+                <div class="flex items-center gap-2 mb-1">
+                    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" class="text-accent"><path d="M4 4h16c1.1 0 2 .9 2 2v12c0 1.1-.9 2-2 2H4c-1.1 0-2-.9-2-2V6c0-1.1.9-2 2-2z"/><polyline points="22,6 12,13 2,6"/></svg>
+                    <h3 class="text-base font-semibold text-content">Stay in the loop</h3>
+                </div>
+                <p class="text-sm text-content-muted mb-5">New posts on ML research and deep learning, straight to your inbox. No spam.</p>
+                <form action="https://buttondown.com/api/emails/embed-subscribe/dennisloevlie" method="post" target="popupwindow"
+                      @submit="setTimeout(function() { submitted = true }, 500)"
+                      class="space-y-3">
+                    <input type="email" name="email" placeholder="your@email.com" required
+                           class="w-full px-4 py-3 bg-base border border-surface-2 rounded-xl text-sm text-content placeholder:text-content-muted outline-none focus:border-accent focus:ring-1 focus:ring-accent/30 transition-all">
+                    <button type="submit"
+                            class="w-full py-3 bg-accent hover:bg-accent-hover text-white rounded-xl text-sm font-medium transition-colors">
+                        Subscribe
+                    </button>
+                </form>
+                <p class="text-[0.6875rem] text-content-muted mt-3 text-center">Powered by Buttondown. Unsubscribe anytime.</p>
+            </div>
+
+            <!-- Success state -->
+            <div x-show="submitted" x-cloak class="text-center py-4">
+                <div class="text-3xl mb-2">🎉</div>
+                <h3 class="text-base font-semibold text-content mb-1">You're subscribed!</h3>
+                <p class="text-sm text-content-muted">Check your inbox to confirm.</p>
+                <button @click="showModal = false" class="mt-4 text-sm text-accent hover:text-accent-hover transition-colors">Close</button>
+            </div>
+        </div>
+    </div>
 </div>
 
 <!-- JSON-LD -->
