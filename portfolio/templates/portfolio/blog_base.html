@@ -246,6 +246,30 @@
             text-decoration-color: var(--ctp-lavender) !important;
         }
 
+        /* Interactive demo containers */
+        .lr-demo-container {
+            background: var(--ctp-crust);
+            border: 1px solid var(--ctp-surface0);
+            border-radius: 12px;
+            padding: 16px;
+            margin: 1.5rem 0;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+        }
+        .lr-demo-container canvas {
+            border-radius: 8px;
+            cursor: default;
+            max-width: 100%;
+        }
+        .lr-demo-status {
+            font-size: 0.8125rem;
+            font-family: 'JetBrains Mono', monospace;
+            margin-top: 10px;
+            text-align: center;
+            transition: color 0.2s;
+        }
+
         /* Giscus theme sync */
         .giscus { margin-top: 1rem; }
     </style>

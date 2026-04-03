@@ -20,6 +20,10 @@ Here the linearly separable groups are:
 
 We want to use logistic regression to map any $[x_1, x_2]$ pair to the corresponding class (red or blue).
 
+<div id="lr-interactive-demo" class="lr-demo-container"></div>
+
+**Try it yourself** — drag the dots above to see when a linear decision boundary can (and can't) separate two classes.
+
 ## Step 1: Splitting our dataset into a train/test split
 
 We do this so we can evaluate our models performance on data it didn't see during training. Usually, if you tell someone your model is 97% accurate, it is assumed you are talking about the validation/testing accuracy.
