@@ -177,8 +177,9 @@
             opacity: 0;
         }
 
-        /* Code blocks: always Mocha for max readability, with flavor-aware border */
+        /* Code blocks: each flavor uses its own full palette */
         .blog-prose .highlight {
+            /* Default to Mocha */
             --hl-crust: #11111b; --hl-mantle: #181825; --hl-surface0: #313244;
             --hl-text: #cdd6f4; --hl-overlay0: #6c7086; --hl-overlay2: #9399b2;
             --hl-mauve: #cba6f7; --hl-green: #a6e3a1; --hl-blue: #89b4fa;
@@ -197,7 +198,9 @@
             color: var(--hl-text) !important;
             box-shadow: 0 4px 16px rgba(0, 0, 0, 0.15), 0 0 0 1px rgba(0, 0, 0, 0.08);
         }
-        /* For dark flavors, use the actual flavor's crust/surface for a cohesive feel */
+        /* Latte: light code blocks like VS Code Catppuccin Latte */
+        .latte .blog-prose .highlight { --hl-crust: #e6e9ef; --hl-mantle: #dce0e8; --hl-surface0: #ccd0da; --hl-text: #4c4f69; --hl-overlay0: #9ca0b0; --hl-overlay2: #7c7f93; --hl-mauve: #8839ef; --hl-green: #40a02b; --hl-blue: #1e66f5; --hl-yellow: #df8e1d; --hl-peach: #fe640b; --hl-sky: #04a5e5; --hl-red: #d20f39; --hl-lavender: #7287fd; box-shadow: 0 2px 8px rgba(0, 0, 0, 0.06), 0 0 0 1px rgba(0, 0, 0, 0.04); }
+        /* Dark flavors use their own palettes */
         .frappe .blog-prose .highlight { --hl-crust: #232634; --hl-mantle: #292c3c; --hl-surface0: #414559; --hl-text: #c6d0f5; --hl-overlay0: #737994; --hl-overlay2: #949cbb; --hl-mauve: #ca9ee6; --hl-green: #a6d189; --hl-blue: #8caaee; --hl-yellow: #e5c890; --hl-peach: #ef9f76; --hl-sky: #99d1db; --hl-red: #e78284; --hl-lavender: #babbf1; }
         .macchiato .blog-prose .highlight { --hl-crust: #181926; --hl-mantle: #1e2030; --hl-surface0: #363a4f; --hl-text: #cad3f5; --hl-overlay0: #6e738d; --hl-overlay2: #939ab7; --hl-mauve: #c6a0f6; --hl-green: #a6da95; --hl-blue: #8aadf4; --hl-yellow: #eed49f; --hl-peach: #f5a97f; --hl-sky: #91d7e3; --hl-red: #ed8796; --hl-lavender: #b7bdf8; }
 
