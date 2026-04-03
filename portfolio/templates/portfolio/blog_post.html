@@ -249,25 +249,20 @@
 
     // Code block language labels + copy buttons
     document.querySelectorAll('.blog-prose .highlight').forEach(function(block) {
-        // Detect language from class name (e.g., "highlight-python" or Pygments classes)
-        var pre = block.querySelector('pre');
-        var codeEl = block.querySelector('code');
+        var text = block.textContent.trim();
         var lang = '';
-        if (codeEl) {
-            var cls = codeEl.className || '';
-            var m = cls.match(/language-(\w+)/);
-            if (m) lang = m[1];
+
+        // Detect from Pygments span classes
+        if (block.querySelector('.kn, .kd')) {
+            // Has keyword spans — it's a real code block
+            if (text.match(/(import |from |class |def |torch\.|print\()/)) lang = 'python';
+            else if (text.match(/(const |let |var |function |=>)/)) lang = 'javascript';
+            else if (text.match(/(fn |let |mut |pub |use )/)) lang = 'rust';
         }
-        if (!lang) {
-            // Try to detect from Pygments span classes
-            var firstSpan = block.querySelector('.k, .kn, .kd');
-            if (firstSpan) {
-                var text = block.textContent.trim();
-                if (text.match(/^(import |from |class |def )/)) lang = 'python';
-                else if (text.match(/^(const |let |var |function |import )/)) lang = 'javascript';
-            }
-        }
-        if (lang) {
+        // Output blocks (no Pygments spans, starts with >>>)
+        if (!lang && text.match(/^>>>/)) lang = 'output';
+
+        if (lang && lang !== 'output') {
             var label = document.createElement('div');
             label.className = 'code-lang-label';
             label.textContent = lang;
