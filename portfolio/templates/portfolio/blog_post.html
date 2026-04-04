@@ -37,6 +37,27 @@
         All posts
     </a>
 
+    <!-- Series banner -->
+    {% if series_posts|length > 1 %}
+    <nav class="mb-8 p-4 bg-surface-0 border border-border rounded-xl text-sm">
+        <div class="text-[0.6875rem] font-semibold text-accent uppercase tracking-wider mb-2">{{ post.series }}</div>
+        <ol class="space-y-1">
+            {% for sp in series_posts %}
+            <li class="flex items-center gap-2">
+                <span class="text-content-muted text-xs font-mono w-5">{{ sp.series_order }}.</span>
+                {% if sp.slug == post.slug %}
+                <span class="text-content font-medium">{{ sp.title }}</span>
+                {% else %}
+                <a href="{% url 'blog_post' sp.slug %}" class="text-content-muted hover:text-accent transition-colors">{{ sp.title }}</a>
+                {% endif %}
+            </li>
+            {% endfor %}
+        </ol>
+    </nav>
+    {% elif post.series %}
+    <div class="mb-6 text-[0.6875rem] font-semibold text-accent uppercase tracking-wider">{{ post.series }} — Part {{ post.series_order }}</div>
+    {% endif %}
+
     <!-- Header -->
     <header class="mb-10 animate-fade-up">
         <div class="flex items-center gap-3 flex-wrap text-[0.8125rem] text-content-secondary mb-4">
@@ -341,6 +362,7 @@
 {% block scripts %}
 <!-- Interactive demos -->
 <script src="{% static 'portfolio/js/lr-demo.js' %}"></script>
+<script src="{% static 'portfolio/js/mil-demo.js' %}"></script>
 <script>
 (function() {
     // Reading progress

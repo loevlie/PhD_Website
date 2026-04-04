@@ -45,10 +45,19 @@ def blog_post(request, slug):
     post = get_post(slug)
     if post is None:
         raise Http404("Post not found")
-    # Get related posts (all others, max 3)
     all_posts = get_all_posts()
-    related = [p for p in all_posts if p['slug'] != slug][:3]
-    return render(request, 'portfolio/blog_post.html', {'post': post, 'related_posts': related})
+    # Get series posts if this post is part of a series
+    series_posts = []
+    if post.get('series'):
+        series_posts = [p for p in all_posts if p.get('series') == post['series']]
+        series_posts.sort(key=lambda p: p.get('series_order', 0))
+    # Get related posts (others not in the series, max 3)
+    related = [p for p in all_posts if p['slug'] != slug and p.get('series') != post.get('series')][:3]
+    return render(request, 'portfolio/blog_post.html', {
+        'post': post,
+        'series_posts': series_posts,
+        'related_posts': related,
+    })
 
 
 def publications(request):

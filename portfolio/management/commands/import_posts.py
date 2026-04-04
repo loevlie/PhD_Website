@@ -29,6 +29,8 @@ class Command(BaseCommand):
                     'updated': fm.get('updated'),
                     'author': fm.get('author', 'Dennis Loevlie'),
                     'image': fm.get('image', ''),
+                    'series': fm.get('series', ''),
+                    'series_order': fm.get('series_order', 0),
                     'medium_url': fm.get('medium_url', ''),
                     'draft': fm.get('draft', False),
                 },
