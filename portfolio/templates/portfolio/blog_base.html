@@ -285,6 +285,94 @@
             transition: color 0.2s;
         }
 
+        /* Hover tooltips for terms */
+        .term {
+            text-decoration: underline;
+            text-decoration-style: dotted;
+            text-decoration-color: var(--ctp-overlay0);
+            text-underline-offset: 3px;
+            cursor: help;
+            position: relative;
+        }
+        .term:hover { text-decoration-color: var(--ctp-lavender); }
+        .term-tip {
+            display: none;
+            position: absolute;
+            bottom: calc(100% + 8px);
+            left: 50%;
+            transform: translateX(-50%);
+            width: max-content;
+            max-width: 320px;
+            padding: 10px 14px;
+            background: var(--ctp-mantle);
+            border: 1px solid var(--ctp-surface0);
+            border-radius: 8px;
+            box-shadow: 0 8px 24px rgba(0,0,0,0.15);
+            font-size: 0.8125rem;
+            line-height: 1.5;
+            color: var(--ctp-subtext1);
+            z-index: 30;
+            pointer-events: none;
+        }
+        .term-tip::after {
+            content: '';
+            position: absolute;
+            top: 100%;
+            left: 50%;
+            transform: translateX(-50%);
+            border: 6px solid transparent;
+            border-top-color: var(--ctp-surface0);
+        }
+        .term:hover .term-tip { display: block; }
+
+        /* Alternative explanation boxes */
+        .alt-explain {
+            margin: 1.25rem 0;
+            border: 1px solid var(--ctp-surface0);
+            border-radius: 10px;
+            overflow: hidden;
+        }
+        .alt-explain-btn {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            width: 100%;
+            padding: 12px 16px;
+            background: var(--ctp-mantle);
+            border: none;
+            font-family: inherit;
+            font-size: 0.8125rem;
+            font-weight: 600;
+            color: var(--ctp-subtext0);
+            cursor: pointer;
+            text-align: left;
+            transition: color 0.15s;
+        }
+        .alt-explain-btn:hover { color: var(--ctp-lavender); }
+        .alt-explain-icon {
+            transition: transform 0.2s;
+            flex-shrink: 0;
+        }
+        .alt-explain.open .alt-explain-icon { transform: rotate(90deg); }
+        .alt-explain-body {
+            display: grid;
+            grid-template-rows: 0fr;
+            transition: grid-template-rows 0.25s ease;
+        }
+        .alt-explain.open .alt-explain-body { grid-template-rows: 1fr; }
+        .alt-explain-content {
+            overflow: hidden;
+            padding: 0 16px;
+        }
+        .alt-explain.open .alt-explain-content {
+            padding: 0 16px 14px;
+        }
+        .alt-explain-content p {
+            font-size: 0.875rem;
+            line-height: 1.6;
+            color: var(--ctp-subtext1);
+        }
+
         /* Giscus theme sync */
         .giscus { margin-top: 1rem; }
     </style>
