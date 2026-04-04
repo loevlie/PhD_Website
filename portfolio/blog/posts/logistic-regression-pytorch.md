@@ -189,4 +189,4 @@ The full implementation is available as a [GitHub Gist](https://gist.github.com/
 
 - [PyTorch Neural Network Documentation](https://pytorch.org/docs/stable/nn.html)
 - [CMU Deep Learning Course (11-785)](https://deeplearning.cs.cmu.edu/F21/index.html)
-- [Logistic Regression Video Explanation](https://www.youtube.com/watch?v=MswxJw-8PvE&t=304s)
+- [PyTorch Autograd Explained](https://www.youtube.com/watch?v=MswxJw-8PvE&t=304s)
