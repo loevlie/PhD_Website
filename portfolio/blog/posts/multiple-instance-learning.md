@@ -3,7 +3,7 @@ title: "Multiple Instance Learning: A Comprehensive Guide"
 date: 2026-04-03
 author: "Dennis Loevlie"
 tags: ["Multiple Instance Learning", "Deep Learning", "Computational Pathology", "PyTorch"]
-excerpt: "A deep dive into Multiple Instance Learning — what it is, why it matters, and how to implement it in PyTorch. The first post in a series breaking down MIL architectures."
+excerpt: "A deep dive into Multiple Instance Learning: what it is, why it matters, and how to implement it in PyTorch. The first post in a series breaking down MIL architectures."
 image: "portfolio/images/blog/mil-cover.jpg"
 series: "Deep Dive: Multiple Instance Learning"
 series_order: 1
