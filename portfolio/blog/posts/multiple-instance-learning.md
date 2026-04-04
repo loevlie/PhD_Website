@@ -137,6 +137,10 @@ class SimpleMIL(nn.Module):
         return y
 ```
 
+Here's a visual breakdown of this forward pass. Swapping out the aggregation step (mean pooling here) for a different method is what gives you different embedding-level MIL approaches.
+
+<div id="mil-pipeline-demo" class="mil-demo-container" style="min-height: 200px;"></div>
+
 This model:
 1. Encodes each instance independently through a shared MLP
 2. Aggregates instance embeddings via mean pooling
