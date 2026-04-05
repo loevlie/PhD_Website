@@ -117,29 +117,29 @@ class SimpleMIL(nn.Module):
     def __init__(self, input_dim, hidden_dim=128):
         super(SimpleMIL, self).__init__()
         # Instance-level feature extractor
-        self.encoder = nn.Sequential(
+        self.f = nn.Sequential(
             nn.Linear(input_dim, hidden_dim),
             nn.ReLU(),
             nn.Linear(hidden_dim, hidden_dim),
             nn.ReLU(),
         )
         # Bag-level classifier
-        self.classifier = nn.Sequential(
+        self.g = nn.Sequential(
             nn.Linear(hidden_dim, 1),
             nn.Sigmoid(),
         )
 
     def forward(self, bag):
         # bag shape: (K, input_dim) where K = number of instances
-        h = self.encoder(bag)       # (K, hidden_dim)
+        h = self.f(bag)             # (K, hidden_dim)
         z = h.mean(dim=0)           # (hidden_dim,) — mean pooling
-        y = self.classifier(z)      # (1,)
+        y = self.g(z)               # (1,)
         return y
 ```
 
 Here's a visual breakdown of this forward pass. Swapping out the aggregation step (mean pooling here) for a different method is what gives you different embedding-level MIL approaches.
 
-<div id="mil-pipeline-demo" class="mil-demo-container" style="min-height: 200px;"></div>
+<div id="mil-pipeline-demo" class="mil-demo-container" style="min-height: 200px; grid-column: 1 / -1;"></div>
 
 This model:
 1. Encodes each instance independently through a shared MLP
