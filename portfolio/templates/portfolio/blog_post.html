@@ -1,10 +1,13 @@
 {% extends "portfolio/blog_base.html" %}
 {% load static %}
 
-{% block title %}{{ post.title }} — Blog{% endblock %}
+{% block title %}{{ post.title }} — Dennis Loevlie{% endblock %}
+
+{% block meta %}
+<meta name="description" content="{{ post.excerpt }}">
+{% endblock %}
 
 {% block og_meta %}
-<meta name="description" content="{{ post.excerpt }}">
 <meta property="og:title" content="{{ post.title }} — Dennis Loevlie">
 <meta property="og:description" content="{{ post.excerpt }}">
 <meta property="og:type" content="article">
@@ -15,9 +18,10 @@
 <meta name="twitter:card" content="summary_large_image">
 <meta name="twitter:title" content="{{ post.title }} — Dennis Loevlie">
 <meta name="twitter:description" content="{{ post.excerpt }}">
-{% if post.image %}<meta property="og:image" content="{{ request.scheme }}://{{ request.get_host }}{% static post.image %}">
-<meta name="twitter:image" content="{{ request.scheme }}://{{ request.get_host }}{% static post.image %}">{% endif %}
-{% if post.medium_url %}<link rel="canonical" href="{{ post.medium_url }}">{% endif %}
+{% if post.image %}<meta property="og:image" content="{{ request.scheme }}://{{ request.get_host }}/static/{{ post.image }}">
+<meta name="twitter:image" content="{{ request.scheme }}://{{ request.get_host }}/static/{{ post.image }}">{% endif %}
+{% if post.medium_url %}<link rel="canonical" href="{{ post.medium_url }}">{% else %}<link rel="canonical" href="{{ request.scheme }}://{{ request.get_host }}{% url 'blog_post' post.slug %}">{% endif %}
+<meta property="article:author" content="{{ post.author }}">
 <link rel="alternate" type="application/rss+xml" title="Dennis Loevlie — Blog" href="{% url 'blog_feed' %}">
 {% endblock %}
 

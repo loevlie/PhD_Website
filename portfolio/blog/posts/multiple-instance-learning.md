@@ -3,7 +3,7 @@ title: "Multiple Instance Learning: A Comprehensive Guide"
 date: 2026-04-03
 author: "Dennis Loevlie"
 tags: ["Multiple Instance Learning", "Deep Learning", "Computational Pathology", "PyTorch"]
-excerpt: "A deep dive into Multiple Instance Learning: what it is, why it matters, and how to implement it in PyTorch. The first post in a series breaking down MIL architectures."
+excerpt: "What is Multiple Instance Learning? A guide to MIL with PyTorch code, interactive demos, and real brain MRI examples."
 image: "portfolio/images/blog/mil-cover.jpg"
 series: "Deep Dive: Multiple Instance Learning"
 series_order: 1
@@ -11,6 +11,8 @@ draft: false
 ---
 
 ## What is Multiple Instance Learning?
+
+**Multiple Instance Learning (MIL) is a type of weakly supervised learning where labels are assigned to groups of instances (called bags) rather than to individual instances.** A bag is labeled positive if at least one of its instances is positive, and negative if all instances are negative. MIL is widely used in medical imaging, computational pathology, drug discovery, and text classification.
 
 In standard supervised learning, we have a dataset of labeled instances: each input $x_i$ has a corresponding label $y_i$. But what happens when you only have labels for *groups* of instances, not the individual instances themselves?
 
