@@ -50,9 +50,12 @@
         return m;
     }
 
+    var isMobile = false;
+
     function resize() {
         W = Math.min(container.clientWidth, 860);
-        H = Math.min(W * 0.5, 360);
+        isMobile = W < 500;
+        H = isMobile ? Math.min(W * 0.7, 280) : Math.min(W * 0.5, 360);
         canvas.width = W * DPR;
         canvas.height = H * DPR;
         canvas.style.width = W + 'px';
@@ -98,6 +101,7 @@
     var time = 0;
 
     function draw() {
+        if (isMobile) { drawMobile(); return; }
         ctx.clearRect(0, 0, W, H);
 
         var bgBlock = getCtp('mantle');
@@ -110,7 +114,7 @@
         var greenCol = getCtp('green');
         var mauveCol = getCtp('mauve');
 
-        var cycleDuration = 10;
+        var cycleDuration = 14;
         var t = (time % cycleDuration) / cycleDuration * 7;
 
         var padY = H * 0.08;
@@ -320,6 +324,141 @@
 
         ctx.fillStyle = textCol; ctx.font = '600 ' + labelSize + 'px Inter, sans-serif';
         ctx.fillText('Ŷ', colOut + badgeW / 2, H - 4);
+    }
+
+    // ── Mobile: show 3 stages at a time ──
+    function drawMobile() {
+        ctx.clearRect(0, 0, W, H);
+
+        var bgBlock = getCtp('mantle');
+        var borderCol = getCtp('surface0');
+        var textCol = getCtp('subtext0');
+        var blueCol = getCtp('blue');
+        var redCol = getCtp('red');
+        var greenCol = getCtp('green');
+        var mauveCol = getCtp('mauve');
+        var accentCol = getCtp('lavender');
+
+        var padY = H * 0.08;
+        var padX = W * 0.02;
+        var midY = H / 2;
+        var labelSize = Math.max(8, W * 0.022);
+        var fontSize = Math.max(8, W * 0.025);
+        var monoSize = Math.max(7, W * 0.02);
+        var rowH = (H - padY * 2 - 20) / NUM_SLICES;
+
+        // 3 windows: [0,1,2], [2,3,4], [4,5,6]
+        var windowDuration = 4;
+        var totalDuration = windowDuration * 3 + 1;
+        var cycleTime = time % totalDuration;
+        var windowIdx = Math.min(2, Math.floor(cycleTime / windowDuration));
+        var wt = (cycleTime - windowIdx * windowDuration) / windowDuration;
+
+        var stageStart = windowIdx * 2;
+        var stages = [stageStart, stageStart + 1, Math.min(stageStart + 2, 6)];
+
+        var gap = W * 0.03;
+        var colW = (W - gap * 4) / 3;
+
+        var stageNames = ['Instances (xᵢⱼ)', 'Encoder', 'Embeddings (hᵢⱼ)', 'Aggregate', 'Bag Embedding (z)', 'Classifier', 'Ŷ'];
+
+        for (var si = 0; si < 3; si++) {
+            var s = stages[si];
+            var sx = gap + si * (colW + gap);
+            var alpha = Math.min(1, Math.max(0, (wt * 3 - si * 0.5) * 1.5));
+
+            ctx.globalAlpha = alpha;
+
+            if (s === 0) {
+                // Slices
+                var sliceSize = Math.min(colW * 0.6, rowH * 0.85);
+                for (var i = 0; i < NUM_SLICES; i++) {
+                    var sy = padY + rowH * i + (rowH - sliceSize) / 2;
+                    var ix = sx + (colW - sliceSize) / 2;
+                    if (sliceImgs[i] && sliceImgs[i].complete) ctx.drawImage(sliceImgs[i], ix, sy, sliceSize, sliceSize);
+                    if (i === 3) { ctx.strokeStyle = redCol; ctx.lineWidth = 2; ctx.strokeRect(ix - 1, sy - 1, sliceSize + 2, sliceSize + 2); }
+                }
+            } else if (s === 1) {
+                // Encoder funnel
+                ctx.fillStyle = bgBlock; ctx.strokeStyle = borderCol; ctx.lineWidth = 1.5;
+                ctx.beginPath();
+                ctx.moveTo(sx, padY); ctx.lineTo(sx + colW, padY + (H - padY * 2) * 0.2);
+                ctx.lineTo(sx + colW, padY + (H - padY * 2) * 0.8); ctx.lineTo(sx, H - padY - 20);
+                ctx.closePath(); ctx.fill(); ctx.stroke();
+                ctx.fillStyle = mauveCol; ctx.font = 'bold ' + fontSize + 'px Inter, sans-serif'; ctx.textAlign = 'center';
+                ctx.fillText('Encoder', sx + colW / 2, midY - 2);
+                ctx.fillStyle = textCol; ctx.font = monoSize + 'px JetBrains Mono, monospace';
+                ctx.fillText('f(xᵢⱼ)', sx + colW / 2, midY + 14);
+            } else if (s === 2) {
+                // Embeddings
+                for (var i = 0; i < NUM_SLICES; i++) {
+                    var vy = padY + rowH * i + rowH * 0.15;
+                    var vh = rowH * 0.7;
+                    drawRoundedRect(sx, vy, colW, vh, 4);
+                    ctx.fillStyle = bgBlock; ctx.fill();
+                    ctx.strokeStyle = (i === 3) ? redCol : borderCol; ctx.lineWidth = (i === 3) ? 1.5 : 1; ctx.stroke();
+                    ctx.fillStyle = (i === 3) ? redCol : blueCol;
+                    ctx.font = monoSize + 'px JetBrains Mono, monospace'; ctx.textAlign = 'center';
+                    ctx.fillText(formatVecShort(embeddings[i]), sx + colW / 2, vy + vh / 2 + 3);
+                }
+            } else if (s === 3) {
+                // Mean pool funnel
+                ctx.fillStyle = bgBlock; ctx.strokeStyle = borderCol; ctx.lineWidth = 1.5;
+                ctx.beginPath();
+                ctx.moveTo(sx, padY); ctx.lineTo(sx + colW, midY - 14);
+                ctx.lineTo(sx + colW, midY + 14); ctx.lineTo(sx, H - padY - 20);
+                ctx.closePath(); ctx.fill(); ctx.stroke();
+                ctx.fillStyle = greenCol; ctx.font = 'bold ' + fontSize + 'px Inter, sans-serif'; ctx.textAlign = 'center';
+                ctx.fillText('Mean', sx + colW / 2, midY - 1);
+                ctx.fillText('Pool', sx + colW / 2, midY + 13);
+            } else if (s === 4) {
+                // Bag vector
+                var mvH = 32;
+                drawRoundedRect(sx, midY - mvH / 2, colW, mvH, 5);
+                ctx.fillStyle = bgBlock; ctx.fill();
+                ctx.strokeStyle = mauveCol; ctx.lineWidth = 2; ctx.stroke();
+                ctx.fillStyle = mauveCol; ctx.font = 'bold ' + monoSize + 'px JetBrains Mono, monospace'; ctx.textAlign = 'center';
+                ctx.fillText(formatVecShort(computeMean()), sx + colW / 2, midY + 4);
+            } else if (s === 5) {
+                // Classifier
+                var bh = 40;
+                drawRoundedRect(sx, midY - bh / 2, colW, bh, 5);
+                ctx.fillStyle = bgBlock; ctx.fill();
+                ctx.strokeStyle = borderCol; ctx.lineWidth = 1.5; ctx.stroke();
+                ctx.fillStyle = accentCol; ctx.font = 'bold ' + fontSize + 'px Inter, sans-serif'; ctx.textAlign = 'center';
+                ctx.fillText('g(z)', sx + colW / 2, midY + 5);
+            } else if (s === 6) {
+                // Output
+                var bw = Math.min(colW * 0.8, 55); var bh = 28;
+                drawRoundedRect(sx + (colW - bw) / 2, midY - bh / 2, bw, bh, 6);
+                ctx.fillStyle = redCol; ctx.fill();
+                ctx.fillStyle = '#fff'; ctx.font = 'bold ' + fontSize + 'px Inter, sans-serif'; ctx.textAlign = 'center';
+                ctx.fillText('Y=1', sx + colW / 2, midY + 5);
+            }
+
+            // Label
+            ctx.globalAlpha = alpha;
+            ctx.fillStyle = textCol; ctx.font = '600 ' + labelSize + 'px Inter, sans-serif'; ctx.textAlign = 'center';
+            ctx.fillText(stageNames[s], sx + colW / 2, H - 6);
+
+            // Arrow to next
+            if (si < 2) {
+                var aAlpha = Math.min(1, Math.max(0, (wt * 3 - (si + 0.3) * 0.5) * 1.5)) * 0.5;
+                drawArrowLine(sx + colW + 2, midY, sx + colW + gap - 2, midY, borderCol, aAlpha);
+            }
+
+            ctx.globalAlpha = 1;
+        }
+
+        // Progress dots
+        for (var d = 0; d < 3; d++) {
+            ctx.beginPath(); ctx.arc(W / 2 + (d - 1) * 14, H - 16, 3, 0, Math.PI * 2);
+            ctx.fillStyle = d === windowIdx ? getCtp('lavender') : borderCol; ctx.fill();
+        }
+    }
+
+    function formatVecShort(v) {
+        return '[' + v.map(function(n) { return n.toFixed(1); }).join(', ') + ']';
     }
 
     function animate() {

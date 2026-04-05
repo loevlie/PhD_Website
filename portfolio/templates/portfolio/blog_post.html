@@ -15,8 +15,8 @@
 <meta name="twitter:card" content="summary_large_image">
 <meta name="twitter:title" content="{{ post.title }} — Dennis Loevlie">
 <meta name="twitter:description" content="{{ post.excerpt }}">
-{% if post.image %}<meta property="og:image" content="{% static post.image %}">
-<meta name="twitter:image" content="{% static post.image %}">{% endif %}
+{% if post.image %}<meta property="og:image" content="{{ request.scheme }}://{{ request.get_host }}{% static post.image %}">
+<meta name="twitter:image" content="{{ request.scheme }}://{{ request.get_host }}{% static post.image %}">{% endif %}
 {% if post.medium_url %}<link rel="canonical" href="{{ post.medium_url }}">{% endif %}
 <link rel="alternate" type="application/rss+xml" title="Dennis Loevlie — Blog" href="{% url 'blog_feed' %}">
 {% endblock %}
