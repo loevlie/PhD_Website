@@ -285,7 +285,7 @@
             transition: color 0.2s;
         }
 
-        /* Hover tooltips for terms */
+        /* Hover tooltips for terms — desktop only */
         .term {
             text-decoration: underline;
             text-decoration-style: dotted;
@@ -323,7 +323,50 @@
             border: 6px solid transparent;
             border-top-color: var(--ctp-surface0);
         }
-        .term:hover .term-tip { display: block; }
+        @media (min-width: 640px) {
+            .term:hover .term-tip { display: block; }
+        }
+
+        /* Mobile term tooltip overlay */
+        .term-overlay {
+            display: none;
+            position: fixed;
+            inset: 0;
+            z-index: 60;
+            background: rgba(0,0,0,0.3);
+            backdrop-filter: blur(2px);
+            -webkit-backdrop-filter: blur(2px);
+            align-items: flex-end;
+            justify-content: center;
+        }
+        .term-overlay.active { display: flex; }
+        .term-overlay-card {
+            width: 100%;
+            max-width: 400px;
+            background: var(--ctp-mantle);
+            border: 1px solid var(--ctp-surface0);
+            border-radius: 16px 16px 0 0;
+            padding: 20px 24px 28px;
+            box-shadow: 0 -8px 32px rgba(0,0,0,0.2);
+            animation: term-slide-up 0.2s ease;
+        }
+        @keyframes term-slide-up {
+            from { transform: translateY(100%); }
+            to { transform: translateY(0); }
+        }
+        .term-overlay-word {
+            font-size: 0.75rem;
+            font-weight: 600;
+            text-transform: uppercase;
+            letter-spacing: 0.05em;
+            color: var(--ctp-lavender);
+            margin-bottom: 8px;
+        }
+        .term-overlay-text {
+            font-size: 0.9375rem;
+            line-height: 1.6;
+            color: var(--ctp-subtext1);
+        }
 
         /* Alternative explanation boxes */
         .alt-explain {

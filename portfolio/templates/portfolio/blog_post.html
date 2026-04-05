@@ -378,13 +378,21 @@
         }, { passive: true });
     }
 
-    // Copy link
+    // Copy link with visual feedback
     var copyBtn = document.getElementById('copy-link-btn');
     if (copyBtn) {
+        var copyIcon = '<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M10 13a5 5 0 0 0 7.54.54l3-3a5 5 0 0 0-7.07-7.07l-1.72 1.71"/><path d="M14 11a5 5 0 0 0-7.54-.54l-3 3a5 5 0 0 0 7.07 7.07l1.71-1.71"/></svg>';
+        var checkIcon = '<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"/></svg>';
         copyBtn.addEventListener('click', function() {
             navigator.clipboard.writeText(window.location.origin + window.location.pathname).then(function() {
-                copyBtn.title = 'Copied!';
-                setTimeout(function() { copyBtn.title = 'Copy link'; }, 2000);
+                copyBtn.innerHTML = checkIcon;
+                copyBtn.style.color = 'var(--ctp-green)';
+                copyBtn.style.borderColor = 'var(--ctp-green)';
+                setTimeout(function() {
+                    copyBtn.innerHTML = copyIcon;
+                    copyBtn.style.color = '';
+                    copyBtn.style.borderColor = '';
+                }, 2000);
             });
         });
     }
@@ -439,6 +447,27 @@
                 link.style.borderColor = isActive ? 'var(--ctp-lavender)' : 'transparent';
             });
         }, { passive: true });
+    }
+
+    // Mobile term tooltips — tap to show bottom sheet
+    if (window.innerWidth < 640) {
+        var overlay = document.createElement('div');
+        overlay.className = 'term-overlay';
+        overlay.innerHTML = '<div class="term-overlay-card"><div class="term-overlay-word"></div><div class="term-overlay-text"></div></div>';
+        document.body.appendChild(overlay);
+        overlay.addEventListener('click', function() { overlay.classList.remove('active'); });
+        overlay.querySelector('.term-overlay-card').addEventListener('click', function(e) { e.stopPropagation(); });
+
+        document.querySelectorAll('.blog-prose .term').forEach(function(term) {
+            term.addEventListener('click', function(e) {
+                e.preventDefault();
+                var tip = term.querySelector('.term-tip');
+                if (!tip) return;
+                overlay.querySelector('.term-overlay-word').textContent = term.childNodes[0].textContent;
+                overlay.querySelector('.term-overlay-text').innerHTML = tip.innerHTML;
+                overlay.classList.add('active');
+            });
+        });
     }
 
     // Giscus theme sync
