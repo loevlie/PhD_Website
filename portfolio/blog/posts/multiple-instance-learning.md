@@ -112,27 +112,29 @@ Let's implement a basic MIL model with mean pooling:
 ```python
 import torch
 import torch.nn as nn
+from torchvision.models import vit_b_16, ViT_B_16_Weights
 
 class SimpleMIL(nn.Module):
-    def __init__(self, input_dim, hidden_dim=128):
+    def __init__(self, num_classes=1):
         super(SimpleMIL, self).__init__()
-        # Instance-level feature extractor
-        self.f = nn.Sequential(
-            nn.Linear(input_dim, hidden_dim),
-            nn.ReLU(),
-            nn.Linear(hidden_dim, hidden_dim),
-            nn.ReLU(),
-        )
+        # Pretrained ViT encoder (frozen)
+        vit = vit_b_16(weights=ViT_B_16_Weights.DEFAULT)
+        self.f = nn.Sequential(*list(vit.children())[:-1])
+        for param in self.f.parameters():
+            param.requires_grad = False
+
         # Bag-level classifier
         self.g = nn.Sequential(
-            nn.Linear(hidden_dim, 1),
+            nn.Linear(768, 128),
+            nn.ReLU(),
+            nn.Linear(128, num_classes),
             nn.Sigmoid(),
         )
 
     def forward(self, bag):
-        # bag shape: (K, input_dim) where K = number of instances
-        h = self.f(bag)             # (K, hidden_dim)
-        z = h.mean(dim=0)           # (hidden_dim,) — mean pooling
+        # bag: (K, 3, 224, 224) — K image patches
+        h = self.f(bag)             # (K, 768) — ViT embeddings
+        z = h.mean(dim=0)           # (768,) — mean pooling
         y = self.g(z)               # (1,)
         return y
 ```
@@ -142,19 +144,19 @@ Here's a visual breakdown of this forward pass. Swapping out the aggregation ste
 <div id="mil-pipeline-demo" class="mil-demo-container" style="min-height: 200px; grid-column: 1 / -1;"></div>
 
 This model:
-1. Encodes each instance independently through a shared MLP
-2. Aggregates instance embeddings via mean pooling
+1. Encodes each image instance through a frozen pretrained ViT
+2. Aggregates the 768-dim embeddings via mean pooling
 3. Classifies the aggregated bag representation
 
 ### Training Loop
 
 ```python
-model = SimpleMIL(input_dim=512)
+model = SimpleMIL()
 criterion = nn.BCELoss()
-optimizer = torch.optim.Adam(model.parameters(), lr=1e-3)
+optimizer = torch.optim.Adam(model.g.parameters(), lr=1e-3)  # only train classifier
 
 for epoch in range(100):
-    for bag, label in dataloader:
+    for bag, label in dataloader:  # bag: (K, 3, 224, 224)
         optimizer.zero_grad()
         pred = model(bag)
         loss = criterion(pred, label)
