@@ -12,7 +12,7 @@ draft: false
 
 ## What is Multiple Instance Learning?
 
-**Multiple Instance Learning (MIL) is a type of weakly supervised learning where labels are assigned to groups of instances (called bags) rather than to individual instances.** A bag is labeled positive if at least one of its instances is positive, and negative if all instances are negative. MIL is widely used in medical imaging, computational pathology, drug discovery, and text classification.
+**Multiple Instance Learning (MIL) is a type of weakly supervised learning where labels are assigned to groups of instances (called bags) rather than to individual instances.** It is widely used in medical imaging, computational pathology, drug discovery, and text classification.
 
 In standard supervised learning, we have a dataset of labeled instances: each input $x_i$ has a corresponding label $y_i$. But what happens when you only have labels for *groups* of instances, not the individual instances themselves?
 
