@@ -75,7 +75,7 @@
             <p>A 3D brain scan = a <strong>bag</strong> of 2D axial slices.</p>
             <p>Attention-based MIL learns weights $a_{ij}$ for each slice. These should tell us <strong>which slices are important for the prediction of the disease</strong>.</p>
             <div class="accent-box fragment">
-                <strong>Problem:</strong> Harvey et al. showed a simple Gaussian centered on the middle slice <em>outperforms</em> learned attention for localization.
+                <strong>Problem:</strong> CHIL Harvey et al. showed a simple Gaussian centered on the middle slice <em>outperforms</em> learned attention for localization.
             </div>
         </div>
         <div>
@@ -152,7 +152,7 @@
         $$\hat{r}_{ij} = \mathcal{N}(j \mid \mu_i, \sigma_i^2), \qquad r_{ij} = \frac{\hat{r}_{ij}}{\sum_k \hat{r}_{ik}}$$
     </div>
     <div class="accent-box fragment">
-        <strong>Stop-gradient</strong> on $r_i$ — we don't want the model to minimize the loss by changing the reference distribution.
+        <strong>Stop-gradient</strong> on $r_i$: we don't want the model to minimize the loss by changing the reference distribution.
     </div>
     <p class="question fragment">The self-reinforcing loop: attention focuses → Gaussian tightens → attention focuses more. Is this a feature or a risk?</p>
 </section>
@@ -161,17 +161,17 @@
 <section data-background-color="#1e1e2e">
     <h2>Open Questions</h2>
     <ul>
-        <li><strong>Unimodal assumption</strong> — Normal guidance fits one Gaussian. What about findings in multiple locations?</li>
-        <li class="fragment"><strong>Classifier guidance</strong> — Use a per-instance classifier: $\hat{r}_{ij} = \mathbb{1}[c(h_{ij}) > 0.5]$. How well does this work in practice?</li>
-        <li class="fragment"><strong>When to guide?</strong> — Should we only turn on guidance after ABMIL has trained for a while and has realistic attention values?</li>
-        <li class="fragment"><strong>Beyond neuroimaging</strong> — Does this transfer to computational pathology where there's less spatial structure?</li>
+        <li><strong>Unimodal assumption</strong>: normal guidance fits one Gaussian. What about findings in multiple locations?</li>
+        <li class="fragment"><strong>Classifier guidance</strong>: use a per-instance classifier: $\hat{r}_{ij} = \mathbb{1}[c(h_{ij}) > 0.5]$. How well does this work in practice?</li>
+        <li class="fragment"><strong>When to guide?</strong>: should we only turn on guidance after ABMIL has trained for a while and has realistic attention values?</li>
+        <li class="fragment"><strong>Beyond neuroimaging</strong>: does this transfer to computational pathology where there's less spatial structure?</li>
     </ul>
     <p class="question fragment">What other reference distributions would make sense?</p>
 </section>
 
 <!-- ═══ THANKS ═══ -->
 <section data-background-color="#1e1e2e" style="text-align: center;">
-    <h1 style="font-size: 1.8em;">Thanks — Feedback Welcome!</h1>
+    <h1 style="font-size: 1.8em;">Thanks! Feedback Welcome</h1>
     <p style="color: var(--ctp-mauve); margin-top: 24px; font-size: 1.2em;">MIL &lt;3</p>
     <p style="color: var(--ctp-overlay0); margin-top: 20px; font-size: 0.7em;">Hughes Lab Lightning Chat · April 2026</p>
 </section>
@@ -409,7 +409,7 @@ if (container) {
             if (animPhase <= 1) { modeLabel.textContent = 'Brain scan → bag of slices'; modeLabel.style.color = '#b4befe'; }
             else if (animPhase === 2) { modeLabel.textContent = 'Computing attention weights...'; modeLabel.style.color = '#b4befe'; }
             else if (animPhase === 3) { modeLabel.textContent = 'ABMIL attention (noisy)'; modeLabel.style.color = '#f38ba8'; }
-            else if (animPhase === 4) { modeLabel.textContent = 'Center Gaussian baseline (Harvey et al.)'; modeLabel.style.color = '#f9e2af'; }
+            else if (animPhase === 4) { modeLabel.textContent = 'Center Gaussian baseline (CHIL Harvey et al.)'; modeLabel.style.color = '#f9e2af'; }
             else if (animPhase === 5) { modeLabel.textContent = 'Guided ABMIL attention (ours)'; modeLabel.style.color = '#a6e3a1'; }
             else { modeLabel.textContent = ''; }
         }
