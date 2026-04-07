@@ -68,6 +68,15 @@ def projects(request):
     return render(request, 'portfolio/projects.html')
 
 
+def presentation(request, slug):
+    from pathlib import Path
+    filepath = Path(__file__).parent.parent / 'presentations' / f'{slug}.html'
+    if not filepath.exists():
+        raise Http404("Presentation not found")
+    from django.http import HttpResponse
+    return HttpResponse(filepath.read_text(), content_type='text/html')
+
+
 def google_verify(request):
     from django.http import HttpResponse
     return HttpResponse('google-site-verification: googled2e3ddb216daf4c4.html', content_type='text/html')

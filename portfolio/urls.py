@@ -22,5 +22,6 @@ urlpatterns = [
     path('projects/', views.projects, name='projects'),
     path('sitemap.xml', sitemap, {'sitemaps': sitemaps}, name='sitemap'),
     path('robots.txt', views.robots_txt, name='robots_txt'),
+    path('presentations/<slug:slug>/', views.presentation, name='presentation'),
     path('googled2e3ddb216daf4c4.html', views.google_verify, name='google_verify'),
 ]
