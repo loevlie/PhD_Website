@@ -81,19 +81,21 @@ MIL shows up throughout medical imaging. In **computational pathology**, the sam
 
 ### Instance-Level vs. Embedding-Level Approaches
 
-There are two fundamental approaches to MIL, and the difference is **where the classifier $g$ sits relative to the aggregation**:
+There are two fundamental approaches to MIL, and the difference is **where the classifier sits relative to the aggregation**.
+
+Let $f$ be an instance <span class="term">encoder<span class="term-tip">A function that maps each instance to a fixed-size vector representation (embedding). This is typically a neural network like a CNN or transformer.</span></span>, $g$ a classifier, and $x_k$ the $k$-th instance in a bag of $K$ instances.
 
 **Instance-level methods** classify each instance first, then aggregate the predictions:
 
 $$\hat{Y} = \text{AGGREGATE}(g(f(x_1)), g(f(x_2)), \ldots, g(f(x_K)))$$
 
-Each instance gets its own classification logit, then you pool over those logits (e.g., mean or max). For example, max pooling: $\hat{Y} = \max_k g(f(x_k))$.
+Each instance gets its own classification logit, then you pool over those logits.
 
 **Embedding-level methods** aggregate the instance embeddings first, then classify the pooled result:
 
 $$\hat{Y} = g\left(\text{AGGREGATE}(f(x_1), f(x_2), \ldots, f(x_K))\right)$$
 
-Here $f$ is an instance <span class="term">encoder<span class="term-tip">A function that maps each instance to a fixed-size vector representation (embedding). This is typically a neural network like a CNN or transformer.</span></span> and $g$ is a classifier that operates on the single aggregated embedding. The key question is: **what aggregation function should we use?**
+The classifier operates on a single aggregated embedding. The key question is: **what aggregation function should we use?**
 
 ### Common Aggregation Functions
 
