@@ -172,9 +172,9 @@ for epoch in range(100):
 
 ## The Problem with Simple Pooling
 
-Mean pooling treats every instance equally: a cancerous patch contributes the same as background tissue. Max pooling only looks at the single most extreme instance. Neither is ideal.
+Consider a brain scan with 50 axial slices. Only 3 slices show signs of a tumor. Mean pooling averages all 50 slice embeddings equally, so the signal from those 3 abnormal slices gets diluted by 47 healthy ones. Max pooling only looks at the single most extreme slice, ignoring that the tumor spans multiple adjacent slices.
 
-What if the model could learn to **pay attention** to the instances that matter?
+What if the model could learn to **pay attention** to the slices that matter?
 
 This is exactly what **attention-based MIL** does, and it's the subject of the next post in this series.
 
