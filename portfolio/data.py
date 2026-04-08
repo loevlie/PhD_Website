@@ -22,7 +22,7 @@ HERO = {
         '<a href="https://www.tufts.edu/" target="_blank">Tufts University</a>, '
         'where I was advised by '
         '<a href="https://www.michaelchughes.com/" target="_blank">Michael Hughes</a> '
-        'on deep multiple instance learning for computational pathology. '
+        'on deep multiple instance learning for brain scan (CT and MRI) classification. '
         'I also hold an M.S. in Chemical Engineering from '
         '<a href="https://www.cmu.edu/" target="_blank">Carnegie Mellon University</a> '
         'and a B.S. in Chemical Engineering from '
@@ -320,7 +320,7 @@ TIMELINE = [
         'year': '2024 —',
         'title': 'M.S. Computer Science',
         'org': 'Tufts University',
-        'description': 'GPA: 3.95. Research on deep MIL for computational pathology with Dr. Michael Hughes. Also working with Dr. Jivko Sinapov on vision-language models and reinforcement learning.',
+        'description': 'GPA: 3.95. Research on deep MIL for brain scan (CT and MRI) classification with Dr. Michael Hughes. Also working with Dr. Jivko Sinapov on vision-language models and reinforcement learning.',
     },
     {
         'year': '2023 — 2024',
