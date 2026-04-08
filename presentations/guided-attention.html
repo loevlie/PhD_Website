@@ -323,7 +323,7 @@ if (container) {
     for (var i = 0; i < NUM; i++) {
         (function(idx) {
             var p = idx < 10 ? '0' + idx : '' + idx;
-            loader.load('/static/portfolio/images/blog/brain/slice_' + p + '.png', function(tex) {
+            loader.load('/static/portfolio/images/presentations/brain/slice_' + p + '.png', function(tex) {
                 tex.minFilter = THREE.LinearFilter;
                 var s = 0.4 + Math.sin((idx + 0.5) / NUM * Math.PI) * 0.9;
                 var geo = new THREE.PlaneGeometry(SLICE_SIZE * s, SLICE_SIZE * s);
