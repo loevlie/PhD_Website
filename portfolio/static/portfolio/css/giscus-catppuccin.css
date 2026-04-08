@@ -1,0 +1,20 @@
+/*! Giscus Catppuccin Mocha theme */
+main {
+  --color-canvas-default: transparent !important;
+  --color-canvas-subtle: #181825 !important;
+  --color-border-default: #313244 !important;
+  --color-border-muted: #313244 !important;
+  --color-fg-default: #cdd6f4 !important;
+  --color-fg-muted: #6c7086 !important;
+  --color-fg-subtle: #585b70 !important;
+  --color-accent-fg: #b4befe !important;
+  --color-accent-emphasis: #b4befe !important;
+  --color-btn-bg: #181825 !important;
+  --color-btn-border: #313244 !important;
+  --color-btn-text: #cdd6f4 !important;
+  --color-btn-hover-bg: #1e1e2e !important;
+  --color-btn-hover-border: #45475a !important;
+  --color-btn-primary-bg: #b4befe !important;
+  --color-btn-primary-text: #1e1e2e !important;
+  --color-neutral-muted: rgba(108, 112, 134, 0.2) !important;
+}

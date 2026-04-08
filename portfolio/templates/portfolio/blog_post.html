@@ -204,7 +204,7 @@
             data-reactions-enabled="1"
             data-emit-metadata="0"
             data-input-position="top"
-            data-theme="transparent_dark"
+            data-theme="https://www.dennisloevlie.com/static/portfolio/css/giscus-catppuccin.css"
             data-lang="en"
             data-loading="lazy"
             crossorigin="anonymous"
@@ -479,8 +479,9 @@
         var iframe = document.querySelector('iframe.giscus-frame');
         if (iframe) {
             var flavor = document.documentElement.className;
+            var theme = flavor === 'latte' ? 'noborder_light' : 'https://www.dennisloevlie.com/static/portfolio/css/giscus-catppuccin.css';
             iframe.contentWindow.postMessage(
-                { giscus: { setConfig: { theme: flavor === 'latte' ? 'noborder_light' : 'transparent_dark' } } },
+                { giscus: { setConfig: { theme: theme } } },
                 'https://giscus.app'
             );
         }
