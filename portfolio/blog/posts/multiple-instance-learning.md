@@ -79,21 +79,25 @@ MIL shows up throughout medical imaging. In **computational pathology**, the sam
 
 ## The MIL Framework
 
-### Instance-Level vs. Bag-Level Approaches
+### Instance-Level vs. Embedding-Level Approaches
 
 There are two fundamental approaches to MIL:
 
-**Instance-level methods** try to classify each instance individually, then aggregate predictions:
+**Instance-level methods** classify each instance individually, then aggregate predictions. For example, mean pooling over raw instances:
 
-$$\hat{Y} = \max_{k=1}^{K} f(x_k)$$
+$$\hat{Y} = g\left(\frac{1}{K}\sum_{k=1}^{K} x_k\right)$$
 
-This is the "max-pooling" approach: predict each instance, take the max as the bag prediction. Simple, but it throws away information about how instances relate to each other.
+Or max pooling over per-instance predictions:
 
-**Bag-level (embedding) methods** learn a representation for the entire bag, then classify at the bag level:
+$$\hat{Y} = \max_{k=1}^{K} g(x_k)$$
+
+Simple, but these operate directly on the inputs without learning useful representations first.
+
+**Embedding-level methods** first encode each instance into a learned representation, then aggregate and classify:
 
 $$\hat{Y} = g\left(\text{AGGREGATE}(f(x_1), f(x_2), \ldots, f(x_K))\right)$$
 
-where $f$ is an instance <span class="term">encoder<span class="term-tip">A function that maps each instance to a fixed-size vector representation (embedding). This is typically a neural network like a CNN or transformer.</span></span> and $g$ is a bag classifier. The key question is: **what aggregation function should we use?**
+where $f$ is an instance <span class="term">encoder<span class="term-tip">A function that maps each instance to a fixed-size vector representation (embedding). This is typically a neural network like a CNN or transformer.</span></span> and $g$ is a classifier. You can still use mean or max pooling here, but now over learned embeddings rather than raw inputs. The key question is: **what aggregation function should we use?**
 
 ### Common Aggregation Functions
 
