@@ -204,7 +204,7 @@
             data-reactions-enabled="1"
             data-emit-metadata="0"
             data-input-position="top"
-            :data-theme="flavor === 'latte' ? 'noborder_light' : 'noborder_dark'"
+            data-theme="transparent_dark"
             data-lang="en"
             data-loading="lazy"
             crossorigin="anonymous"
@@ -478,8 +478,9 @@
     window.addEventListener('themechange', function(e) {
         var iframe = document.querySelector('iframe.giscus-frame');
         if (iframe) {
+            var flavor = document.documentElement.className;
             iframe.contentWindow.postMessage(
-                { giscus: { setConfig: { theme: e.detail.theme === 'light' ? 'noborder_light' : 'noborder_dark' } } },
+                { giscus: { setConfig: { theme: flavor === 'latte' ? 'noborder_light' : 'transparent_dark' } } },
                 'https://giscus.app'
             );
         }
