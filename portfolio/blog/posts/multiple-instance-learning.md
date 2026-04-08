@@ -81,9 +81,7 @@ MIL shows up throughout medical imaging. In **computational pathology**, the sam
 
 ### Instance-Level vs. Embedding-Level Approaches
 
-There are two fundamental approaches to MIL, and the difference is **where the classifier sits relative to the aggregation**.
-
-Let $f$ be an instance <span class="term">encoder<span class="term-tip">A function that maps each instance to a fixed-size vector representation (embedding). This is typically a neural network like a CNN or transformer.</span></span>, $g$ a classifier, and $x_k$ the $k$-th instance in a bag of $K$ instances.
+There are two fundamental approaches to MIL, and the difference is **where the classifier sits relative to the aggregation**. In both, <span class="term">$f$<span class="term-tip">The encoder: maps each instance to a fixed-size vector representation (embedding). Typically a neural network like a CNN or ViT.</span></span> encodes instances, <span class="term">$g$<span class="term-tip">The classifier: maps a vector to a prediction. Typically a small neural network ending in a sigmoid for binary classification.</span></span> classifies, and <span class="term">$x_k$<span class="term-tip">The k-th instance in a bag of K total instances. For brain scans, each x_k is a single 2D axial slice.</span></span> is an instance.
 
 **Instance-level methods** classify each instance first, then aggregate the predictions:
 
