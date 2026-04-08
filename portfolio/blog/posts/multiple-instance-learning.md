@@ -81,23 +81,19 @@ MIL shows up throughout medical imaging. In **computational pathology**, the sam
 
 ### Instance-Level vs. Embedding-Level Approaches
 
-There are two fundamental approaches to MIL:
+There are two fundamental approaches to MIL, and the difference is **where the classifier $g$ sits relative to the aggregation**:
 
-**Instance-level methods** classify each instance individually, then aggregate predictions. For example, mean pooling over raw instances:
+**Instance-level methods** classify each instance first, then aggregate the predictions:
 
-$$\hat{Y} = g\left(\frac{1}{K}\sum_{k=1}^{K} x_k\right)$$
+$$\hat{Y} = \text{AGGREGATE}(g(f(x_1)), g(f(x_2)), \ldots, g(f(x_K)))$$
 
-Or max pooling over per-instance predictions:
+Each instance gets its own classification logit, then you pool over those logits (e.g., mean or max). For example, max pooling: $\hat{Y} = \max_k g(f(x_k))$.
 
-$$\hat{Y} = \max_{k=1}^{K} g(x_k)$$
-
-Simple, but these operate directly on the inputs without learning useful representations first.
-
-**Embedding-level methods** first encode each instance into a learned representation, then aggregate and classify:
+**Embedding-level methods** aggregate the instance embeddings first, then classify the pooled result:
 
 $$\hat{Y} = g\left(\text{AGGREGATE}(f(x_1), f(x_2), \ldots, f(x_K))\right)$$
 
-where $f$ is an instance <span class="term">encoder<span class="term-tip">A function that maps each instance to a fixed-size vector representation (embedding). This is typically a neural network like a CNN or transformer.</span></span> and $g$ is a classifier. You can still use mean or max pooling here, but now over learned embeddings rather than raw inputs. The key question is: **what aggregation function should we use?**
+Here $f$ is an instance <span class="term">encoder<span class="term-tip">A function that maps each instance to a fixed-size vector representation (embedding). This is typically a neural network like a CNN or transformer.</span></span> and $g$ is a classifier that operates on the single aggregated embedding. The key question is: **what aggregation function should we use?**
 
 ### Common Aggregation Functions
 
