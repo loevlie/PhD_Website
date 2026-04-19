@@ -12,6 +12,18 @@
 <meta name="twitter:description" content="Earlier interactive demos: AuPd nanoparticle viewer, monocular depth estimation.">
 {% endblock %}
 
+{% block extra_head %}
+{# nanoparticle.js does `import * as THREE from 'three'` — bare specifier needs an importmap. #}
+<script type="importmap">
+{
+    "imports": {
+        "three": "https://unpkg.com/three@0.160.0/build/three.module.js",
+        "three/addons/": "https://unpkg.com/three@0.160.0/examples/jsm/"
+    }
+}
+</script>
+{% endblock %}
+
 {% block content %}
 <section class="section listing-page">
     <div class="container">
