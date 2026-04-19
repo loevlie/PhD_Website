@@ -17,18 +17,91 @@ body {
     background-color: var(--bg-primary);
     -webkit-font-smoothing: antialiased;
     -moz-osx-font-smoothing: grayscale;
+    /* Bringhurst-grade typography: ligatures + kerning + old-style
+       proportional figures so numbers like "2026" sit at x-height
+       instead of cap-height. IBM Plex supports both `liga` and `onum`. */
+    text-rendering: optimizeLegibility;
+    font-feature-settings: 'kern' 1, 'liga' 1, 'onum' 1;
     transition: background-color var(--transition-base), color var(--transition-base);
+}
+
+/* --- Prose serif treatment for academic register --------------------- */
+/* Use Plex Serif for prose-heavy regions: hero subtitle/bio, news entries,
+   publication titles + authors. Sans stays for nav, buttons, dates, code.
+   Numbers automatically get old-style figures via the body rule above. */
+.prose,
+.hero-bio,
+.hero-title,
+.news-item p,
+.pub-title,
+.pub-authors,
+.pub-featured-body .pub-title,
+.pub-featured-body .pub-authors {
+    font-family: var(--font-serif);
+}
+
+/* Constrain prose blocks to ~66ch for Bringhurst-correct measure
+   (45-75 chars/line for serif body). Protects against ultra-wide
+   monitors where lines run too long for comfortable reading. */
+.prose,
+.hero-bio,
+.news-item p,
+p {
+    max-width: var(--measure);
+}
+
+/* Venue name treatment — Plex doesn't ship real small caps in the
+   web font, so we use the same letter-spaced uppercase workaround
+   the CV uses (\textls[80]{\MakeUppercase{...}}). */
+.pub-venue,
+.venue {
+    font-family: var(--font-family);
+    font-size: 0.78em;
+    font-weight: 600;
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
+    color: var(--text-secondary);
+    /* Tabular lining figures inside venue names (years align in columns) */
+    font-feature-settings: 'kern' 1, 'liga' 1, 'lnum' 1, 'tnum' 1;
+}
+
+/* Dates / timeline / page-numbers: lining tabular figures so years
+   align column-perfect across rows (matches CV's date column). */
+time, .date, .year, .timeline-date, .pub-year {
+    font-feature-settings: 'kern' 1, 'liga' 1, 'lnum' 1, 'tnum' 1;
 }
 
 h1, h2, h3, h4 {
     line-height: 1.3;
     font-weight: 600;
     color: var(--text-primary);
+    /* Browser auto-balances line lengths so headlines never have a
+       single-word orphan on the last line. Chrome 114+, FF 121+,
+       Safari 17.5+ — older browsers ignore cleanly. */
+    text-wrap: balance;
 }
 
 h1 { font-size: var(--h1-size); }
 h2 { font-size: var(--h2-size); }
 h3 { font-size: var(--h3-size); }
+
+/* Same balance treatment on title-like spans that aren't <hN> elements */
+.section-title,
+.hero-name,
+.pub-title,
+.writing-card-title,
+.timeline-title {
+    text-wrap: balance;
+}
+
+/* Body prose: text-wrap: pretty (Chrome 117+) — same idea tuned for
+   paragraphs. Avoids orphans without forcing perfect balance. */
+.prose p,
+.hero-bio,
+.writing-card-excerpt,
+.contact-text {
+    text-wrap: pretty;
+}
 
 p {
     color: var(--text-secondary);

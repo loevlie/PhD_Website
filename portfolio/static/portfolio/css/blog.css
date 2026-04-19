@@ -302,6 +302,53 @@
     margin-bottom: 1.5rem;
 }
 
+/* Drop-cap on first paragraph — Quanta/New Yorker editorial pattern.
+   4-line drop, navy, serif. Skips if first child is heading/list/figure. */
+.prose > p:first-of-type::first-letter {
+    font-family: var(--font-serif);
+    font-size: 4em;
+    font-weight: 600;
+    color: var(--accent);
+    float: left;
+    line-height: 0.85;
+    margin: 6px 12px 0 0;
+    /* Old-style figure not appropriate for the cap; lining looks better */
+    font-feature-settings: 'kern' 1, 'lnum' 1;
+}
+
+/* Figure caption — small caps "FIGURE N." prefix when set as <figure> */
+.prose figcaption {
+    font-family: var(--font-serif);
+    font-style: italic;
+    font-size: 0.9375rem;
+    color: var(--text-muted);
+    text-align: center;
+    margin-top: 12px;
+    line-height: 1.5;
+}
+.prose figure {
+    counter-increment: prose-figure;
+    margin: 28px 0;
+}
+.prose figure figcaption::before {
+    content: 'Figure ' counter(prose-figure) '. ';
+    font-variant-caps: all-small-caps;
+    font-style: normal;
+    letter-spacing: 0.06em;
+    color: var(--text-secondary);
+    font-weight: 600;
+}
+.prose { counter-reset: prose-figure; }
+
+/* Byline — small caps with letter-spacing (New Yorker pattern).
+   Apply via .blog-byline span on the meta line. */
+.blog-byline {
+    font-variant-caps: all-small-caps;
+    letter-spacing: 0.08em;
+    color: var(--text-secondary);
+    font-weight: 500;
+}
+
 .prose a {
     color: var(--accent-light);
     text-decoration: none;

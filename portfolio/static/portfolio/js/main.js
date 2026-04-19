@@ -1,7 +1,7 @@
 // Navbar scroll effect
 const navbar = document.getElementById('navbar');
 window.addEventListener('scroll', () => {
-    navbar.classList.toggle('scrolled', window.scrollY > 20);
+    navbar.classList.toggle('scrolled', window.scrollY > 8);
 });
 
 // Active nav link tracking
@@ -150,26 +150,9 @@ window.addEventListener('scroll', () => {
     scrollProgress.style.width = progress + '%';
 });
 
-// ── Typing Animation ──
-(function () {
-    const el = document.getElementById('typing-target');
-    if (!el) return;
-    const text = el.getAttribute('data-text');
-    // Decode HTML entities
-    const tmp = document.createElement('span');
-    tmp.innerHTML = text;
-    const decoded = tmp.textContent;
-    let i = 0;
-    function type() {
-        if (i <= decoded.length) {
-            el.textContent = decoded.slice(0, i);
-            i++;
-            setTimeout(type, 45);
-        }
-    }
-    // Start after a short delay so page loads first
-    setTimeout(type, 400);
-})();
+// Typing Animation removed — anti-pattern: forces reader to wait for
+// content they could already see. Eye-tracking shows interaction delays
+// >400ms cause disengagement; typewriter effects are 1-3s.
 
 // ── Magnetic Hover on Social Icons ──
 (function () {

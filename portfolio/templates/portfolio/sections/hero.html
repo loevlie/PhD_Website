@@ -1,6 +1,6 @@
 {% load static %}
+{# Particle-network canvas removed — per v3 anti-pattern research, animated hero backgrounds read amateur. #}
 <section class="hero section" id="about">
-    <canvas id="particle-canvas"></canvas>
     <button class="hero-preview-toggle" aria-label="Toggle timeline preview" onclick="var card=document.querySelector('.hero-timeline-preview'); card.classList.toggle('visible'); this.classList.toggle('active')">Recent</button>
     <div class="hero-timeline-preview">
         <h3 class="hero-preview-label">Recent</h3>
@@ -35,7 +35,7 @@
         checkVisibility();
     })();
     </script>
-    <div class="container">
+    <div class="container-wide">
         <div class="hero-content fade-in">
             <div class="hero-sidebar">
                 <div class="hero-image avatar-wrapper avatar-flip-container">
@@ -52,9 +52,7 @@
                     </div>
                 </div>
                 <h1 class="hero-name">{{ hero.name }}</h1>
-                <p class="hero-title">
-                    <span id="typing-target" data-text="{{ hero.title }} &middot; {{ hero.affiliation }}"></span><span class="typing-cursor">|</span>
-                </p>
+                <p class="hero-title">{{ hero.title }} &middot; {{ hero.affiliation }}</p>
                 <div class="hero-social">
                     {% for link in social_links %}
                     <a href="{{ link.url }}" class="social-icon" target="_blank" rel="noopener" title="{{ link.name }}">

@@ -1,10 +1,18 @@
-/* Cards */
+/* Cards — layered shadow stack (Refactoring UI pattern). Two stops:
+   tight + dark for the contact edge, wide + soft for the ambient lift.
+   Spring easing on the hover transform reads as Apple-tier polish. */
 .card {
     background-color: var(--bg-secondary);
     border: 1px solid var(--border-color);
     border-radius: var(--card-radius);
     padding: var(--card-padding);
-    transition: transform var(--transition-base), box-shadow var(--transition-base), border-color var(--transition-base);
+    box-shadow:
+        0 1px 2px rgba(10, 37, 64, 0.04),
+        0 4px 12px -4px rgba(10, 37, 64, 0.06);
+    transition:
+        transform 320ms var(--ease-spring),
+        box-shadow var(--transition-base),
+        border-color var(--transition-base);
     position: relative;
     overflow: hidden;
 }
@@ -25,8 +33,11 @@
 }
 
 .card:hover {
-    transform: translateY(-4px);
-    box-shadow: var(--shadow-hover), 0 0 20px rgba(94, 234, 212, 0.06);
+    transform: translateY(-3px);
+    box-shadow:
+        0 1px 2px rgba(10, 37, 64, 0.06),
+        0 12px 32px -8px rgba(10, 37, 64, 0.18),
+        0 32px 64px -24px rgba(10, 37, 64, 0.12);
     border-color: var(--accent);
 }
 
@@ -100,14 +111,26 @@
     transition: all var(--transition-fast);
 }
 
+/* Primary button — white text on navy bg in light mode (text-primary
+   is near-black there, which would be invisible). In dark mode the
+   accent is a lifted blue, but white still has the best contrast. */
 .btn--primary {
     background-color: var(--accent);
-    color: var(--text-primary);
+    color: #FFFFFF;
 }
 
 .btn--primary:hover {
     background-color: var(--accent-hover);
-    color: var(--text-primary);
+    color: #FFFFFF;
+}
+
+/* Dark mode: accent shifts to #6FA8FF (light blue) — keep navy ink on
+   that bright button so it doesn't read as "ghosted white-on-light." */
+:root.dark-mode .btn--primary {
+    color: #0A2540;
+}
+:root.dark-mode .btn--primary:hover {
+    color: #0A2540;
 }
 
 .btn--outline {
@@ -179,4 +202,146 @@
 .highlight-author {
     color: var(--accent-light);
     font-weight: 600;
+}
+
+/* ─────────────────────────────────────────────────────────────────
+   Cmd-K command palette — Linear/Vercel/Raycast pattern.
+   Native <dialog>, fuzzy match, keyboard-first.
+───────────────────────────────────────────────────────────────── */
+/* Order matters: `inset` must come BEFORE longhand top/left, since
+   it's a shorthand that resets all four to auto. Then position to
+   12vh from top, horizontal-centered via translateX. */
+.cmdk {
+    inset: auto;                   /* unset browser-default inset:0 */
+    position: fixed;
+    top: 12vh;
+    left: 50%;
+    transform: translateX(-50%);
+    margin: 0;
+    border: none;
+    padding: 0;
+    border-radius: 14px;
+    background: var(--bg-secondary);
+    color: var(--text-primary);
+    width: min(640px, calc(100vw - 32px));
+    max-height: 70vh;
+    box-shadow:
+        0 1px 2px rgba(10, 37, 64, 0.08),
+        0 32px 80px -16px rgba(10, 37, 64, 0.40),
+        0 80px 160px -32px rgba(10, 37, 64, 0.20);
+}
+.cmdk::backdrop {
+    background: rgba(10, 25, 35, 0.55);
+    backdrop-filter: blur(8px);
+    -webkit-backdrop-filter: blur(8px);
+}
+.cmdk-inner {
+    display: flex;
+    flex-direction: column;
+    width: 100%;
+    min-height: 240px;
+    max-height: 70vh;
+}
+.cmdk-search {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    padding: 14px 16px;
+    border-bottom: 1px solid var(--border-color);
+    color: var(--text-muted);
+}
+.cmdk-search input {
+    flex: 1;
+    background: transparent;
+    border: none;
+    outline: none;
+    font-family: var(--font-family);
+    font-size: 0.9375rem;
+    color: var(--text-primary);
+    padding: 4px 0;
+}
+.cmdk-search input::placeholder { color: var(--text-muted); }
+.cmdk-results {
+    list-style: none;
+    padding: 6px;
+    margin: 0;
+    overflow-y: auto;
+    flex: 1;
+}
+.cmdk-results:empty::before {
+    content: 'No matches';
+    display: block;
+    padding: 32px 16px;
+    text-align: center;
+    color: var(--text-muted);
+    font-size: 0.875rem;
+}
+.cmdk-item {
+    display: grid;
+    grid-template-columns: 1fr auto;
+    grid-template-areas:
+        "label  kind"
+        "meta   meta";
+    column-gap: 12px;
+    align-items: center;
+    padding: 8px 12px;
+    border-radius: 8px;
+    cursor: pointer;
+    transition: background-color 80ms ease;
+}
+.cmdk-item.active {
+    background: var(--accent-bg-subtle);
+}
+.cmdk-item-label {
+    grid-area: label;
+    font-size: 0.9375rem;
+    color: var(--text-primary);
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
+.cmdk-item-meta {
+    grid-area: meta;
+    font-family: var(--font-mono);
+    font-size: 0.6875rem;
+    color: var(--text-muted);
+    margin-top: 2px;
+}
+.cmdk-item-kind {
+    grid-area: kind;
+    font-family: var(--font-mono);
+    font-size: 0.625rem;
+    text-transform: uppercase;
+    letter-spacing: 0.08em;
+    color: var(--accent-light);
+    background: var(--accent-bg-subtle);
+    padding: 2px 7px;
+    border-radius: 4px;
+}
+.cmdk-foot {
+    display: flex;
+    gap: 16px;
+    align-items: center;
+    padding: 10px 14px;
+    border-top: 1px solid var(--border-color);
+    font-size: 0.75rem;
+    color: var(--text-muted);
+}
+.cmdk-foot span { display: inline-flex; align-items: center; gap: 6px; }
+.cmdk-kbd {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    min-width: 20px;
+    height: 20px;
+    padding: 0 5px;
+    border: 1px solid var(--border-color);
+    border-radius: 4px;
+    background: var(--bg-tertiary);
+    font-family: var(--font-mono);
+    font-size: 0.6875rem;
+    color: var(--text-secondary);
+}
+.cmdk-esc {
+    margin-left: auto;
 }

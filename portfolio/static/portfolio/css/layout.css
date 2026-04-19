@@ -1,4 +1,7 @@
-/* Navbar */
+/* Navbar — Stripe/Linear edge-to-edge pattern.
+   Logo hard-left, links center-left (margin-right: auto pushes right group),
+   theme toggle + hamburger pushed flush right. saturate+blur on the
+   backdrop is what reads as "macOS material," not a flat translucent box. */
 .navbar {
     position: fixed;
     top: 0;
@@ -6,28 +9,51 @@
     right: 0;
     height: var(--nav-height);
     background-color: var(--nav-bg);
-    backdrop-filter: blur(12px);
-    -webkit-backdrop-filter: blur(12px);
+    backdrop-filter: saturate(180%) blur(20px);
+    -webkit-backdrop-filter: saturate(180%) blur(20px);
     border-bottom: 1px solid transparent;
     z-index: 1000;
-    transition: border-color var(--transition-base), box-shadow var(--transition-base);
+    transition: border-color var(--transition-base), background-color var(--transition-base);
     overflow: visible;
 }
 
 .navbar.scrolled {
     border-bottom-color: var(--border-color);
-    box-shadow: var(--shadow-sm);
 }
 
+/* Apple-style 3-column grid: logo column anchors flush-left,
+   center column auto-sizes around the link group (so links sit
+   dead-centered in the bar regardless of how many or how wide),
+   right column anchors flush-right. The 1fr / auto / 1fr trick is
+   what gives Apple its calm symmetry — flexbox can't do this cleanly
+   because the center group's width affects the side anchors. */
 .navbar-inner {
-    max-width: var(--container-max);
+    max-width: 1280px;
     margin: 0 auto;
-    padding: 0 24px;
+    padding: 0 32px;
     height: 100%;
-    display: flex;
+    display: grid;
+    grid-template-columns: 1fr auto 1fr;
     align-items: center;
-    justify-content: space-between;
-    gap: 12px;
+    gap: 28px;
+}
+
+.navbar-inner > .nav-logo {
+    justify-self: start;
+}
+
+.navbar-inner > .nav-links {
+    justify-self: center;
+}
+
+.navbar-inner > .theme-toggle {
+    justify-self: end;
+    grid-column: 3;
+}
+
+.navbar-inner > .hamburger {
+    justify-self: end;
+    grid-column: 3;
 }
 
 .nav-logo {
@@ -43,7 +69,8 @@
 
 .nav-links {
     display: flex;
-    gap: 32px;
+    gap: 28px;
+    align-items: center;
     position: relative;
 }
 
@@ -348,28 +375,61 @@ button.nav-link--dropdown {
     padding: 0 24px;
 }
 
+/* Wide container for grid-heavy sections (projects/demos/pub cards).
+   Per Bringhurst, prose stays at 66ch via .container; .container-wide is
+   only for layouts where each cell has its own internal measure
+   constraint so 1200px outer width doesn't blow line lengths. */
+.container-wide {
+    max-width: var(--container-max-wide);
+    margin: 0 auto;
+    padding: 0 24px;
+}
+
+/* Prose container — long-form sections (news, bio paragraphs, footer
+   text) sit narrower than .container so the right margin reads as an
+   intentional sidebar, not a layout failure. Apple's editorial sections
+   land here (~660-720px). Bringhurst measure with breathing room. */
+.container-prose {
+    max-width: 720px;
+    margin: 0 auto;
+    padding: 0 24px;
+}
+
+/* Full-bleed wrapper — for showpiece imagery / quote sections. Use only
+   when you genuinely want to break the page rhythm; pair with
+   .container-* on the inner content for inset legibility. */
+.container-bleed {
+    width: 100%;
+    padding: 0;
+    margin: 0;
+}
+
 /* Sections */
 .section {
     padding: var(--section-padding) 0;
 }
 
+/* Section title — spaced-uppercase Plex Sans, matches CV section heads.
+   Tracking ~12% (Butterick range for all-caps); thin rule under stretches
+   the full content width instead of the old 48px accent bar. */
 .section-title {
-    font-size: var(--h2-size);
-    margin-bottom: 32px;
-    position: relative;
-    display: inline-block;
+    font-family: var(--font-family);
+    font-size: 0.8125rem;          /* ~13px — small caps register */
+    font-weight: 700;
+    letter-spacing: 0.12em;
+    text-transform: uppercase;
+    color: var(--accent);
+    margin: 0 0 24px;
+    padding-bottom: 6px;
+    border-bottom: 1px solid var(--accent-bg-subtle);
+    display: block;
+    /* Lining figures here — section names with years are rare, but if any
+       acronyms have digits they should be tabular not old-style. */
+    font-feature-settings: 'kern' 1, 'lnum' 1, 'tnum' 1;
 }
 
-.section-title::after {
-    content: '';
-    position: absolute;
-    bottom: -8px;
-    left: 0;
-    width: 48px;
-    height: 3px;
-    background-color: var(--accent);
-    border-radius: 2px;
-}
+/* Kill the old 48px accent bar — the full-width thin rule above replaces it */
+.section-title::after { display: none; }
 
 /* View-all links */
 .section-view-all {

@@ -1,4 +1,90 @@
+/*
+ * Brand palette: navy #0A2540 (matches the CV PDF) + warm off-white paper.
+ * Light is the default (academic convention); dark is opt-in via the
+ * .dark-mode class (toggled by theme.js, persisted in localStorage).
+ */
+
 :root {
+    /* Colors — LIGHT MODE (the new default) */
+    --bg-primary: #FCFCFA;          /* warm off-white, not pure white */
+    --bg-secondary: #FFFFFF;
+    --bg-tertiary: #F1EEE5;
+    --text-primary: #1A1A1A;        /* near-black, not #000 (Bringhurst) */
+    --text-secondary: #334155;
+    --text-muted: #6B6B6B;
+    --accent: #0A2540;              /* Stripe navy — matches CV */
+    --accent-light: #2563A8;
+    --accent-hover: #1B4F84;
+    --border-color: #E5E2DA;
+    --border-hover: #C8C8C8;
+
+    /* Typography — Plex matches the CV brand. Inter is fallback for any
+       glyph Plex doesn't render; system stack catches the rest. */
+    --font-family: 'IBM Plex Sans', 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+    --font-serif: 'IBM Plex Serif', Georgia, 'Times New Roman', serif;
+    --font-mono: 'IBM Plex Mono', 'JetBrains Mono', 'Fira Code', monospace;
+    --h1-size: 3rem;
+    --h2-size: 1.75rem;
+    --h3-size: 1.25rem;
+    --body-size: 1.0625rem;        /* 17px — Butterick body-size sweet spot */
+    --small-size: 0.9375rem;       /* 15px — used to be 14px (too small) */
+    --xs-size: 0.8125rem;          /* 13px */
+    --measure: 66ch;               /* Bringhurst optimal: 45-75 chars/line */
+
+    /* Spacing */
+    --section-padding: clamp(64px, 5vw, 112px);   /* fluid: breathes on wide screens (Apple-style) */
+    --container-max: 900px;                                  /* prose-friendly (66ch measure) */
+    --container-max-wide: clamp(1100px, 92vw, 1700px);       /* grid sections — fluid: 1100 baseline, scales to 1700 on wide screens */
+    --card-padding: 24px;
+    --card-radius: 12px;
+
+    /* Shadows — softened for light backgrounds */
+    --shadow-sm: 0 1px 3px rgba(0, 0, 0, 0.06);
+    --shadow-md: 0 4px 12px rgba(0, 0, 0, 0.08);
+    --shadow-lg: 0 8px 24px rgba(0, 0, 0, 0.10);
+    --shadow-hover: 0 12px 32px rgba(0, 0, 0, 0.13);
+
+    /* Transitions */
+    --transition-fast: 150ms ease;
+    --transition-base: 250ms ease;
+    --transition-slow: 400ms ease;
+
+    /* Spring-like linear() easing — multi-stop, mimics a soft physics
+       spring without a JS lib. Apple/Linear use this on hover lifts. */
+    --ease-spring: linear(
+        0, 0.5 12%, 0.86 24%, 1.04 36%, 1.07 50%,
+        1.04 60%, 1.005 76%, 0.998 88%, 1
+    );
+
+    /* Glow / Gradient — navy-tinted */
+    --glow-color: rgba(10, 37, 64, 0.10);
+    --glow-color-strong: rgba(10, 37, 64, 0.22);
+    --gradient-purple: rgba(139, 92, 246, 0.04);
+    --gradient-teal: rgba(10, 37, 64, 0.04);
+
+    /* Nav */
+    --nav-height: 64px;
+    --nav-bg: rgba(252, 252, 250, 0.85);
+    --mobile-menu-bg: rgba(252, 252, 250, 0.97);
+
+    /* Accent rgba (for backgrounds that use accent with alpha) */
+    --accent-bg-subtle: rgba(10, 37, 64, 0.06);
+    --accent-bg-light: rgba(10, 37, 64, 0.10);
+    --accent-bg-medium: rgba(10, 37, 64, 0.16);
+
+    /* Tint ramp — derived from --accent via color-mix (parallel to the
+       \colorlet ramp in cv/main.tex). Use these for subtle backgrounds,
+       hover states, callout cards. Falls back gracefully if browser
+       doesn't support color-mix yet (~96% support as of 2025). */
+    --accent-90: color-mix(in srgb, var(--accent) 90%, white);
+    --accent-50: color-mix(in srgb, var(--accent) 50%, white);
+    --accent-20: color-mix(in srgb, var(--accent) 20%, white);
+    --accent-10: color-mix(in srgb, var(--accent) 10%, white);
+}
+
+/* DARK MODE — opt-in via the .dark-mode class
+ * (yes, the class name is now semantically inverted; see top comment) */
+:root.dark-mode {
     /* Colors */
     --bg-primary: #0f1923;
     --bg-secondary: #1a2a35;
@@ -6,89 +92,37 @@
     --text-primary: #e2e8f0;
     --text-secondary: #94a3b8;
     --text-muted: #64748b;
-    --accent: #0f766e;
-    --accent-light: #5eead4;
-    --accent-hover: #14b8a6;
+    --accent: #6FA8FF;              /* navy lifted for dark-bg legibility */
+    --accent-light: #9DC3FF;
+    --accent-hover: #BFD8FF;
     --border-color: #2a3a4a;
     --border-hover: #3a4a5a;
 
-    /* Typography */
-    --font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
-    --font-mono: 'JetBrains Mono', 'Fira Code', monospace;
-    --h1-size: 3rem;
-    --h2-size: 1.75rem;
-    --h3-size: 1.25rem;
-    --body-size: 1rem;
-    --small-size: 0.875rem;
-    --xs-size: 0.75rem;
-
-    /* Spacing */
-    --section-padding: 64px;
-    --container-max: 900px;
-    --card-padding: 24px;
-    --card-radius: 12px;
-
-    /* Shadows */
+    /* Shadows — back to dark */
     --shadow-sm: 0 1px 3px rgba(0, 0, 0, 0.3);
     --shadow-md: 0 4px 12px rgba(0, 0, 0, 0.4);
     --shadow-lg: 0 8px 24px rgba(0, 0, 0, 0.5);
     --shadow-hover: 0 12px 32px rgba(0, 0, 0, 0.6);
 
-    /* Transitions */
-    --transition-fast: 150ms ease;
-    --transition-base: 250ms ease;
-    --transition-slow: 400ms ease;
-
     /* Glow / Gradient */
-    --glow-color: rgba(94, 234, 212, 0.25);
-    --glow-color-strong: rgba(94, 234, 212, 0.45);
+    --glow-color: rgba(111, 168, 255, 0.18);
+    --glow-color-strong: rgba(111, 168, 255, 0.35);
     --gradient-purple: rgba(139, 92, 246, 0.08);
-    --gradient-teal: rgba(94, 234, 212, 0.08);
+    --gradient-teal: rgba(111, 168, 255, 0.08);
 
     /* Nav */
-    --nav-height: 64px;
     --nav-bg: rgba(15, 25, 35, 0.85);
     --mobile-menu-bg: rgba(15, 25, 35, 0.97);
 
-    /* Accent rgba (for backgrounds that use accent with alpha) */
-    --accent-bg-subtle: rgba(15, 118, 110, 0.1);
-    --accent-bg-light: rgba(15, 118, 110, 0.15);
-    --accent-bg-medium: rgba(15, 118, 110, 0.2);
-}
-
-/* Light Mode */
-:root.light-mode {
-    /* Colors */
-    --bg-primary: #f8fafc;
-    --bg-secondary: #ffffff;
-    --bg-tertiary: #e9eef4;
-    --text-primary: #0f172a;
-    --text-secondary: #334155;
-    --text-muted: #475569;
-    --accent: #0f766e;
-    --accent-light: #0f766e;
-    --accent-hover: #0d9488;
-    --border-color: #cbd5e1;
-    --border-hover: #94a3b8;
-
-    /* Shadows */
-    --shadow-sm: 0 1px 3px rgba(0, 0, 0, 0.08);
-    --shadow-md: 0 4px 12px rgba(0, 0, 0, 0.1);
-    --shadow-lg: 0 8px 24px rgba(0, 0, 0, 0.12);
-    --shadow-hover: 0 12px 32px rgba(0, 0, 0, 0.15);
-
-    /* Glow / Gradient */
-    --glow-color: rgba(15, 118, 110, 0.12);
-    --glow-color-strong: rgba(15, 118, 110, 0.25);
-    --gradient-purple: rgba(139, 92, 246, 0.04);
-    --gradient-teal: rgba(15, 118, 110, 0.04);
-
-    /* Nav */
-    --nav-bg: rgba(248, 250, 252, 0.85);
-    --mobile-menu-bg: rgba(248, 250, 252, 0.97);
-
     /* Accent rgba */
-    --accent-bg-subtle: rgba(15, 118, 110, 0.06);
-    --accent-bg-light: rgba(15, 118, 110, 0.1);
-    --accent-bg-medium: rgba(15, 118, 110, 0.15);
+    --accent-bg-subtle: rgba(111, 168, 255, 0.10);
+    --accent-bg-light: rgba(111, 168, 255, 0.16);
+    --accent-bg-medium: rgba(111, 168, 255, 0.22);
+
+    /* Tint ramp — dark mode. Mix accent toward black instead of white
+       so the tints darken the navy rather than lightening it. */
+    --accent-90: color-mix(in srgb, var(--accent) 90%, black);
+    --accent-50: color-mix(in srgb, var(--accent) 50%, black);
+    --accent-20: color-mix(in srgb, var(--accent) 20%, black);
+    --accent-10: color-mix(in srgb, var(--accent) 10%, black);
 }

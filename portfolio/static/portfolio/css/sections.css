@@ -1,4 +1,9 @@
-/* Hero */
+/* Hero — restrained Stripe/Anthropic aesthetic.
+   - One soft navy-tinted radial glow off-center (replaces the old
+     dual teal+purple gradients that fought the brand).
+   - A barely-visible dot-grid covers the whole section as a static
+     pattern (Stripe-style). Both are pure CSS, zero JS, zero motion.
+   - Spotlight cursor + film grain layered on top in dark mode only. */
 .hero {
     min-height: 100vh;
     display: flex;
@@ -6,19 +11,44 @@
     padding-top: calc(var(--nav-height) + 32px);
     position: relative;
     overflow: hidden;
+    isolation: isolate;
     background:
-        radial-gradient(ellipse 60% 50% at 20% 40%, var(--gradient-teal), transparent),
-        radial-gradient(ellipse 50% 40% at 80% 60%, var(--gradient-purple), transparent);
+        /* Soft glow anchored at upper-left, behind the bio paragraph */
+        radial-gradient(ellipse 70% 60% at 25% 30%, var(--glow-color-strong), transparent 70%),
+        /* Subtle dot grid — 1px dot per 28px cell, very low opacity */
+        radial-gradient(circle at 1px 1px, var(--accent-bg-subtle) 1px, transparent 1.5px) 0 0 / 28px 28px;
+    background-attachment: scroll, scroll;
 }
 
-#particle-canvas {
+/* Spotlight cursor — soft radial gradient follows the mouse on the
+   dark hero. --mx/--my are updated in JS on mousemove. Falls back
+   to a static centered glow if JS hasn't run yet. Vercel/Arc move. */
+:root.dark-mode .hero::before {
+    content: '';
     position: absolute;
-    top: 0;
-    left: 0;
-    width: 100%;
-    height: 100%;
-    pointer-events: none;
+    inset: 0;
     z-index: 0;
+    pointer-events: none;
+    background: radial-gradient(
+        600px circle at var(--mx, 50%) var(--my, 30%),
+        rgba(111, 168, 255, 0.10),
+        transparent 50%
+    );
+    transition: opacity 400ms ease;
+}
+
+/* Film grain — SVG feTurbulence at 3% opacity gives the dark navy
+   hero a tactile, editorial-print feel. Dark mode only — would muddy
+   the warm off-white in light mode. */
+:root.dark-mode .hero::after {
+    content: '';
+    position: absolute;
+    inset: 0;
+    z-index: 0;
+    pointer-events: none;
+    opacity: 0.035;
+    mix-blend-mode: overlay;
+    background-image: url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='240' height='240'><filter id='n'><feTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='2' stitchTiles='stitch'/><feColorMatrix values='0 0 0 0 1  0 0 0 0 1  0 0 0 0 1  0 0 0 0.9 0'/></filter><rect width='100%' height='100%' filter='url(%23n)'/></svg>");
 }
 
 /* Avatar flip card */
@@ -70,8 +100,13 @@
 
 .hero-content {
     display: grid;
-    grid-template-columns: 300px 1fr;
-    column-gap: 48px;
+    /* Cap the bio column near its prose measure so whitespace falls
+       OUTSIDE the grid (intentional margins) instead of INSIDE the bio
+       column (which read as "left-justify dead space" on wide screens).
+       The whole grid then centers within the wide container. */
+    grid-template-columns: minmax(280px, 360px) minmax(540px, 720px);
+    justify-content: center;
+    column-gap: 64px;
     row-gap: 32px;
     align-items: center;
 }
@@ -344,8 +379,11 @@
 
 .pub-selected {
     display: grid;
-    grid-template-columns: repeat(2, 1fr);
-    gap: 20px;
+    /* Fluid columns: 1 on mobile, 2 on laptops, 3+ on wide screens.
+       380px minimum is the publication-card sweet spot. */
+    grid-template-columns: repeat(auto-fit, minmax(380px, 1fr));
+    gap: 28px;
+    align-items: start;            /* keep cards top-aligned, not stretched */
 }
 
 /* Override .card base — featured cards are fully custom */
@@ -370,52 +408,80 @@
     border-color: transparent;
 }
 
-/* Inner wrapper — the actual visible card surface */
+/* Cover art tile — blur-up backdrop pattern (Apple/Spotify).
+   16:9 frame fits both portrait figures and landscape screenshots.
+   Foreground is `object-fit: contain` so nothing is cropped; backdrop
+   is the same image scaled + blurred, so any pillarbox/letterbox area
+   reads as a soft brand-colored halo instead of empty matte. */
 .pub-featured-image {
     position: relative;
     overflow: hidden;
     border-radius: 20px;
     background: var(--bg-tertiary);
-    box-shadow: 0 4px 24px rgba(0, 0, 0, 0.25);
-    transition: transform 0.5s cubic-bezier(0.25, 0.46, 0.45, 0.94),
-                box-shadow 0.5s cubic-bezier(0.25, 0.46, 0.45, 0.94);
+    aspect-ratio: 16 / 9;
+    isolation: isolate;            /* containment for blurred child */
+    box-shadow:
+        0 1px 2px rgba(10, 37, 64, 0.06),
+        0 8px 24px -8px rgba(10, 37, 64, 0.18),
+        0 24px 48px -16px rgba(10, 37, 64, 0.10);
+    transition:
+        transform 0.5s cubic-bezier(0.25, 0.46, 0.45, 0.94),
+        box-shadow 0.5s cubic-bezier(0.25, 0.46, 0.45, 0.94);
 }
 
 .pub-featured:hover .pub-featured-image {
-    transform: scale(1.02) translateY(-4px);
-    box-shadow: 0 20px 60px rgba(0, 0, 0, 0.35);
+    transform: translateY(-4px);
+    box-shadow:
+        0 1px 2px rgba(10, 37, 64, 0.08),
+        0 16px 40px -12px rgba(10, 37, 64, 0.28),
+        0 40px 80px -24px rgba(10, 37, 64, 0.18);
 }
 
+.pub-featured-backdrop {
+    position: absolute;
+    inset: 0;
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+    filter: blur(32px) saturate(1.35);
+    transform: scale(1.2);
+    opacity: 0.55;
+    z-index: 0;
+    pointer-events: none;
+}
+
+.pub-featured-foreground {
+    position: relative;
+    display: block;
+    width: 100%;
+    height: 100%;
+    object-fit: contain;           /* preserve the figure exactly, no crop */
+    z-index: 1;
+    transition: transform 0.6s cubic-bezier(0.25, 0.46, 0.45, 0.94);
+}
+
+.pub-featured:hover .pub-featured-foreground {
+    transform: scale(1.02);
+}
+
+/* Subtle bottom scrim for credit-pill legibility */
 .pub-featured-image::after {
     content: '';
     position: absolute;
     inset: 0;
     border-radius: 20px;
-    background: linear-gradient(
-        to bottom,
-        transparent 50%,
-        rgba(0, 0, 0, 0.25)
-    );
+    background: linear-gradient(to bottom, transparent 65%, rgba(0, 0, 0, 0.22));
+    z-index: 2;
     pointer-events: none;
+    opacity: 0.6;
     transition: opacity 0.4s ease;
 }
 
 .pub-featured:hover .pub-featured-image::after {
-    opacity: 0.7;
+    opacity: 0.85;
 }
 
-.pub-featured-image img {
-    display: block;
-    width: 100%;
-    height: auto;
-    object-fit: contain;
-    border-radius: 20px;
-    transition: transform 0.6s cubic-bezier(0.25, 0.46, 0.45, 0.94);
-}
-
-.pub-featured:hover .pub-featured-image img {
-    transform: scale(1.05);
-}
+.pub-image-credit { z-index: 3; }
 
 .pub-image-credit {
     position: absolute;
@@ -440,17 +506,125 @@
 }
 
 .pub-featured-meta {
-    font-size: 0.65rem;
-    font-weight: 600;
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    margin-bottom: 8px;
+}
+
+/* Monospace category tag — DeepMind/FAIR pattern. 11px Plex Mono,
+   uppercase, slightly tinted bg pill. Distinguishes Conference /
+   Journal / Workshop / Preprint at a glance, reads as "research org." */
+.pub-cat-tag {
+    font-family: var(--font-mono);
+    font-size: 0.6875rem;
+    font-weight: 500;
     text-transform: uppercase;
-    letter-spacing: 0.1em;
+    letter-spacing: 0.08em;
+    color: var(--accent-light);
+    background: var(--accent-bg-subtle);
+    padding: 2px 8px;
+    border-radius: 4px;
+    line-height: 1.4;
+}
+
+.pub-meta-year {
+    font-family: var(--font-mono);
+    font-size: 0.6875rem;
+    font-weight: 500;
     color: var(--text-muted);
-    margin-bottom: 6px;
+    font-feature-settings: 'tnum' 1, 'lnum' 1;
 }
 
 .pub-featured-meta .pub-type {
     margin-bottom: 0;
     color: var(--accent-light);
+}
+
+/* Cite button — uses .link-pill base, but as a button needs the reset */
+button.pub-cite-btn {
+    background: transparent;
+    font-family: inherit;
+    cursor: pointer;
+}
+
+/* BibTeX modal — native <dialog> with a soft backdrop. Plex Mono
+   block, copy button, click-outside / Esc to close. Sander.ai pattern. */
+.cite-dialog {
+    border: none;
+    border-radius: 16px;
+    padding: 0;
+    background: var(--bg-secondary);
+    color: var(--text-primary);
+    max-width: 640px;
+    width: calc(100vw - 48px);
+    box-shadow:
+        0 1px 2px rgba(10, 37, 64, 0.06),
+        0 24px 64px -16px rgba(10, 37, 64, 0.32),
+        0 64px 128px -32px rgba(10, 37, 64, 0.18);
+}
+.cite-dialog::backdrop {
+    background: rgba(10, 25, 35, 0.55);
+    backdrop-filter: blur(6px);
+    -webkit-backdrop-filter: blur(6px);
+}
+.cite-dialog-inner {
+    padding: 24px;
+}
+.cite-dialog-head {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    margin-bottom: 14px;
+}
+.cite-dialog-label {
+    font-family: var(--font-mono);
+    font-size: 0.6875rem;
+    font-weight: 500;
+    text-transform: uppercase;
+    letter-spacing: 0.08em;
+    color: var(--accent-light);
+    background: var(--accent-bg-subtle);
+    padding: 3px 10px;
+    border-radius: 4px;
+}
+.cite-dialog-close {
+    background: none;
+    border: none;
+    cursor: pointer;
+    color: var(--text-muted);
+    font-size: 1.5rem;
+    line-height: 1;
+    padding: 4px 8px;
+    border-radius: 6px;
+    transition: background-color var(--transition-fast), color var(--transition-fast);
+}
+.cite-dialog-close:hover {
+    background: var(--bg-tertiary);
+    color: var(--text-primary);
+}
+.cite-dialog-bibtex {
+    background: var(--bg-tertiary);
+    border: 1px solid var(--border-color);
+    border-radius: 10px;
+    padding: 16px;
+    margin: 0 0 16px;
+    overflow-x: auto;
+    font-family: var(--font-mono);
+    font-size: 0.8125rem;
+    line-height: 1.6;
+    color: var(--text-primary);
+}
+.cite-dialog-bibtex code {
+    font-family: inherit;
+    color: inherit;
+    background: none;
+    padding: 0;
+    white-space: pre;
+}
+.cite-dialog-copy {
+    width: 100%;
+    justify-content: center;
 }
 
 .pub-featured-body .pub-title {
@@ -786,7 +960,7 @@
 /* Projects */
 .project-grid {
     display: grid;
-    grid-template-columns: repeat(2, 1fr);
+    grid-template-columns: repeat(auto-fit, minmax(360px, 1fr));
     gap: 20px;
 }
 
@@ -929,10 +1103,15 @@
     text-align: center;
 }
 
-/* Timeline */
+/* Timeline — list of single-column entries. Cap to ~720px and center
+   inside the wide container so each row sits as a focal column with
+   intentional negative space on either side, instead of left-stuck
+   text and a vast empty right margin. */
 .timeline {
     position: relative;
     padding-left: 32px;
+    max-width: 720px;
+    margin-inline: auto;
 }
 
 .timeline::before {
@@ -1068,7 +1247,7 @@
 
 .demos-grid {
     display: grid;
-    grid-template-columns: repeat(2, 1fr);
+    grid-template-columns: repeat(auto-fit, minmax(420px, 1fr));
     gap: 32px;
 }
 

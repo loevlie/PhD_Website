@@ -90,6 +90,13 @@ PUBLICATIONS = [
             {'label': 'Paper', 'url': 'https://arxiv.org/abs/2510.25759'},
             {'label': 'Code', 'url': 'https://github.com/Franblueee/torchmil'},
         ],
+        'bibtex': """@inproceedings{harvey2025synthetic,
+  title={Synthetic Data Reveals Generalization Gaps in Correlated Multiple Instance Learning},
+  author={Harvey, Ethan and Loevlie, Dennis Johan and Hughes, Michael C.},
+  booktitle={ML4H 2025 Symposium, Findings Track},
+  year={2025},
+  url={https://arxiv.org/abs/2510.25759}
+}""",
     },
     {
         'type': 'journal',
@@ -104,6 +111,13 @@ PUBLICATIONS = [
             {'label': 'Paper', 'url': 'https://doi.org/10.1021/acs.accounts.2c00646'},
             {'label': 'Code', 'url': 'https://github.com/mpourmpakis/CANELa_NP'},
         ],
+        'bibtex': """@article{loevlie2023demystifying,
+  title={Demystifying the Chemical Ordering of Multimetallic Nanoparticles},
+  author={Loevlie, Dennis Johan and Ferreira, Brenno and Mpourmpakis, Giannis},
+  journal={Accounts of Chemical Research},
+  year={2023},
+  doi={10.1021/acs.accounts.2c00646}
+}""",
     },
     {
         'type': 'journal',

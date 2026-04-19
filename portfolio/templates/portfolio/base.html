@@ -31,23 +31,22 @@
     <!-- Fonts -->
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+    <link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Serif:ital,wght@0,400;0,500;0,600;1,400&family=IBM+Plex+Sans:wght@400;500;600;700&family=IBM+Plex+Mono:wght@400;500&family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
 
-    <!-- Theme: apply before CSS paints to prevent flash -->
+    <!-- Theme: dark by default (user preference); light is opt-in.
+         Apply before CSS paints so we don't flash the wrong theme. -->
     <script>
         (function() {
-            var mobile = window.matchMedia('(max-width: 768px)').matches;
-            if (mobile) return;
-            if (localStorage.getItem('theme') === 'light') {
-                document.documentElement.classList.add('light-mode');
+            if (localStorage.getItem('theme') !== 'light') {
+                document.documentElement.classList.add('dark-mode');
             }
         })();
     </script>
     <style>
         /* Hide the wrong icon before page renders — JS takes over after load */
         .icon-sun { display: none !important; }
-        html.light-mode .icon-moon { display: none !important; }
-        html.light-mode .icon-sun { display: block !important; }
+        html.dark-mode .icon-moon { display: none !important; }
+        html.dark-mode .icon-sun { display: block !important; }
     </style>
 
     <!-- CSS -->
@@ -64,6 +63,156 @@
 
     {% block content %}{% endblock %}
 
+    {% comment %}Cmd-K command palette — Linear/Vercel/Raycast pattern. Native dialog, fuzzy match, keyboard-first. Build the index from sections, publications, and external links so it doubles as nav + paper jump-to.{% endcomment %}
+    <dialog class="cmdk" id="cmdk">
+        <div class="cmdk-inner">
+            <div class="cmdk-search">
+                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="11" cy="11" r="8"/><path d="m21 21-4.3-4.3"/></svg>
+                <input type="text" id="cmdk-input" placeholder="Search sections, papers, links…" autocomplete="off" spellcheck="false">
+                <kbd class="cmdk-kbd cmdk-esc">esc</kbd>
+            </div>
+            <ul class="cmdk-results" id="cmdk-results"></ul>
+            <footer class="cmdk-foot">
+                <span><kbd class="cmdk-kbd">↑</kbd><kbd class="cmdk-kbd">↓</kbd> navigate</span>
+                <span><kbd class="cmdk-kbd">↵</kbd> open</span>
+                <span><kbd class="cmdk-kbd">esc</kbd> close</span>
+            </footer>
+        </div>
+    </dialog>
+    <script id="cmdk-data" type="application/json">
+    {
+        "sections": [
+            {"label": "About", "href": "/#about", "kind": "Section"},
+            {"label": "News", "href": "/#news", "kind": "Section"},
+            {"label": "Experience", "href": "/#experience", "kind": "Section"},
+            {"label": "Publications", "href": "/#publications", "kind": "Section"},
+            {"label": "Projects", "href": "/#projects", "kind": "Section"},
+            {"label": "Contact", "href": "/#contact", "kind": "Section"},
+            {"label": "All publications", "href": "/publications/", "kind": "Page"},
+            {"label": "Blog", "href": "/blog/", "kind": "Page"},
+            {"label": "Recipes", "href": "/recipes/", "kind": "Page"}
+        ],
+        "papers": [
+            {%for pub in publications %}{"label": "{{ pub.title|escapejs }}", "venue": "{{ pub.venue|escapejs }} ({{ pub.year }})", "href": "{% if pub.links %}{{ pub.links.0.url|escapejs }}{% else %}/publications/{% endif %}", "kind": "Paper"}{% if not forloop.last %},{% endif %}{% endfor %}
+        ],
+        "links": [
+            {% for link in social_links %}{"label": "{{ link.name|escapejs }}", "href": "{{ link.url|escapejs }}", "kind": "Link", "external": true}{% if not forloop.last %},{% endif %}{% endfor %}
+        ],
+        "actions": [
+            {"label": "Toggle theme", "href": "#theme", "kind": "Action"},
+            {"label": "Download CV", "href": "{% static 'portfolio/Dennis_Loevlie_CV.pdf' %}", "kind": "Action", "external": true}
+        ]
+    }
+    </script>
+    <script>
+    (function() {
+        var dlg = document.getElementById('cmdk');
+        var input = document.getElementById('cmdk-input');
+        var results = document.getElementById('cmdk-results');
+        var data = JSON.parse(document.getElementById('cmdk-data').textContent);
+        var items = [].concat(data.sections, data.papers, data.actions, data.links);
+        var active = 0;
+
+        // Cmd/Ctrl+K opens; / opens too if no input is focused
+        document.addEventListener('keydown', function(e) {
+            var isMod = e.metaKey || e.ctrlKey;
+            if (isMod && e.key.toLowerCase() === 'k') {
+                e.preventDefault(); open();
+            } else if (e.key === '/' && document.activeElement.tagName !== 'INPUT' && document.activeElement.tagName !== 'TEXTAREA') {
+                e.preventDefault(); open();
+            }
+        });
+
+        function open() {
+            if (typeof dlg.showModal !== 'function') return;
+            dlg.showModal();
+            input.value = '';
+            render('');
+            setTimeout(function() { input.focus(); }, 0);
+        }
+
+        function score(item, q) {
+            if (!q) return 1;
+            var hay = (item.label + ' ' + (item.venue || '') + ' ' + item.kind).toLowerCase();
+            var ql = q.toLowerCase();
+            if (hay.indexOf(ql) !== -1) return 10;
+            // subsequence fuzzy
+            var i = 0, j = 0;
+            while (i < hay.length && j < ql.length) {
+                if (hay[i] === ql[j]) j++;
+                i++;
+            }
+            return j === ql.length ? 1 : 0;
+        }
+
+        function render(q) {
+            var ranked = items
+                .map(function(it) { return { it: it, s: score(it, q) }; })
+                .filter(function(x) { return x.s > 0; })
+                .sort(function(a, b) { return b.s - a.s; })
+                .slice(0, 12);
+            active = 0;
+            results.innerHTML = ranked.map(function(x, idx) {
+                var it = x.it;
+                return '<li class="cmdk-item' + (idx === 0 ? ' active' : '') + '" data-idx="' + idx + '" data-href="' + it.href + '"' + (it.external ? ' data-external="1"' : '') + '>'
+                    + '<span class="cmdk-item-label">' + escapeHtml(it.label) + '</span>'
+                    + (it.venue ? '<span class="cmdk-item-meta">' + escapeHtml(it.venue) + '</span>' : '')
+                    + '<span class="cmdk-item-kind">' + it.kind + '</span>'
+                    + '</li>';
+            }).join('');
+            results.querySelectorAll('.cmdk-item').forEach(function(el) {
+                el.addEventListener('click', function() { go(el); });
+                el.addEventListener('mouseenter', function() {
+                    results.querySelectorAll('.cmdk-item').forEach(function(li) { li.classList.remove('active'); });
+                    el.classList.add('active');
+                    active = parseInt(el.dataset.idx, 10);
+                });
+            });
+        }
+
+        function escapeHtml(s) {
+            return s.replace(/[&<>"']/g, function(c) {
+                return { '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c];
+            });
+        }
+
+        function go(el) {
+            var href = el.dataset.href;
+            var ext = el.dataset.external === '1';
+            dlg.close();
+            if (href === '#theme') {
+                document.getElementById('theme-toggle').click();
+                return;
+            }
+            if (ext) window.open(href, '_blank', 'noopener');
+            else window.location.href = href;
+        }
+
+        input.addEventListener('input', function() { render(input.value); });
+        input.addEventListener('keydown', function(e) {
+            var lis = results.querySelectorAll('.cmdk-item');
+            if (e.key === 'ArrowDown') {
+                e.preventDefault();
+                active = Math.min(active + 1, lis.length - 1);
+            } else if (e.key === 'ArrowUp') {
+                e.preventDefault();
+                active = Math.max(active - 1, 0);
+            } else if (e.key === 'Enter' && lis[active]) {
+                e.preventDefault();
+                go(lis[active]);
+            } else { return; }
+            lis.forEach(function(li) { li.classList.remove('active'); });
+            if (lis[active]) {
+                lis[active].classList.add('active');
+                lis[active].scrollIntoView({ block: 'nearest' });
+            }
+        });
+        dlg.addEventListener('click', function(e) {
+            if (e.target === dlg) dlg.close();
+        });
+    })();
+    </script>
+
     <footer class="footer">
         <div class="container">
             <p class="footer-text">&copy; 2026 {{ hero.name }}</p>
@@ -72,30 +221,46 @@
     </footer>
 
     <script src="{% static 'portfolio/js/theme.js' %}"></script>
-    <script src="{% static 'portfolio/js/particles.js' %}"></script>
+    {# particles.js removed (anti-pattern: animated hero backgrounds) #}
     <script>
-    // Avatar video: play once, auto-flip to real photo, toggle on interaction
+    // Avatar video: play once, hold last frame, then auto-flip to real photo.
+    // Toggle on hover/tap. Critical: never let the video reset to frame 0
+    // (Safari + Chrome do this if you flip back to it after `ended` and
+    // they decide to "rewind for autoplay"). Two defenses below: remove
+    // autoplay after first play, and re-pin currentTime on every flip.
     (function() {
         var v = document.querySelector('.avatar-video');
         var container = document.querySelector('.avatar-flip-container');
         if (!v || !container) return;
         var flipped = false;
+        var hasEnded = false;
         var isTouch = 'ontouchstart' in window;
+
+        function pinToLastFrame() {
+            if (!hasEnded) return;
+            if (v.duration && isFinite(v.duration)) {
+                // Seek to just-before-end so the browser doesn't interpret
+                // currentTime === duration as "play again."
+                try { v.currentTime = Math.max(0, v.duration - 0.05); } catch (e) {}
+            }
+            v.pause();
+        }
 
         // iOS requires user gesture for video — try to play, fallback to still
         var playPromise = v.play();
         if (playPromise !== undefined) {
             playPromise.catch(function() {
-                // Autoplay blocked — skip to flipped state (show real photo)
                 flipped = true;
                 container.classList.add('flipped');
             });
         }
 
-        // When video ends, hold last frame then auto-flip to real photo
         v.addEventListener('ended', function() {
-            v.currentTime = v.duration;
-            v.pause();
+            hasEnded = true;
+            // Strip autoplay so the browser can't decide to restart it
+            // when it becomes visible again after a flip.
+            v.removeAttribute('autoplay');
+            pinToLastFrame();
             setTimeout(function() {
                 flipped = true;
                 container.classList.add('flipped');
@@ -107,7 +272,35 @@
         container.addEventListener(toggleEvent, function() {
             flipped = !flipped;
             container.classList.toggle('flipped', flipped);
+            // If we're flipping BACK to the video (front), re-pin to last
+            // frame so it stays frozen instead of restarting.
+            if (!flipped) pinToLastFrame();
         });
+    })();
+    </script>
+    <script>
+    // Spotlight cursor — radial-gradient pseudo-element follows the
+    // mouse on the dark hero. Skip on touch + reduced-motion. Throttled
+    // via rAF so we never re-paint more than once per frame.
+    (function() {
+        var hero = document.querySelector('.hero');
+        if (!hero) return;
+        if ('ontouchstart' in window) return;
+        if (window.matchMedia('(prefers-reduced-motion: reduce)').matches) return;
+        var pending = false, lastX = 0, lastY = 0;
+        function onMove(e) {
+            var rect = hero.getBoundingClientRect();
+            lastX = e.clientX - rect.left;
+            lastY = e.clientY - rect.top;
+            if (pending) return;
+            pending = true;
+            requestAnimationFrame(function() {
+                hero.style.setProperty('--mx', lastX + 'px');
+                hero.style.setProperty('--my', lastY + 'px');
+                pending = false;
+            });
+        }
+        hero.addEventListener('mousemove', onMove, { passive: true });
     })();
     </script>
     <script src="{% static 'portfolio/js/main.js' %}"></script>

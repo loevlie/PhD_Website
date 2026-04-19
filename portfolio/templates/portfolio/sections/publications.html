@@ -1,38 +1,83 @@
 {% load static portfolio_tags %}
 <section class="section" id="publications">
-    <div class="container">
+    <div class="container-wide">
         <h2 class="section-title fade-in">Publications</h2>
         <div class="pub-selected fade-in-group">
             {% for pub in publications %}
             {% if pub.selected %}
             <div class="pub-featured card">
                 <div class="pub-featured-image">
-                    <img src="{% static pub.image %}" alt="{{ pub.title }}">
+                    {% comment %}Blur-up backdrop pattern (Apple/Spotify): contained foreground over a same-image blurred backdrop, so figures + screenshots fill the 16:9 frame without crop loss. Backdrop is decorative; aria-hidden.{% endcomment %}
+                    <img class="pub-featured-backdrop" src="{% static pub.image %}" alt="" aria-hidden="true">
+                    <img class="pub-featured-foreground" src="{% static pub.image %}" alt="{{ pub.title }}">
                     {% if pub.image_credit %}
                     <span class="pub-image-credit">{{ pub.image_credit }}</span>
                     {% endif %}
                 </div>
                 <div class="pub-featured-body">
                     <div class="pub-featured-meta">
-                        <span class="pub-type">{{ pub.type }}</span> · {{ pub.year }}
+                        <span class="pub-cat-tag">{{ pub.type }}</span>
+                        <span class="pub-meta-year">{{ pub.year }}</span>
                     </div>
                     <h3 class="pub-title">{{ pub.title }}</h3>
                     <p class="pub-authors">
                         {% for author in pub.authors %}{% if not forloop.first %}, {% endif %}{{ author|highlight_author }}{% endfor %}
                     </p>
                     <p class="pub-venue">{{ pub.venue }}, {{ pub.year }}</p>
-                    {% if pub.links %}
+                    {% if pub.links or pub.bibtex %}
                     <div class="pub-links">
                         {% for link in pub.links %}
                         <a href="{{ link.url }}" class="link-pill" target="_blank" rel="noopener">{{ link.label }}</a>
                         {% endfor %}
+                        {% if pub.bibtex %}
+                        <button type="button" class="link-pill pub-cite-btn" data-cite-target="cite-{{ forloop.counter }}">Cite</button>
+                        {% endif %}
                     </div>
                     {% endif %}
                 </div>
             </div>
+            {% if pub.bibtex %}
+            <dialog class="cite-dialog" id="cite-{{ forloop.counter }}">
+                <div class="cite-dialog-inner">
+                    <header class="cite-dialog-head">
+                        <span class="cite-dialog-label">BibTeX</span>
+                        <button type="button" class="cite-dialog-close" aria-label="Close">&times;</button>
+                    </header>
+                    <pre class="cite-dialog-bibtex"><code>{{ pub.bibtex }}</code></pre>
+                    <button type="button" class="btn btn--primary cite-dialog-copy">Copy to clipboard</button>
+                </div>
+            </dialog>
+            {% endif %}
             {% endif %}
             {% endfor %}
         </div>
+        <script>
+        (function() {
+            // Cite buttons → open <dialog>; Copy → clipboard; Esc/click-outside closes.
+            document.querySelectorAll('.pub-cite-btn').forEach(function(btn) {
+                btn.addEventListener('click', function() {
+                    var dlg = document.getElementById(btn.dataset.citeTarget);
+                    if (dlg && typeof dlg.showModal === 'function') dlg.showModal();
+                });
+            });
+            document.querySelectorAll('.cite-dialog').forEach(function(dlg) {
+                dlg.querySelector('.cite-dialog-close').addEventListener('click', function() { dlg.close(); });
+                dlg.addEventListener('click', function(e) {
+                    // click on backdrop = close (e.target is dialog itself)
+                    if (e.target === dlg) dlg.close();
+                });
+                var copyBtn = dlg.querySelector('.cite-dialog-copy');
+                copyBtn.addEventListener('click', function() {
+                    var bib = dlg.querySelector('code').textContent;
+                    navigator.clipboard.writeText(bib).then(function() {
+                        var orig = copyBtn.textContent;
+                        copyBtn.textContent = 'Copied!';
+                        setTimeout(function() { copyBtn.textContent = orig; }, 1400);
+                    });
+                });
+            });
+        })();
+        </script>
         <div class="section-view-all fade-in">
             <a href="/publications/" class="btn btn--ghost">View all publications &rarr;</a>
         </div>

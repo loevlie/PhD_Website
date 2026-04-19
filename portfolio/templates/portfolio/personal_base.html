@@ -20,20 +20,20 @@
     <!-- Fonts -->
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+    <link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Serif:ital,wght@0,400;0,500;0,600;1,400&family=IBM+Plex+Sans:wght@400;500;600;700&family=IBM+Plex+Mono:wght@400;500&family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
 
-    <!-- Theme: apply before CSS paints -->
+    <!-- Theme: dark by default; light is opt-in. -->
     <script>
         (function() {
-            if (localStorage.getItem('theme') === 'light') {
-                document.documentElement.classList.add('light-mode');
+            if (localStorage.getItem('theme') !== 'light') {
+                document.documentElement.classList.add('dark-mode');
             }
         })();
     </script>
     <style>
         .icon-sun { display: none !important; }
-        html.light-mode .icon-moon { display: none !important; }
-        html.light-mode .icon-sun { display: block !important; }
+        html.dark-mode .icon-moon { display: none !important; }
+        html.dark-mode .icon-sun { display: block !important; }
     </style>
 
     <!-- CSS -->
