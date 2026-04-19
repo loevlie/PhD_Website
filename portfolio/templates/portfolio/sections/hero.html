@@ -76,7 +76,13 @@
                     </a>
                     {% endfor %}
                 </div>
-                <a href="{% static 'portfolio/Dennis_Loevlie_CV.pdf' %}" class="btn btn--primary btn--cv" download>
+                {% comment %}
+                CV: same-origin proxy at /cv/ that fetches the latest auto-built
+                PDF from loevlie/cv (refreshed weekly) and re-serves with
+                Content-Disposition: attachment so the browser actually triggers
+                a download instead of opening in a new tab.
+                {% endcomment %}
+                <a href="{% url 'download_cv' %}" class="btn btn--primary btn--cv" download="Dennis-Loevlie-CV.pdf">
                     <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
                         <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/>
                     </svg>

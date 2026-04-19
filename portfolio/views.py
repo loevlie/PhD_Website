@@ -68,6 +68,31 @@ def projects(request):
     return render(request, 'portfolio/projects.html')
 
 
+def demos(request):
+    return render(request, 'portfolio/demos.html')
+
+
+def download_cv(request):
+    """Proxy the latest CV from loevlie.github.io with Content-Disposition: attachment.
+    Browsers ignore the `download` attribute on cross-origin links, so we have to
+    fetch server-side and re-serve same-origin to actually trigger a download.
+    Falls back to a redirect if the upstream is unreachable."""
+    import urllib.request
+    import urllib.error
+    from django.http import HttpResponse, HttpResponseRedirect
+    upstream = 'https://loevlie.github.io/cv/loevlie-cv-latest.pdf'
+    try:
+        req = urllib.request.Request(upstream, headers={'User-Agent': 'PhD-Website-CV-Proxy'})
+        with urllib.request.urlopen(req, timeout=10) as r:
+            pdf = r.read()
+    except (urllib.error.URLError, TimeoutError):
+        return HttpResponseRedirect(upstream)
+    response = HttpResponse(pdf, content_type='application/pdf')
+    response['Content-Disposition'] = 'attachment; filename="Dennis-Loevlie-CV.pdf"'
+    response['Cache-Control'] = 'public, max-age=3600'  # 1 h client cache; upstream refreshes weekly
+    return response
+
+
 def presentation(request, slug):
     from pathlib import Path
     filepath = Path(__file__).parent.parent / 'presentations' / f'{slug}.html'

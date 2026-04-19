@@ -421,6 +421,7 @@ NAV_LINKS = [
             {'label': 'Featured Projects', 'href': '#projects'},
             {'label': 'All Projects', 'href': '/projects/'},
             {'label': 'Demos', 'href': '#demos'},
+            {'label': 'Older Demos', 'href': '/demos/'},
             {'label': 'Blog', 'href': '/blog/'},
             {'label': 'Recipes', 'href': '/recipes/'},
         ],

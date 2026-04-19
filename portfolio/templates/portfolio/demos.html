@@ -1,0 +1,83 @@
+{% extends "portfolio/personal_base.html" %}
+{% load static %}
+
+{% block title %}Older Demos — Dennis Loevlie{% endblock %}
+
+{% block og_meta %}
+<meta property="og:title" content="Older Demos — Dennis Loevlie">
+<meta property="og:description" content="Earlier interactive demos: AuPd nanoparticle viewer, monocular depth estimation.">
+<meta property="og:type" content="website">
+<meta name="twitter:card" content="summary_large_image">
+<meta name="twitter:title" content="Older Demos — Dennis Loevlie">
+<meta name="twitter:description" content="Earlier interactive demos: AuPd nanoparticle viewer, monocular depth estimation.">
+{% endblock %}
+
+{% block content %}
+<section class="section listing-page">
+    <div class="container">
+        <h1 class="listing-page-title fade-in">Older Demos</h1>
+        <p class="listing-page-subtitle fade-in">
+            Earlier interactive pieces — kept here so the homepage demo can stand on its own.
+            For the current showcase, see <a href="/#demos">the Frozen Forecaster</a>.
+        </p>
+
+        <div class="demos-grid fade-in-group" style="margin-top: 32px;">
+
+            <!-- Nanoparticle Viewer -->
+            <div class="demo-card card">
+                <h3 class="demo-card-title">AuPd Nanoparticle Viewer</h3>
+                <p class="demo-card-desc">
+                    55-atom Mackay icosahedron — the structure studied in
+                    <a href="https://doi.org/10.1021/acs.accounts.2c00646" target="_blank">Demystifying the Chemical Ordering of Multimetallic Nanoparticles</a>.
+                    Drag to rotate, scroll to zoom.
+                </p>
+                <div class="np-canvas-wrap">
+                    <canvas id="np-canvas"></canvas>
+                </div>
+                <div class="np-ce-display" id="np-ce">CE = ... eV/atom</div>
+                <div class="demo-controls">
+                    <button id="np-toggle" class="btn btn--outline btn--sm">Swap to Au-core</button>
+                    <div class="np-legend">
+                        <span class="np-legend-item"><span class="np-swatch" style="background:#FFD700;"></span> Au</span>
+                        <span class="np-legend-item"><span class="np-swatch" style="background:#B0B0B0;"></span> Pd</span>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Depth Estimation -->
+            <div class="demo-card card">
+                <h3 class="demo-card-title">Depth Estimation</h3>
+                <p class="demo-card-desc">
+                    Client-side monocular depth using
+                    <a href="https://huggingface.co/spaces/JohanDL/Depth-Anything-Video" target="_blank">Depth Anything V2</a>.
+                    Model loads on first use (~27 MB).
+                </p>
+                <div id="depth-drop-zone" class="depth-drop-zone">
+                    <svg width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5">
+                        <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/>
+                        <polyline points="17 8 12 3 7 8"/>
+                        <line x1="12" y1="3" x2="12" y2="15"/>
+                    </svg>
+                    <span>Drop an image or click to upload</span>
+                    <input type="file" id="depth-file-input" accept="image/*" hidden>
+                </div>
+                <div id="depth-spinner" class="depth-spinner" style="display:none;">
+                    <div class="spinner"></div>
+                    <span id="depth-status"></span>
+                </div>
+                <div id="depth-comparison" class="depth-comparison" style="display:none;">
+                    <canvas id="depth-result" class="depth-canvas"></canvas>
+                    <div id="depth-overlay" class="depth-overlay">
+                        <canvas id="depth-original" class="depth-canvas"></canvas>
+                    </div>
+                    <div id="depth-slider-handle" class="depth-slider-handle"></div>
+                </div>
+            </div>
+
+        </div>
+    </div>
+</section>
+
+<script type="module" src="{% static 'portfolio/js/nanoparticle.js' %}"></script>
+<script type="module" src="{% static 'portfolio/js/depth-demo.js' %}"></script>
+{% endblock %}

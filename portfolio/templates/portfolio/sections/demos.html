@@ -1,61 +1,77 @@
 <section id="demos" class="section">
     <div class="container-wide">
-        <h2 class="section-title">Interactive Demos</h2>
+        <h2 class="section-title">Interactive Demo</h2>
     </div>
     <div class="demos-wide">
         <div class="demos-grid">
 
-            <!-- Nanoparticle Viewer -->
-            <div class="demo-card card">
-                <h3 class="demo-card-title">AuPd Nanoparticle Viewer</h3>
-                <p class="demo-card-desc">
-                    55-atom Mackay icosahedron — the structure studied in
-                    <a href="https://doi.org/10.1021/acs.accounts.2c00646" target="_blank">Demystifying the Chemical Ordering of Multimetallic Nanoparticles</a>.
-                    Drag to rotate, scroll to zoom.
-                </p>
-                <div class="np-canvas-wrap">
-                    <canvas id="np-canvas"></canvas>
+            {% comment %}
+            Frozen Forecaster — TabICL vs XGBoost decision-boundary explorable.
+            Single wide canvas with a draggable vertical divider: left half renders TabICL,
+            right half renders XGBoost. Drag the divider to sweep the boundary across the
+            same scene. Click the canvas to drop points; press 1/2 to switch class; drag
+            the probe (●) to inspect P(class). Stand-in classifiers (Gaussian KDE for TabICL,
+            1-NN for XGBoost) ship with the page; real TabICL precomputed grid swaps in later.
+            {% endcomment %}
+            <div class="demo-card card frozen-forecaster" id="frozen-forecaster" style="grid-column: 1 / -1;">
+                <header class="ff-header">
+                    <h3 class="demo-card-title">The Frozen Forecaster <span class="ff-subtitle">— <a href="https://arxiv.org/abs/2502.05564" target="_blank">TabICL</a> vs XGBoost on the same scene · drag the divider</span></h3>
+                </header>
+
+                <div class="ff-presets">
+                    <span class="ff-presets-label">Try</span>
+                    <button type="button" class="ff-preset" data-preset="moons">Moons</button>
+                    <button type="button" class="ff-preset" data-preset="circles">Circles</button>
+                    <button type="button" class="ff-preset" data-preset="xor">XOR</button>
+                    <button type="button" class="ff-preset" data-preset="blobs">Blobs</button>
+                    <button type="button" class="ff-preset" data-preset="outlier">Outlier</button>
+                    <button type="button" class="ff-preset ff-preset--clear" data-preset="clear">Clear</button>
                 </div>
-                <div class="np-ce-display" id="np-ce">CE = ... eV/atom</div>
-                <div class="demo-controls">
-                    <button id="np-toggle" class="btn btn--outline btn--sm">Swap to Au-core</button>
-                    <div class="np-legend">
-                        <span class="np-legend-item"><span class="np-swatch" style="background:#FFD700;"></span> Au</span>
-                        <span class="np-legend-item"><span class="np-swatch" style="background:#B0B0B0;"></span> Pd</span>
+
+                <div class="ff-stage">
+                    <div class="ff-canvas-wrap" id="ff-canvas-wrap">
+                        <canvas class="ff-canvas" id="ff-canvas" width="1260" height="540"></canvas>
+                        <span class="ff-tag ff-tag--tabicl">TabICL</span>
+                        <span class="ff-tag ff-tag--xgb">XGBoost</span>
+                        <div class="ff-divider" id="ff-divider" role="separator" aria-orientation="vertical" aria-label="Drag to compare TabICL with XGBoost">
+                            <div class="ff-divider-handle">
+                                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+                                    <polyline points="9 18 3 12 9 6"></polyline>
+                                    <polyline points="15 6 21 12 15 18"></polyline>
+                                </svg>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="ff-hint">
+                        <span><kbd>Click</kbd> to drop a point</span>
+                        <span><kbd>1</kbd> / <kbd>2</kbd> switches active class</span>
+                        <span>Drag the probe (●) or the divider</span>
                     </div>
                 </div>
-            </div>
 
-            <!-- Depth Estimation -->
-            <div class="demo-card card">
-                <h3 class="demo-card-title">Depth Estimation</h3>
-                <p class="demo-card-desc">
-                    Client-side monocular depth using
-                    <a href="https://huggingface.co/spaces/JohanDL/Depth-Anything-Video" target="_blank">Depth Anything V2</a>.
-                    Model loads on first use (~27 MB).
-                </p>
-                <div id="depth-drop-zone" class="depth-drop-zone">
-                    <svg width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5">
-                        <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/>
-                        <polyline points="17 8 12 3 7 8"/>
-                        <line x1="12" y1="3" x2="12" y2="15"/>
-                    </svg>
-                    <span>Drop an image or click to upload</span>
-                    <input type="file" id="depth-file-input" accept="image/*" hidden>
-                </div>
-                <div id="depth-spinner" class="depth-spinner" style="display:none;">
-                    <div class="spinner"></div>
-                    <span id="depth-status"></span>
-                </div>
-                <div id="depth-comparison" class="depth-comparison" style="display:none;">
-                    <canvas id="depth-result" class="depth-canvas"></canvas>
-                    <div id="depth-overlay" class="depth-overlay">
-                        <canvas id="depth-original" class="depth-canvas"></canvas>
+                <div class="ff-probe-readout" id="ff-probe-readout">
+                    <div class="ff-probe-row">
+                        <span class="ff-probe-label"><span class="ff-probe-dot ff-probe-dot--tabicl"></span>TabICL</span>
+                        <div class="ff-probe-bar"><div class="ff-probe-fill" id="ff-bar-tabicl-a"></div><div class="ff-probe-fill ff-probe-fill--b" id="ff-bar-tabicl-b"></div></div>
+                        <span class="ff-probe-num" id="ff-num-tabicl">P = …</span>
                     </div>
-                    <div id="depth-slider-handle" class="depth-slider-handle"></div>
+                    <div class="ff-probe-row">
+                        <span class="ff-probe-label"><span class="ff-probe-dot ff-probe-dot--xgb"></span>XGBoost</span>
+                        <div class="ff-probe-bar"><div class="ff-probe-fill" id="ff-bar-xgb-a"></div><div class="ff-probe-fill ff-probe-fill--b" id="ff-bar-xgb-b"></div></div>
+                        <span class="ff-probe-num" id="ff-num-xgb">P = …</span>
+                    </div>
                 </div>
+
+                <p class="ff-caption">
+                    <em>TabICL was never trained on your data.</em> The frozen weights already know what tabular
+                    functions look like; your points just tell it which one to pull from the prior.
+                    <span id="ff-fidelity">Loading real precomputed outputs…</span>
+                </p>
             </div>
 
+        </div>
+        <div class="section-view-all fade-in">
+            <a href="/demos/" class="btn btn--ghost">Older demos &rarr;</a>
         </div>
     </div>
 </section>

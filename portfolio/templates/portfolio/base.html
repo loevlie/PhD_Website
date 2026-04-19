@@ -88,7 +88,9 @@
             {"label": "Publications", "href": "/#publications", "kind": "Section"},
             {"label": "Projects", "href": "/#projects", "kind": "Section"},
             {"label": "Contact", "href": "/#contact", "kind": "Section"},
+            {"label": "Frozen Forecaster (TabICL vs XGBoost)", "href": "/#demos", "kind": "Demo"},
             {"label": "All publications", "href": "/publications/", "kind": "Page"},
+            {"label": "Older demos", "href": "/demos/", "kind": "Page"},
             {"label": "Blog", "href": "/blog/", "kind": "Page"},
             {"label": "Recipes", "href": "/recipes/", "kind": "Page"}
         ],
@@ -100,7 +102,7 @@
         ],
         "actions": [
             {"label": "Toggle theme", "href": "#theme", "kind": "Action"},
-            {"label": "Download CV", "href": "{% static 'portfolio/Dennis_Loevlie_CV.pdf' %}", "kind": "Action", "external": true}
+            {"label": "Download CV", "href": "/cv/", "kind": "Action"}
         ]
     }
     </script>
@@ -304,7 +306,6 @@
     })();
     </script>
     <script src="{% static 'portfolio/js/main.js' %}"></script>
-    <script type="module" src="{% static 'portfolio/js/nanoparticle.js' %}"></script>
-    <script type="module" src="{% static 'portfolio/js/depth-demo.js' %}"></script>
+    <script src="{% static 'portfolio/js/frozen-forecaster.js' %}" defer></script>
 </body>
 </html>
