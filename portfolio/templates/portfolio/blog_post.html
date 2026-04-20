@@ -135,7 +135,10 @@ If a post has an explicit cover (post.image), that takes precedence.
         {% endif %}
         <div class="explainer-meta">
             <div class="explainer-meta-author">
-                <img src="{% static 'portfolio/images/hero-still.png' %}" alt="{{ post.author }}" class="explainer-author-avatar" style="view-transition-name: site-avatar">
+                <picture>
+                    <source srcset="{% static 'portfolio/images/hero-avatar.webp' %}" type="image/webp">
+                    <img src="{% static 'portfolio/images/hero-avatar.jpg' %}" alt="{{ post.author }}" class="explainer-author-avatar" style="view-transition-name: site-avatar" width="80" height="80">
+                </picture>
                 <div>
                     <a href="/" class="explainer-author-name">{{ post.author }}</a>
                     <p class="explainer-author-bio">ELLIS PhD Student · CWI &amp; University of Amsterdam</p>
@@ -193,7 +196,10 @@ If a post has an explicit cover (post.image), that takes precedence.
 
         <!-- Author card -->
         <div class="flex items-center gap-3 mt-8 pt-6 border-t border-border">
-            <img src="{% static 'portfolio/images/hero-still.png' %}" alt="{{ post.author }}" class="w-10 h-10 rounded-full object-cover border border-border" style="view-transition-name: site-avatar">
+            <picture>
+                <source srcset="{% static 'portfolio/images/hero-avatar.webp' %}" type="image/webp">
+                <img src="{% static 'portfolio/images/hero-avatar.jpg' %}" alt="{{ post.author }}" class="w-10 h-10 rounded-full object-cover border border-border" style="view-transition-name: site-avatar" width="40" height="40">
+            </picture>
             <div>
                 <a href="/" class="text-sm font-medium text-content hover:text-accent transition-colors">{{ post.author }}</a>
                 <p class="text-xs text-content-muted">ELLIS PhD Student at CWI & University of Amsterdam</p>

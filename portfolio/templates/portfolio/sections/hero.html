@@ -41,8 +41,10 @@
                 <div class="hero-image avatar-wrapper avatar-flip-container" style="view-transition-name: site-avatar">
                     <div class="avatar-flip-inner">
                         <div class="avatar-front">
+                            {% comment %}poster must be a single URL (no srcset/<picture>), so use
+                               the compressed 400x400 JPG — universal browser support and tiny.{% endcomment %}
                             <video class="avatar-video" autoplay muted playsinline preload="auto"
-                                   poster="{% static 'portfolio/images/hero-still.png' %}">
+                                   poster="{% static 'portfolio/images/hero-still.jpg' %}">
                                 <source src="{% static 'portfolio/images/hero-video.mp4' %}" type="video/mp4">
                             </video>
                         </div>

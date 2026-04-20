@@ -39,15 +39,34 @@
         <a href="{% url 'blog' %}?drafts=1" class="px-3 py-1 rounded-full text-xs font-medium transition-colors {% if only_drafts %}bg-accent text-white{% else %}bg-surface-2 text-content-secondary hover:text-content{% endif %}">Drafts only</a>
     </div>
     {% endif %}
-    <!-- Tag filters — hidden until Alpine + the dynamic-button JS settle.
-         `x-cloak` makes the row invisible during the brief window where
-         Alpine hasn't applied bindings yet AND the JS hasn't appended
-         per-tag buttons; both finish in <200ms and the row reveals
-         already-styled. Prevents the "All button flashes unstyled then
-         a row of buttons pops in" double flicker. -->
-    <div x-cloak class="flex gap-2 flex-wrap mb-10" id="blog-filter-tags">
-        <button @click="activeTag = ''" :class="activeTag === '' ? 'bg-accent text-white' : 'bg-surface-2 text-content-secondary hover:text-content'"
-                class="px-4 py-1.5 rounded-full text-sm font-medium transition-colors">All</button>
+    {# Tag filter dropdown — replaces the wrap-everywhere chip row.
+       Scales to N tags without eating vertical space. Mirrors the
+       theme-picker pattern in blog_base.html for visual consistency.
+       Per-tag buttons are appended by the inline script below before
+       Alpine initializes (defer), so Alpine binds them on first pass. #}
+    <div x-cloak class="mb-10" x-data="{ filterOpen: false }" @keydown.escape.window="filterOpen = false">
+        <div class="relative inline-block">
+            <button @click="filterOpen = !filterOpen"
+                    :class="activeTag ? 'border-accent/60 text-content' : 'border-border text-content-secondary'"
+                    class="inline-flex items-center gap-2 px-4 py-2 rounded-lg bg-surface-1 border hover:border-accent/40 transition-colors text-sm font-medium">
+                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="text-content-muted"><polygon points="22 3 2 3 10 12.46 10 19 14 21 14 12.46 22 3"/></svg>
+                <span x-text="activeTag || 'All posts'"></span>
+                <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" :class="filterOpen ? 'rotate-180' : ''" class="transition-transform text-content-muted"><polyline points="6 9 12 15 18 9"/></svg>
+            </button>
+            <div x-show="filterOpen" x-cloak @click.outside="filterOpen = false"
+                 x-transition:enter="transition ease-out duration-150"
+                 x-transition:enter-start="opacity-0 -translate-y-1"
+                 x-transition:enter-end="opacity-100 translate-y-0"
+                 class="absolute left-0 top-full mt-2 z-30 min-w-[220px] max-h-80 overflow-y-auto bg-surface-1 border border-border rounded-lg p-1.5 shadow-xl">
+                <button @click="activeTag = ''; filterOpen = false"
+                        :class="activeTag === '' ? 'bg-accent/10 text-accent' : 'text-content-secondary hover:text-content hover:bg-surface-2'"
+                        class="w-full text-left px-3 py-1.5 rounded-md text-sm flex items-center justify-between gap-4 transition-colors">
+                    <span>All posts</span>
+                    <span class="text-xs text-content-muted tabular-nums">{{ posts|length }}</span>
+                </button>
+                <div id="blog-filter-tags-list"></div>
+            </div>
+        </div>
     </div>
 
     <!-- Post grid -->
@@ -95,20 +114,30 @@
 </section>
 
 <script>
-// Build tag filter buttons dynamically
+// Build tag dropdown rows dynamically. Runs before Alpine (which loads
+// with `defer`), so the x-on:click and :class attrs are present on
+// first-paint and Alpine binds them in its initial walk — no
+// Alpine.initTree() needed. Sorted by post count, then alphabetically.
 (function() {
     var cards = document.querySelectorAll('.blog-card-link');
-    var tagSet = new Set();
+    var counts = {};
     cards.forEach(function(card) {
-        card.dataset.tags.split(',').forEach(function(t) { if (t) tagSet.add(t); });
+        card.dataset.tags.split(',').forEach(function(t) {
+            if (t) counts[t] = (counts[t] || 0) + 1;
+        });
     });
-    var container = document.getElementById('blog-filter-tags');
-    tagSet.forEach(function(tag) {
+    var container = document.getElementById('blog-filter-tags-list');
+    if (!container) return;
+    Object.keys(counts).sort(function(a, b) {
+        return counts[b] - counts[a] || a.localeCompare(b);
+    }).forEach(function(tag) {
         var btn = document.createElement('button');
-        btn.setAttribute('x-on:click', "activeTag = '" + tag + "'");
-        btn.setAttribute(':class', "activeTag === '" + tag + "' ? 'bg-accent text-white' : 'bg-surface-2 text-content-secondary hover:text-content'");
-        btn.className = 'px-4 py-1.5 rounded-full text-sm font-medium transition-colors';
-        btn.textContent = tag;
+        btn.setAttribute('x-on:click', "activeTag = '" + tag.replace(/'/g, "\\'") + "'; filterOpen = false");
+        btn.setAttribute(':class', "activeTag === '" + tag.replace(/'/g, "\\'") + "' ? 'bg-accent/10 text-accent' : 'text-content-secondary hover:text-content hover:bg-surface-2'");
+        btn.className = 'w-full text-left px-3 py-1.5 rounded-md text-sm flex items-center justify-between gap-4 transition-colors';
+        btn.innerHTML = '<span></span><span class="text-xs text-content-muted tabular-nums"></span>';
+        btn.firstChild.textContent = tag;
+        btn.lastChild.textContent = counts[tag];
         container.appendChild(btn);
     });
 })();
