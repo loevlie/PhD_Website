@@ -1,16 +1,19 @@
 {% extends "portfolio/base.html" %}
 
-{% comment %}Trimmed homepage (2026-04 restructure). Goes from 10 stacked
-   sections to 4: hero, news (recent stream), contact. Publications,
-   Writing, Projects, Demos, Timeline (CV) are reachable via the top nav
-   + their dedicated pages — they're each long lists that read better as
-   their own page than as a stacked section among nine others. The
-   thinking section was deleted (its purpose overlapped with News + the
-   blog). The section_rail (left-edge in-page anchor nav) is also gone:
-   with only 3 content sections, the rail is more chrome than signal.{% endcomment %}
+{% comment %}Homepage section structure (2026-04 partial restructure).
+   Started at 10 stacked sections, trimmed to 4, then partially restored
+   the three the owner missed: Timeline, Selected Publications, Selected
+   Projects. Currently dropped: Thinking (ambiguous label that overlapped
+   News + the blog), Writing (homepage section largely duplicated the
+   blog index), Demos (kept as /demos/ — homepage section is hidden
+   anyway when the featured demo is a draft).{% endcomment %}
 {% block content %}
 {% include "portfolio/sections/nav.html" %}
+{% include "portfolio/sections/section_rail.html" %}
 {% include "portfolio/sections/hero.html" %}
 {% include "portfolio/sections/news.html" %}
+{% include "portfolio/sections/timeline.html" %}
+{% include "portfolio/sections/publications.html" %}
+{% include "portfolio/sections/projects.html" %}
 {% include "portfolio/sections/contact.html" %}
 {% endblock %}

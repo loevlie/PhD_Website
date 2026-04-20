@@ -105,7 +105,9 @@
     <div class="navbar-inner">
         <a href="/" class="nav-logo" title="Back to portfolio">DL</a>
         <div class="nav-links" id="nav-links">
-            <a href="/" class="nav-link">Home</a>
+            {% comment %}No "Home" text link — the DL logo to the left of
+               this list already navigates home (title="Back to portfolio").
+               Two home affordances side-by-side reads as redundant chrome.{% endcomment %}
             {% for link in nav_links %}
             {% if link.children %}
             <div class="nav-dropdown">
@@ -143,6 +145,9 @@
 <!-- Mobile disclosure panel -->
 <div class="mobile-panel" id="mobile-panel">
         <div class="mobile-panel-inner">
+            {% comment %}Mobile mirror of the desktop nav — keep the Home
+               link here because mobile hides the DL logo on small screens
+               under the hamburger; the panel needs an explicit way home.{% endcomment %}
             <a href="/" class="mobile-panel-link">Home</a>
             {% for link in nav_links %}
             {% if link.children %}

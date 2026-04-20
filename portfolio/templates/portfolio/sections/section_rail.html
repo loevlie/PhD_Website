@@ -6,15 +6,16 @@
   Skip-link target precedes the rail for screen-reader users.
 -->
 <aside class="section-rail" aria-label="On this page" id="section-rail">
+    {% comment %}Rail items must mirror the section list in index.html
+       (currently: nav, hero, news, timeline, publications, projects,
+       contact). Anchors that have no matching section render as dead
+       dots — keep this list in sync with the {% include %} list.{% endcomment %}
     <ul class="section-rail-list">
         <li><a href="#about"        data-rail-section="about"><span class="section-rail-dot" aria-hidden="true"></span><span class="section-rail-label">About</span></a></li>
-        <li><a href="#thinking"     data-rail-section="thinking"><span class="section-rail-dot" aria-hidden="true"></span><span class="section-rail-label">Currently</span></a></li>
         <li><a href="#news"         data-rail-section="news"><span class="section-rail-dot" aria-hidden="true"></span><span class="section-rail-label">News</span></a></li>
         <li><a href="#experience"   data-rail-section="experience"><span class="section-rail-dot" aria-hidden="true"></span><span class="section-rail-label">Experience</span></a></li>
         <li><a href="#publications" data-rail-section="publications"><span class="section-rail-dot" aria-hidden="true"></span><span class="section-rail-label">Publications</span></a></li>
-        <li><a href="#writing"      data-rail-section="writing"><span class="section-rail-dot" aria-hidden="true"></span><span class="section-rail-label">Writing</span></a></li>
         <li><a href="#projects"     data-rail-section="projects"><span class="section-rail-dot" aria-hidden="true"></span><span class="section-rail-label">Projects</span></a></li>
-        <li><a href="#demos"        data-rail-section="demos"><span class="section-rail-dot" aria-hidden="true"></span><span class="section-rail-label">Demos</span></a></li>
         <li><a href="#contact"      data-rail-section="contact"><span class="section-rail-dot" aria-hidden="true"></span><span class="section-rail-label">Contact</span></a></li>
     </ul>
     <button type="button" class="section-rail-top" aria-label="Back to top"
