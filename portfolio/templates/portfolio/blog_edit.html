@@ -836,6 +836,16 @@
         );
     }
 
+    function updateActiveClass() {
+        // Cheap visual update — only flip the .active class on existing
+        // nodes. Don't re-render the whole menu (that destroys the node
+        // mid-click and was the cause of "click does nothing" reports).
+        Array.from(menu.querySelectorAll('.si')).forEach(el => {
+            const i = parseInt(el.dataset.i, 10);
+            el.classList.toggle('active', i === menuActive);
+        });
+    }
+
     function renderMenu(query) {
         menuFiltered = filterCommands(query);
         if (menuFiltered.length === 0) {
@@ -855,14 +865,20 @@
             '</div>'
         ).join('');
         Array.from(menu.querySelectorAll('.si')).forEach(el => {
+            // Use mousedown so the action fires before the textarea blurs.
+            // preventDefault keeps focus on the textarea so the insertion
+            // and cursor positioning behave correctly.
             el.addEventListener('mousedown', (e) => {
                 e.preventDefault();
                 menuActive = parseInt(el.dataset.i, 10);
                 executeActive();
             });
+            // On hover, only update the active style — DO NOT re-render.
+            // Re-rendering replaces the DOM nodes mid-interaction and
+            // makes clicks vanish for fast mouse movements.
             el.addEventListener('mouseenter', () => {
                 menuActive = parseInt(el.dataset.i, 10);
-                renderMenu(getQuery());
+                updateActiveClass();
             });
         });
     }
@@ -939,11 +955,11 @@
         if (e.key === 'ArrowDown') {
             e.preventDefault();
             if (menuFiltered.length) menuActive = (menuActive + 1) % menuFiltered.length;
-            renderMenu(getQuery());
+            updateActiveClass();
         } else if (e.key === 'ArrowUp') {
             e.preventDefault();
             if (menuFiltered.length) menuActive = (menuActive - 1 + menuFiltered.length) % menuFiltered.length;
-            renderMenu(getQuery());
+            updateActiveClass();
         } else if (e.key === 'Enter' || e.key === 'Tab') {
             e.preventDefault();
             executeActive();
