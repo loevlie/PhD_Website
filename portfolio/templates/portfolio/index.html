@@ -1,26 +1,5 @@
 {% extends "portfolio/base.html" %}
 
-{% block extra_head %}
-{% comment %}Section snap-scroll — scoped to the homepage so other portfolio
-   pages (publications, demos, etc.) aren't affected.
-
-   `proximity` (NOT `mandatory`): snap only kicks in when scroll comes
-   to rest near a section boundary; mid-section scrolling is left alone.
-   `scroll-snap-stop: normal` (default) lets fast flicks bypass snap
-   points so a hard scroll across the page doesn't get yanked back.
-   `scroll-padding-top` is already set on html (var(--nav-height)) so
-   sections land below the fixed nav.
-
-   Reduced-motion users get no snap behaviour.{% endcomment %}
-<style>
-    html { scroll-snap-type: y proximity; }
-    .section { scroll-snap-align: start; }
-    @media (prefers-reduced-motion: reduce) {
-        html { scroll-snap-type: none; }
-    }
-</style>
-{% endblock %}
-
 {% block content %}
 {% include "portfolio/sections/nav.html" %}
 {% include "portfolio/sections/section_rail.html" %}
