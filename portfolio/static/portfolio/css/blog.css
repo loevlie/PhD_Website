@@ -1680,3 +1680,26 @@
 @media (max-width: 720px) {
     .staff-edit-link { padding: 5px 10px; font-size: 0.6875rem; }
 }
+
+/* ─────────────────────────────────────────────────────────────────────
+   "in progress" pill — used on the homepage demo card + the blog
+   post header for posts with maturity = seedling | budding. Tells
+   readers the piece isn't final without the full maturity-system jargon.
+───────────────────────────────────────────────────────────────────── */
+.in-progress-pill {
+    display: inline-flex;
+    align-items: center;
+    padding: 2px 8px;
+    border-radius: 999px;
+    font-family: var(--font-mono, 'IBM Plex Mono', monospace);
+    font-size: 0.6875rem;
+    font-weight: 600;
+    letter-spacing: 0.06em;
+    text-transform: lowercase;
+    color: var(--ctp-yellow, #B8860B);
+    background: color-mix(in oklch, var(--ctp-yellow, #f9e2af) 18%, transparent);
+    border: 1px solid color-mix(in oklch, var(--ctp-yellow, #f9e2af) 38%, transparent);
+    vertical-align: middle;
+    line-height: 1.4;
+    white-space: nowrap;
+}

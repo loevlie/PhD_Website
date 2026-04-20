@@ -124,6 +124,10 @@ If a post has an explicit cover (post.image), that takes precedence.
             <span>Explainer</span>
             <span class="explainer-eyebrow-sep">·</span>
             <time datetime="{{ post.date|date:'Y-m-d' }}">{{ post.date|date:'F Y' }}</time>
+            {% if post.maturity == 'seedling' or post.maturity == 'budding' %}
+            <span class="explainer-eyebrow-sep">·</span>
+            <span class="in-progress-pill" title="Actively being developed">in&nbsp;progress</span>
+            {% endif %}
         </div>
         <h1 class="explainer-title">{{ post.title }}</h1>
         {% if post.excerpt %}
