@@ -8,7 +8,8 @@
     min-height: 100vh;
     display: flex;
     align-items: center;
-    padding-top: calc(var(--nav-height) + 32px);
+    padding-top: calc(var(--nav-height) + 16px);
+    padding-bottom: 24px;
     position: relative;
     overflow: hidden;
     isolation: isolate;
@@ -104,10 +105,10 @@
        OUTSIDE the grid (intentional margins) instead of INSIDE the bio
        column (which read as "left-justify dead space" on wide screens).
        The whole grid then centers within the wide container. */
-    grid-template-columns: minmax(280px, 360px) minmax(540px, 720px);
+    grid-template-columns: minmax(260px, 320px) minmax(540px, 720px);
     justify-content: center;
-    column-gap: 64px;
-    row-gap: 32px;
+    column-gap: 56px;
+    row-gap: 20px;
     align-items: center;
 }
 
@@ -128,10 +129,11 @@
 }
 
 .hero-name {
-    /* Fluid typography — scales between 28 px on phones and 56 px on
-       wide screens without breakpoint jumps. The CSS-WG `clamp()` is
-       the modern replacement for media-query font sizing. */
-    font-size: clamp(1.75rem, 1.4rem + 1.8vw, 3.5rem);
+    /* Fluid typography — scales between 26 px on phones and 48 px on
+       wide screens without breakpoint jumps. Sized down from the
+       earlier 56 px max so the hero + interests pills fit on a
+       standard MacBook viewport without scrolling. */
+    font-size: clamp(1.625rem, 1.3rem + 1.5vw, 3rem);
     font-weight: 700;
     margin-bottom: 4px;
     letter-spacing: -0.03em;
@@ -155,8 +157,8 @@
 .hero-bio {
     font-size: var(--body-size);
     color: var(--text-secondary);
-    margin-bottom: 16px;
-    line-height: 1.8;
+    margin-bottom: 12px;
+    line-height: 1.65;
 }
 
 .hero-preview-toggle {
@@ -284,14 +286,14 @@
 .hero-interests {
     grid-column: 1 / -1;
     border-top: 1px solid var(--border-color);
-    padding-top: 24px;
+    padding-top: 16px;
 }
 
 .hero-interests-title {
     font-size: var(--small-size);
     font-weight: 600;
     color: var(--text-primary);
-    margin-bottom: 12px;
+    margin-bottom: 8px;
     text-transform: uppercase;
     letter-spacing: 0.05em;
 }

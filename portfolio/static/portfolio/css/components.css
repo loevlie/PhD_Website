@@ -154,12 +154,13 @@
     background-color: var(--bg-tertiary);
 }
 
-/* Avatar */
+/* Avatar — 200 px (was 240) so the hero fits a standard MacBook
+   viewport without scrolling. Mobile: scales down naturally. */
 .avatar-wrapper {
-    width: 240px;
-    height: 240px;
-    min-width: 240px;
-    min-height: 240px;
+    width: 200px;
+    height: 200px;
+    min-width: 200px;
+    min-height: 200px;
     border-radius: 50%;
     overflow: hidden;
     border: 3px solid var(--border-color);
