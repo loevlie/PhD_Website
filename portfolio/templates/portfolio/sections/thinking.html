@@ -14,32 +14,46 @@
             <p class="thinking-eyebrow">Currently</p>
             <h2 class="thinking-title" id="thinking-title">What I'm thinking about</h2>
 
+            {% comment %}
+              Public version below. Original deeper PhD-specific paragraphs preserved
+              in this comment block so they can be restored quickly. Redacted 2026-04-19
+              while specific results / direction-search candidates are still pre-publication.
+
+              ORIGINAL P1: "Our CHIL 2026 benchmark with Ethan Harvey landed two results
+              worth pulling on. First: a simple mean-pooling MIL baseline matches
+              attention-MIL on 4 of 6 moderate-sized neuroimage tasks while training
+              25x faster. Second — the more interesting one — a centered-Gaussian
+              (Gaussian-axial) baseline beats transformer-based MIL methods on
+              instance-level metrics."
+
+              ORIGINAL P2: "That gap matters for clinical interpretation: if a
+              transformer can't find the right instances but a fixed Gaussian prior on
+              instance positions can, the attention is poorly regularized. I'm
+              investigating attention regularization to close the instance-level gap
+              without hurting bag-level accuracy. Targeting NeurIPS 2026."
+
+              ORIGINAL P3: "Looking ahead — picking the central PhD thread on tabular
+              foundation models. Top candidates: V-JEPA-style world models for table
+              dynamics, contrastive table-language alignment (CLIP for tables) with
+              column-then-row encoders + JEPA-in-modality, scaling-law theory for tabular
+              pretraining, and causal structure inside TFMs. See /now for details."
+            {% endcomment %}
             <div class="thinking-prose">
                 <p>
-                    Our <strong>CHIL 2026 benchmark</strong> with Ethan Harvey landed two
-                    results worth pulling on. First: a simple
-                    <strong>mean-pooling MIL baseline</strong> matches attention-MIL on
-                    4 of 6 moderate-sized neuroimage tasks while training
-                    <strong>25× faster</strong>. Second &mdash; the more interesting one &mdash;
-                    a <strong>centered-Gaussian (Gaussian-axial) baseline</strong> beats
-                    transformer-based MIL methods on <em>instance-level</em> metrics.
+                    Wrapping up a <strong>CHIL 2026 benchmark paper</strong> with Ethan
+                    Harvey on multiple-instance learning baselines for neuroimaging.
+                    Drafting the next paper now &mdash; more once it's submitted.
                 </p>
                 <p>
-                    That gap matters for clinical interpretation: if a transformer
-                    can't find the right <em>instances</em> but a fixed Gaussian prior on
-                    instance positions can, the attention is poorly regularized. I'm
-                    investigating <strong>attention regularization</strong> to close
-                    the instance-level gap <em>without</em> hurting bag-level
-                    accuracy. Targeting NeurIPS 2026.
+                    Looking ahead, I'm settling on the central thread for the next few
+                    years &mdash; <strong>tabular foundation models</strong>, with a
+                    few open angles I'm weighing privately. If you work on TFMs, I'd
+                    love to <a href="#contact">compare notes</a>.
                 </p>
                 <p>
-                    Looking ahead &mdash; picking the central PhD thread on
-                    <strong>tabular foundation models</strong>. Top candidates:
-                    V-JEPA-style world models for table dynamics, contrastive
-                    table-language alignment ("CLIP for tables") with column-then-row
-                    encoders + JEPA-in-modality, scaling-law theory for tabular
-                    pretraining, and causal structure inside TFMs.
-                    See <a href="/now/">the /now page</a> for details.
+                    Mostly I'm trying to do work that's worth your attention to read
+                    about, and writing about the bits I'm allowed to share. The
+                    <a href="/now/">/now page</a> has the rest.
                 </p>
             </div>
 

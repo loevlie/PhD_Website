@@ -429,39 +429,70 @@ NOW_PAGE = {
     'updated': '2026-04-19',
     'location': 'Amsterdam (incoming)',
     'sections': [
+        # ─────────────────────────────────────────────────────────────
+        # Below: PhD-specific section bodies redacted from public view
+        # 2026-04-19. The originals stay in this comment so they can be
+        # re-instated quickly (just uncomment + delete the slim versions).
+        # Reason: keeping ongoing PhD direction-search and unpublished
+        # paper specifics off the public site until I'm ready to share.
+        #
+        # ORIGINAL — Research section:
+        # 'body': (
+        #     "Investigating **attention regularization** for transformer MIL, "
+        #     "aiming to close the instance-level gap that our **centered-Gaussian "
+        #     "(Gaussian-axial) baseline** opens up in our CHIL 2026 paper. "
+        #     "Targeting NeurIPS 2026."
+        # ),
+        #
+        # ORIGINAL — PhD direction search section:
+        # 'heading': 'PhD direction search',
+        # 'body': (
+        #     "Picking the central thread on **tabular foundation models**. "
+        #     "Top candidates:\n\n"
+        #     "1. **Tabular world models** — V-JEPA-style SSL on table *dynamics*.\n"
+        #     "2. **Contrastive table-language alignment** — \"CLIP for tables\" "
+        #     "for task-driven pretraining-data selection.\n"
+        #     "3. **Scaling-law theory** for tabular pretraining.\n"
+        #     "4. **Causal structure** in TFMs — interventional distributions in-context.\n"
+        #     "5. **Multimodal TFMs** — tables × text × images in one space.\n\n"
+        #     "Direction 1 or 2 most likely; possibly merged."
+        # ),
+        # ─────────────────────────────────────────────────────────────
         {
             'heading': 'Research',
             'body': (
-                "Investigating **attention regularization** for transformer MIL, "
-                "aiming to close the instance-level gap that our **centered-Gaussian "
-                "(Gaussian-axial) baseline** opens up in our CHIL 2026 paper. "
-                "Targeting NeurIPS 2026."
+                "Wrapping up a CHIL 2026 paper with Ethan Harvey on multiple-instance "
+                "learning baselines for neuroimaging. Drafting the next paper now; "
+                "more details once it's submitted."
             ),
         },
         {
-            'heading': 'PhD direction search',
+            'heading': 'PhD direction',
             'body': (
-                "Picking the central thread on **tabular foundation models**. "
-                "Top candidates:\n\n"
-                "1. **Tabular world models** — V-JEPA-style SSL on table *dynamics*.\n"
-                "2. **Contrastive table-language alignment** — \"CLIP for tables\" "
-                "for task-driven pretraining-data selection.\n"
-                "3. **Scaling-law theory** for tabular pretraining.\n"
-                "4. **Causal structure** in TFMs — interventional distributions in-context.\n"
-                "5. **Multimodal TFMs** — tables × text × images in one space.\n\n"
-                "Direction 1 or 2 most likely; possibly merged."
+                "Settling on the central thread for the next few years — "
+                "**tabular foundation models**, with a few open angles I'm "
+                "weighing. Happy to compare notes privately."
             ),
         },
+        # ─────────────────────────────────────────────────────────────
+        # ORIGINAL — Reading section (redacted 2026-04-19; titles signal
+        # specific PhD directions I'd rather not flag publicly yet):
+        # 'body': (
+        #     "<a href=\"https://arxiv.org/abs/2506.09985\">V-JEPA 2</a>, "
+        #     "<a href=\"https://arxiv.org/abs/2410.18164\">TabDPT</a>, "
+        #     "<a href=\"https://arxiv.org/abs/2511.09665\">Ma et al.</a>, "
+        #     "<a href=\"https://arxiv.org/abs/2506.10914\">PFN causal inference</a>, "
+        #     "Anthropic's "
+        #     "<a href=\"https://transformer-circuits.pub/2025/attribution-graphs/methods.html\">attribution-graphs</a>, "
+        #     "and DeCLIP."
+        # ),
+        # ─────────────────────────────────────────────────────────────
         {
             'heading': 'Reading',
             'body': (
-                "<a href=\"https://arxiv.org/abs/2506.09985\">V-JEPA 2</a>, "
-                "<a href=\"https://arxiv.org/abs/2410.18164\">TabDPT</a>, "
-                "<a href=\"https://arxiv.org/abs/2511.09665\">Ma et al.</a>, "
-                "<a href=\"https://arxiv.org/abs/2506.10914\">PFN causal inference</a>, "
-                "Anthropic's "
-                "<a href=\"https://transformer-circuits.pub/2025/attribution-graphs/methods.html\">attribution-graphs</a>, "
-                "and DeCLIP."
+                "A mix of new tabular-foundation-model work, self-supervised "
+                "learning papers, and a few interpretability pieces. Happy to "
+                "share specific recommendations on request."
             ),
         },
         {
@@ -496,6 +527,30 @@ NOW_PAGE = {
 
 
 DEMOS = [
+    {
+        'slug': 'frozen-forecaster',
+        'title': 'The Frozen Forecaster',
+        'date': '2026-04-18',
+        'updated': '',
+        'tags': ['tabular', 'in-context-learning', 'tabicl', 'xgboost'],
+        'summary': 'TabICL vs XGBoost on the same 2D scene — drag the divider to '
+                   'sweep the boundary. Click to drop points, drag the probe to '
+                   'inspect P(class). Real precomputed TabICL grids on common '
+                   'preset scenes.',
+        'what': "Interactive split-screen comparing a frozen tabular foundation "
+                "model (TabICL) against XGBoost on the same five canonical 2D "
+                "datasets. Cached lookup tables, not live inference, but the "
+                "precomputed surfaces are the actual TabICL outputs.",
+        'why':  "Wanted a way to make the 'frozen weights as prior' framing tactile. "
+                "Two minutes with the slider beats reading the abstract. The split "
+                "view forces direct comparison rather than two side-by-side static "
+                "decision-boundary figures, which never line up perfectly.",
+        'learned': "The boundary differences land hardest on outliers and on the "
+                   "XOR scene — TabICL's smoother prior absorbs noise where XGBoost "
+                   "carves around it. Caching the precomputed grids pushed the "
+                   "interactive feel from 'laggy and academic' to 'fluent.'",
+        'embed': 'embed_frozen_forecaster.html',
+    },
     {
         'slug': 'nanoparticle-viewer',
         'title': 'AuPd Nanoparticle Viewer',
