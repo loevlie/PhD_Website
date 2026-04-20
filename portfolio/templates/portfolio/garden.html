@@ -1,0 +1,60 @@
+{% extends "portfolio/personal_base.html" %}
+{% load static %}
+
+{% block title %}/garden — Dennis Loevlie{% endblock %}
+
+{% block og_meta %}
+<meta property="og:title" content="/garden — Dennis Loevlie">
+<meta property="og:description" content="Digital garden — notes by maturity. Seedlings, budding pieces, and evergreens.">
+{% endblock %}
+
+{% block content %}
+<section class="section garden-page">
+    <div class="container">
+        <article class="garden-inner section-reveal">
+            <header class="garden-header">
+                <p class="garden-eyebrow">/garden</p>
+                <h1 class="garden-title">Digital garden</h1>
+                <p class="garden-lede">
+                    Notes by maturity. <strong>Seedlings</strong> are half-formed thinking; I'd
+                    love feedback. <strong>Budding</strong> pieces are being developed —
+                    the shape is right, the details still moving. <strong>Evergreens</strong>
+                    are settled. Following <a href="https://maggieappleton.com/garden-history" target="_blank" rel="noopener">Maggie Appleton</a>'s
+                    convention; gardens are how I publish unfinished thinking without the
+                    cost of "blog-post-as-final-statement."
+                </p>
+                <p class="garden-count">{{ total }} note{{ total|pluralize }}</p>
+            </header>
+
+            {% for slug, posts in buckets %}
+            {% if posts %}
+            <section class="garden-bucket" id="{{ slug }}">
+                <header class="garden-bucket-head">
+                    <span class="maturity-badge maturity-{{ slug }}">{{ slug|title }}</span>
+                    <span class="garden-bucket-count">{{ posts|length }}</span>
+                </header>
+                <ul class="garden-bucket-list">
+                    {% for p in posts %}
+                    <li class="garden-entry">
+                        <a href="{% url 'blog_post' p.slug %}">
+                            <time class="garden-entry-date" datetime="{{ p.date|date:'Y-m-d' }}">{{ p.date|date:'Y-m-d' }}</time>
+                            <span class="garden-entry-title">{{ p.title }}</span>
+                            {% if p.excerpt %}<span class="garden-entry-excerpt">{{ p.excerpt|truncatechars:140 }}</span>{% endif %}
+                        </a>
+                    </li>
+                    {% endfor %}
+                </ul>
+            </section>
+            {% endif %}
+            {% endfor %}
+
+            {% if not total %}
+            <p class="garden-empty">
+                No matured notes yet — every post lives at <a href="/blog/">the blog</a>;
+                ones with a maturity badge appear here too.
+            </p>
+            {% endif %}
+        </article>
+    </div>
+</section>
+{% endblock %}

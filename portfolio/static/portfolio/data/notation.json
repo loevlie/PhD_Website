@@ -1,0 +1,50 @@
+{
+  "θ": {
+    "name": "theta",
+    "meaning": "Model parameters — the trainable weights of a neural net or the fitted coefficients of a regression."
+  },
+  "Σ": {
+    "name": "sigma (sum)",
+    "meaning": "Summation symbol. Sums the indexed expression over the range below it."
+  },
+  "σ": {
+    "name": "sigma",
+    "meaning": "Standard deviation. In neural-net context: also the sigmoid activation σ(x) = 1/(1+e^-x)."
+  },
+  "μ": {
+    "name": "mu",
+    "meaning": "Mean. The expected value of a distribution."
+  },
+  "λ": {
+    "name": "lambda",
+    "meaning": "Regularization strength. Higher λ penalizes parameter magnitude more in the loss."
+  },
+  "α": {
+    "name": "alpha",
+    "meaning": "Learning rate, or a mixing coefficient depending on context."
+  },
+  "ε": {
+    "name": "epsilon",
+    "meaning": "A small positive constant — typically a numerical-stability term added to denominators."
+  },
+  "∇": {
+    "name": "nabla",
+    "meaning": "Gradient operator. ∇L is the gradient of the loss with respect to the parameters."
+  },
+  "𝔼": {
+    "name": "expectation",
+    "meaning": "Expected value of the bracketed expression under the indicated distribution."
+  },
+  "ℒ": {
+    "name": "loss",
+    "meaning": "The objective being minimized during training."
+  },
+  "𝒩": {
+    "name": "Normal distribution",
+    "meaning": "𝒩(μ, σ²) is the Gaussian distribution with mean μ and variance σ²."
+  },
+  "p": {
+    "name": "probability",
+    "meaning": "Predicted class probability — output of softmax/sigmoid layers."
+  }
+}

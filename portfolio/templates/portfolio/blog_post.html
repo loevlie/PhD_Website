@@ -92,6 +92,12 @@
             <span class="paper-byline-sep">·</span>{{ post.reading_time }} min · {{ post.word_count }} words
         </p>
         {% if post.maturity %}<p class="paper-maturity"><span class="maturity-badge maturity-{{ post.maturity }}">{{ post.maturity|title }}</span></p>{% endif %}
+        <p class="paper-actions">
+            <a href="?print=1" id="paper-print-btn" class="paper-action" title="Render as a print-quality PDF via Paged.js">
+                <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round" style="vertical-align:-1px;margin-right:4px"><polyline points="6 9 6 2 18 2 18 9"/><path d="M6 18H4a2 2 0 0 1-2-2v-5a2 2 0 0 1 2-2h16a2 2 0 0 1 2 2v5a2 2 0 0 1-2 2h-2"/><rect x="6" y="14" width="12" height="8"/></svg>
+                Print / PDF
+            </a>
+        </p>
     </header>
     <hr class="paper-rule">
     {% elif post.is_explainer %}
@@ -515,10 +521,41 @@
 <script src="{% static 'portfolio/js/mil-pipeline.js' %}"></script>
 <!-- Hover-citation popovers (active wherever <cite class="ref" data-key="..."> appears) -->
 <script defer src="{% static 'portfolio/js/citations.js' %}"></script>
+<!-- Math-notation glossary — hover an inline <span class="g">θ</span>
+     and get its definition. Silent no-op if no glossary symbols are
+     present in the post; manifest at /static/portfolio/data/notation.json -->
+<script defer src="{% static 'portfolio/js/math-glossary.js' %}"></script>
 <!-- Stacked notes — Andy Matuschak pattern. Click an internal blog link to
      push the target post as a side-by-side column instead of navigating.
      URL state via ?stack=slug1,slug2. Mobile (<900 px) falls back to nav. -->
 <script defer src="{% static 'portfolio/js/stacked-notes.js' %}"></script>
+{% if post.is_paper_companion %}
+<!-- Paged.js — paper-companion posts get book-grade HTML→PDF when the
+     reader hits "Save as PDF" or appends ?print=1. The polyfill reads
+     the @page rules already declared in base.css and produces multi-
+     page output with running headers + page numbers. Heavy (~140 KB),
+     so only loaded for paper-companion posts. -->
+<script>
+(function() {
+    var loadPaged = function() {
+        if (window.PagedConfig) return;
+        window.PagedConfig = { auto: true };
+        var s = document.createElement('script');
+        s.src = 'https://unpkg.com/pagedjs@0.4.3/dist/paged.polyfill.js';
+        s.defer = true;
+        document.head.appendChild(s);
+    };
+    if (location.search.indexOf('print=1') !== -1) loadPaged();
+    window.addEventListener('beforeprint', loadPaged);
+    var btn = document.getElementById('paper-print-btn');
+    if (btn) btn.addEventListener('click', function(e) {
+        e.preventDefault();
+        loadPaged();
+        setTimeout(function() { window.print(); }, 600);
+    });
+})();
+</script>
+{% endif %}
 <script>
 (function() {
     // Reading progress

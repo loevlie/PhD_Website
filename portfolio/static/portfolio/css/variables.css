@@ -99,6 +99,29 @@
     --sidenote-bg: transparent;
 }
 
+/* ============================================================
+   Time-of-day theming. JS sets data-tod on <html> based on
+   local hour; we shift the accent hue (and a couple of derived
+   tints) accordingly. OKLCH gives smooth perceptual interpolation
+   so the hue change reads as "the room got warmer" rather than
+   "the colors changed." Defaults to navy regardless of bucket on
+   browsers without OKLCH math. Subtle by design.
+   ============================================================ */
+@supports (color: oklch(50% 0.1 250)) {
+    /* Accent hue per time-of-day bucket. Lightness/chroma stay close
+       to the canonical accent; only hue shifts. */
+    :root[data-tod="dawn"]  { --accent: oklch(36% 0.07 268); --accent-light: oklch(56% 0.10 268); }
+    :root[data-tod="day"]   { --accent: oklch(34% 0.09 252); --accent-light: oklch(52% 0.11 252); }  /* canonical navy */
+    :root[data-tod="dusk"]  { --accent: oklch(38% 0.09 28);  --accent-light: oklch(58% 0.11 28); }   /* warm bronze */
+    :root[data-tod="night"] { --accent: oklch(40% 0.07 245); --accent-light: oklch(60% 0.10 245); }
+    /* Dark mode keeps the same hue shifts but lifts lightness so the
+       accent reads against dark backgrounds. */
+    :root.dark-mode[data-tod="dawn"]  { --accent: oklch(76% 0.10 268); --accent-light: oklch(82% 0.10 268); }
+    :root.dark-mode[data-tod="day"]   { --accent: oklch(74% 0.10 252); --accent-light: oklch(80% 0.10 252); }
+    :root.dark-mode[data-tod="dusk"]  { --accent: oklch(76% 0.10 32);  --accent-light: oklch(82% 0.10 32); }
+    :root.dark-mode[data-tod="night"] { --accent: oklch(70% 0.09 250); --accent-light: oklch(76% 0.09 250); }
+}
+
 /* DARK MODE — opt-in via the .dark-mode class
  * (yes, the class name is now semantically inverted; see top comment) */
 :root.dark-mode {

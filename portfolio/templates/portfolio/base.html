@@ -93,6 +93,7 @@
             {"label": "All publications", "href": "/publications/", "kind": "Page"},
             {"label": "Lab Notebook", "href": "/demos/", "kind": "Page"},
             {"label": "Now (what I'm doing right now)", "href": "/now/", "kind": "Page"},
+            {"label": "Garden (notes by maturity)", "href": "/garden/", "kind": "Page"},
             {"label": "Blog", "href": "/blog/", "kind": "Page"},
             {"label": "Recipes", "href": "/recipes/", "kind": "Page"}
         ],
@@ -161,7 +162,7 @@
                 return '<li class="cmdk-item' + (idx === 0 ? ' active' : '') + '" data-idx="' + idx + '" data-href="' + it.href + '"' + (it.external ? ' data-external="1"' : '') + '>'
                     + '<span class="cmdk-item-label">' + escapeHtml(it.label) + '</span>'
                     + (it.venue ? '<span class="cmdk-item-meta">' + escapeHtml(it.venue) + '</span>' : '')
-                    + '<span class="cmdk-item-kind">' + it.kind + '</span>'
+                    + '<span class="cmdk-item-kind" data-kind="' + (it.kind || '') + '">' + (it.kind || '') + '</span>'
                     + '</li>';
             }).join('');
             results.querySelectorAll('.cmdk-item').forEach(function(el) {

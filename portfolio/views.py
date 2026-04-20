@@ -273,6 +273,23 @@ def demos(request):
     return render(request, 'portfolio/demos.html', {'demos': demos_sorted})
 
 
+def garden(request):
+    """/garden/ — posts filtered by maturity badge. Digital-garden
+    convention: Seedlings (half-formed) and Budding (being developed)
+    up top, Evergreens (settled) below. Unmarked posts excluded."""
+    posts = [p for p in get_all_posts() if p.get('maturity')]
+    order = {'seedling': 0, 'budding': 1, 'evergreen': 2}
+    buckets = {'seedling': [], 'budding': [], 'evergreen': []}
+    for p in posts:
+        m = p.get('maturity', '')
+        if m in buckets:
+            buckets[m].append(p)
+    return render(request, 'portfolio/garden.html', {
+        'buckets': [(k, buckets[k]) for k in ['seedling', 'budding', 'evergreen']],
+        'total': len(posts),
+    })
+
+
 def now(request):
     """/now/ — Derek Sivers convention. What I'm doing in life and work
     right now. Updated quarterly. Strong taste signal for FAANG/ELLIS

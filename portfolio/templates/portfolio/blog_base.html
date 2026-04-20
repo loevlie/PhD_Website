@@ -37,6 +37,19 @@
     <link rel="me" href="mailto:Loevliedenny@gmail.com">
     <link rel="me" href="https://github.com/loevlie">
 
+    <!-- Time-of-day accent hue (inline so it lands before paint) -->
+    <script>
+    (function() {
+        var h = new Date().getHours();
+        var t = (h >= 5 && h < 9) ? 'dawn' :
+                (h >= 9 && h < 17) ? 'day' :
+                (h >= 17 && h < 21) ? 'dusk' : 'night';
+        var override = localStorage.getItem('tod');
+        document.documentElement.setAttribute('data-tod',
+            (override && override !== 'auto') ? override : t);
+    })();
+    </script>
+
     <!-- Tailwind CSS (pre-built, no CDN flash) -->
     <link rel="stylesheet" href="{% static 'portfolio/css/blog-tw.css' %}">
     <!-- Blog-specific extras (sidenotes, hover citations, explainer badge).

@@ -1066,6 +1066,25 @@
 .paper-byline a:hover { color: var(--color-accent, var(--ctp-lavender, #7287fd)); }
 .paper-byline-sep { margin: 0 8px; opacity: 0.4; }
 .paper-maturity { margin: 18px 0 0; }
+.paper-actions { margin: 14px 0 0; }
+.paper-action {
+    display: inline-flex;
+    align-items: center;
+    font-family: 'JetBrains Mono', ui-monospace, monospace;
+    font-size: 0.6875rem;
+    text-transform: uppercase;
+    letter-spacing: 0.08em;
+    color: var(--color-content-muted, var(--ctp-subtext0, #a6adc8));
+    text-decoration: none;
+    padding: 4px 10px;
+    border: 1px solid var(--color-border, var(--ctp-surface0, #313244));
+    border-radius: 999px;
+    transition: color 150ms ease, border-color 150ms ease;
+}
+.paper-action:hover {
+    color: var(--color-accent, var(--ctp-lavender, #7287fd));
+    border-color: var(--color-accent, var(--ctp-lavender, #7287fd));
+}
 .paper-rule {
     margin: 0 0 36px;
     border: 0;
@@ -1518,6 +1537,32 @@
 .mocha .maturity-evergreen, .frappe .maturity-evergreen, .macchiato .maturity-evergreen {
     color: #89b4fa; background: color-mix(in oklch, #89b4fa 14%, transparent); border-color: color-mix(in oklch, #89b4fa 30%, transparent);
 }
+
+/* Math glossary anchor — inline italicized symbol that pops a
+   notation popover on hover/focus. Visually subtle so it doesn't
+   distract from prose; underline appears on hover only. */
+.blog-prose .g,
+.blog-prose .g-anchor {
+    background: transparent;
+    border: 0;
+    padding: 0;
+    cursor: help;
+    color: inherit;
+    font: inherit;
+    font-style: italic;
+    border-bottom: 1px dotted color-mix(in oklch,
+        var(--color-accent, #7287fd) 35%,
+        transparent);
+    transition: color 150ms ease, border-bottom-color 150ms ease;
+}
+.blog-prose .g-anchor:hover,
+.blog-prose .g-anchor:focus-visible {
+    color: var(--color-accent, var(--ctp-lavender, #7287fd));
+    border-bottom-color: var(--color-accent, var(--ctp-lavender, #7287fd));
+    outline: none;
+}
+.cite-popover.g-popover .cite-title { font-style: normal; font-size: 1rem; }
+.cite-popover.g-popover .g-pop-name { font-style: italic; opacity: 0.7; font-weight: 400; }
 
 /* Explainer-only header badge */
 .explainer-badge {

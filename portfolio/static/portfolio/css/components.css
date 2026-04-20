@@ -316,9 +316,72 @@
     letter-spacing: 0.08em;
     color: var(--accent-light);
     background: var(--accent-bg-subtle);
-    padding: 2px 7px;
+    padding: 2px 9px;
     border-radius: 4px;
+    min-width: 60px;
+    text-align: center;
+    box-sizing: border-box;
 }
+
+/* Per-kind shape() morphology — each result type has a different
+   silhouette so you can scan the palette by shape, not just text.
+   shape() shipped Chrome 130+/Safari 18.x; @supports gates the
+   variants so older browsers see the rounded-rect baseline above.
+   Pattern: Pages = squircle, Posts = soft tag (left-pointed),
+   Papers = sharp-cornered card, Demos = pill, Actions = chevron-right,
+   Sections = small chevron-down, Links = right-leaning rhombus. */
+@supports (clip-path: shape(from 0 0, line to 100% 0)) {
+    .cmdk-item-kind {
+        border-radius: 0;
+        background: var(--accent-bg-subtle);
+        padding: 3px 12px 3px 12px;
+    }
+    /* Default — rounded squircle */
+    .cmdk-item-kind {
+        clip-path: shape(
+            from 8% 0, line to 92% 0,
+            curve to 100% 50% with 100% 8%,
+            curve to 92% 100% with 100% 92%,
+            line to 8% 100%,
+            curve to 0   50% with 0   92%,
+            curve to 8% 0   with 0    8%,
+            close
+        );
+    }
+    /* Posts → tag with a left-pointing notch */
+    .cmdk-item-kind:is([class*="Post"]),
+    .cmdk-item.is-active .cmdk-item-kind:is([class*="Post"]) {
+        clip-path: shape(
+            from 0 50%,
+            line to 14% 0,
+            line to 100% 0,
+            line to 100% 100%,
+            line to 14% 100%,
+            close
+        );
+    }
+    /* Demos → pill */
+    .cmdk-item-kind[class*="Demo" i] {
+        clip-path: shape(
+            from 50% 0,
+            line to 100% 0,
+            curve to 100% 100% with 60% 50%,
+            line to 0 100%,
+            curve to 50% 0 with 40% 50%,
+            close
+        );
+    }
+}
+/* Color treatments by kind — text-content selector so we don't need
+   modifier classes; matches on substring of the chip's text content
+   via attribute hack (data-kind), set by the cmdk JS. */
+.cmdk-item-kind[data-kind="Page"]    { color: oklch(60% 0.10 252); background: color-mix(in oklch, oklch(60% 0.10 252) 14%, transparent); }
+.cmdk-item-kind[data-kind="Post"]    { color: oklch(60% 0.13 50);  background: color-mix(in oklch, oklch(60% 0.13 50) 14%, transparent); }
+.cmdk-item-kind[data-kind="Paper"]   { color: oklch(56% 0.13 152); background: color-mix(in oklch, oklch(56% 0.13 152) 14%, transparent); }
+.cmdk-item-kind[data-kind="Demo"]    { color: oklch(58% 0.16 300); background: color-mix(in oklch, oklch(58% 0.16 300) 14%, transparent); }
+.cmdk-item-kind[data-kind="Action"]  { color: oklch(56% 0.04 252); background: color-mix(in oklch, oklch(56% 0.04 252) 14%, transparent); }
+.cmdk-item-kind[data-kind="Section"] { color: oklch(56% 0.07 252); background: color-mix(in oklch, oklch(56% 0.07 252) 14%, transparent); }
+.cmdk-item-kind[data-kind="Link"]    { color: oklch(60% 0.10 200); background: color-mix(in oklch, oklch(60% 0.10 200) 14%, transparent); }
 .cmdk-foot {
     display: flex;
     gap: 16px;

@@ -552,6 +552,7 @@ NAV_LINKS = [
     ]},
     {'label': 'Writing', 'href': '/blog/', 'children': [
         {'label': 'Blog', 'href': '/blog/'},
+        {'label': 'Garden (notes by maturity)', 'href': '/garden/'},
         {'label': 'Featured Projects', 'href': '#projects'},
         {'label': 'All Projects', 'href': '/projects/'},
     ]},
