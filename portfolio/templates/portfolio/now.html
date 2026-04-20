@@ -1,0 +1,49 @@
+{% extends "portfolio/personal_base.html" %}
+{% load static %}
+
+{% block title %}/now — Dennis Loevlie{% endblock %}
+
+{% block og_meta %}
+<meta property="og:title" content="/now — what Dennis Loevlie is doing right now">
+<meta property="og:description" content="A {{ now.updated }} snapshot — research, reading, building, life. Updated quarterly.">
+<meta property="og:type" content="profile">
+<meta name="twitter:card" content="summary">
+<meta name="twitter:title" content="/now — Dennis Loevlie">
+<meta name="twitter:description" content="A snapshot of what I'm doing right now. Updated {{ now.updated }}.">
+{% endblock %}
+
+{% block content %}
+<section class="section now-page">
+    <div class="container">
+        <article class="now-inner section-reveal">
+            <header class="now-header">
+                <p class="now-eyebrow">/now</p>
+                <h1 class="now-title">What I'm doing now</h1>
+                <p class="now-meta">
+                    <time datetime="{{ now.updated }}">{{ now.updated }}</time>
+                    {% if now.location %}<span class="now-meta-sep">·</span> {{ now.location }}{% endif %}
+                </p>
+            </header>
+
+            {% for section in now.sections %}
+            <section class="now-section">
+                <h2 class="now-section-title">{{ section.heading }}</h2>
+                <div class="now-section-body">{{ section.body|safe|linebreaksbr }}</div>
+            </section>
+            {% endfor %}
+
+            <footer class="now-footer">
+                <p class="now-footer-note">
+                    A <em>/now</em> page is a single page that says what
+                    you're focused on at this point in your life. Inspired by
+                    {% for name, url in now.inspired_by %}<a href="{{ url }}" target="_blank" rel="noopener">{{ name }}</a>{% if not forloop.last %} · {% endif %}{% endfor %}.
+                </p>
+                <p class="now-footer-note">
+                    Page is updated roughly quarterly. If you're reading this and the
+                    date above is more than 6 months old, the AI doomers were right.
+                </p>
+            </footer>
+        </article>
+    </div>
+</section>
+{% endblock %}

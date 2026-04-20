@@ -2242,6 +2242,221 @@ button.pub-cite-btn {
 }
 
 /* ============================================================
+   /now/ — Derek Sivers convention. A single page that says what
+   you're focused on right now. Editorial, dated, sectioned.
+   ============================================================ */
+.now-page {
+    padding-top: clamp(64px, 8vw, 128px);
+    padding-bottom: clamp(96px, 8vw, 144px);
+}
+
+.now-inner {
+    max-width: 720px;
+    margin: 0 auto;
+}
+
+.now-header {
+    margin-bottom: 64px;
+    padding-bottom: 32px;
+    border-bottom: 1px solid var(--border-color);
+}
+
+.now-eyebrow {
+    font-family: var(--font-mono);
+    font-size: 0.75rem;
+    text-transform: uppercase;
+    letter-spacing: 0.16em;
+    color: var(--accent);
+    margin: 0 0 16px;
+}
+
+.now-title {
+    font-family: var(--font-serif);
+    font-size: clamp(2rem, 1.5rem + 2.5vw, 3.5rem);
+    line-height: 1.05;
+    letter-spacing: -0.02em;
+    font-weight: 600;
+    color: var(--text-primary);
+    margin: 0 0 16px;
+}
+
+.now-meta {
+    font-family: var(--font-mono);
+    font-size: 0.8125rem;
+    color: var(--text-muted);
+    margin: 0;
+    font-variant-numeric: tabular-nums;
+}
+
+.now-meta-sep {
+    margin: 0 8px;
+    opacity: 0.4;
+}
+
+.now-section {
+    margin-bottom: 48px;
+}
+
+.now-section-title {
+    font-family: var(--font-mono);
+    font-size: 0.75rem;
+    text-transform: uppercase;
+    letter-spacing: 0.14em;
+    color: var(--accent);
+    margin: 0 0 16px;
+    padding-bottom: 8px;
+    border-bottom: 1px solid var(--accent-bg-subtle);
+}
+
+.now-section-body {
+    font-family: var(--font-serif);
+    font-size: 1.0625rem;
+    line-height: 1.75;
+    color: var(--text-secondary);
+}
+
+.now-section-body strong {
+    color: var(--text-primary);
+    font-weight: 600;
+}
+
+.now-section-body em {
+    color: var(--text-primary);
+}
+
+.now-section-body a {
+    color: var(--accent);
+    text-decoration: none;
+    border-bottom: 1px dotted var(--accent-bg-medium);
+}
+
+.now-section-body a:hover {
+    border-bottom-style: solid;
+}
+
+.now-footer {
+    margin-top: 80px;
+    padding-top: 32px;
+    border-top: 1px solid var(--border-color);
+}
+
+.now-footer-note {
+    font-size: 0.875rem;
+    color: var(--text-muted);
+    line-height: 1.6;
+    margin: 0 0 12px;
+}
+
+.now-footer-note a {
+    color: var(--text-muted);
+    border-bottom: 1px dotted var(--border-color);
+    text-decoration: none;
+}
+
+.now-footer-note a:hover {
+    color: var(--accent);
+    border-bottom-color: var(--accent);
+}
+
+/* ============================================================
+   Publications page filters + per-pub BibTeX-copy button
+   ============================================================ */
+.pub-filters {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: 12px 24px;
+    margin: 32px 0 36px;
+    padding: 16px 20px;
+    border: 1px solid var(--border-color);
+    border-radius: 12px;
+    background: var(--bg-secondary);
+}
+
+.pub-filter-group {
+    display: flex;
+    align-items: center;
+    flex-wrap: wrap;
+    gap: 6px;
+}
+
+.pub-filter-label {
+    font-family: var(--font-mono);
+    font-size: 0.6875rem;
+    text-transform: uppercase;
+    letter-spacing: 0.1em;
+    color: var(--text-muted);
+    margin-right: 8px;
+}
+
+.pub-filter-chip {
+    appearance: none;
+    background: transparent;
+    border: 1px solid var(--border-color);
+    color: var(--text-secondary);
+    font-family: var(--font-family);
+    font-size: 0.8125rem;
+    padding: 4px 10px;
+    border-radius: 999px;
+    cursor: pointer;
+    transition: all 150ms ease;
+    line-height: 1.2;
+    font-variant-numeric: tabular-nums;
+}
+
+.pub-filter-chip:hover {
+    border-color: var(--accent);
+    color: var(--accent);
+}
+
+.pub-filter-chip.is-active {
+    background: var(--accent);
+    border-color: var(--accent);
+    color: var(--bg-primary);
+    font-weight: 500;
+}
+
+.pub-filter-export {
+    margin-left: auto;
+    border-color: var(--accent-bg-medium);
+    color: var(--accent);
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+}
+
+.pub-filter-export:hover {
+    background: var(--accent-bg-subtle);
+}
+
+.link-pill--cite {
+    appearance: none;
+    cursor: pointer;
+    font-family: var(--font-family);
+    border: 1px solid var(--accent-bg-medium);
+    background: transparent;
+    color: var(--accent);
+    display: inline-flex;
+    align-items: center;
+    gap: 4px;
+}
+
+.link-pill--cite:hover {
+    background: var(--accent-bg-subtle);
+}
+
+.link-pill--cite.is-copied,
+.pub-filter-export.is-copied {
+    background: var(--accent);
+    color: var(--bg-primary);
+    border-color: var(--accent);
+}
+
+/* (Earlier draft of a Cmd+K palette removed: the existing .cmdk
+   palette in base.html is canonical. Adding /now and Lab Notebook
+   to its data was the only change needed.) */
+
+/* ============================================================
    LAB NOTEBOOK — /demos/
    Editorial register: dated entries (Karpathy / Ciechanowski /
    Red Blob Games model). The page is an ordered timeline, not a

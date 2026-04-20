@@ -74,6 +74,15 @@ def demos(request):
     return render(request, 'portfolio/demos.html', {'demos': demos_sorted})
 
 
+def now(request):
+    """/now/ — Derek Sivers convention. What I'm doing in life and work
+    right now. Updated quarterly. Strong taste signal for FAANG/ELLIS
+    reviewers. The content is in NOW_PAGE in data.py so it's editable
+    without touching templates."""
+    from portfolio.data import NOW_PAGE
+    return render(request, 'portfolio/now.html', {'now': NOW_PAGE})
+
+
 def download_cv(request):
     """Proxy the latest CV from loevlie.github.io with Content-Disposition: attachment.
     Browsers ignore the `download` attribute on cross-origin links, so we have to

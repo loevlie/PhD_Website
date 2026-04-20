@@ -423,6 +423,69 @@ SOCIAL_LINKS = [
 #   embed         template-snippet name in `portfolio/demos/embeds/{slug}.html`
 #                 (kept inline rather than each becoming a separate URL).
 
+NOW_PAGE = {
+    # /now/ — Derek Sivers convention. Updated quarterly.
+    # Last update: ALWAYS update this when editing the rest.
+    'updated': '2026-04-19',
+    'location': 'Boston, MA',
+    'sections': [
+        {
+            'heading': 'Research',
+            'body': (
+                "Wrapping the camera-ready for our **CHIL 2026** benchmark "
+                "(equal-contribution second author with Ethan Harvey, Hughes Lab) — "
+                "showing a simple mean-pooling MIL baseline matches attention-MIL on "
+                "4 of 6 moderate-sized neuroimage tasks while training **25× faster**. "
+                "Spinning out a follow-up question: can we predict *before training* "
+                "which datasets will need attention-based MIL vs simple pooling? "
+                "Looking for cheap pre-training diagnostics."
+            ),
+        },
+        {
+            'heading': 'Reading',
+            'body': (
+                "**Tabular foundation models** (TabPFN, TabICL) — running my own "
+                "experiments on small medical-tabular benchmarks where train sets are "
+                "actually small. Also re-reading the **mechanistic interpretability** "
+                "thread (Anthropic's [attribution-graphs](https://transformer-circuits.pub/2025/attribution-graphs/methods.html), "
+                "Olah's circuits work) because the methods feel transferable to MIL "
+                "instance-level attribution."
+            ),
+        },
+        {
+            'heading': 'Building',
+            'body': (
+                "This site (the design pass landing right now). Frozen Forecaster — "
+                "the homepage TabICL vs XGBoost demo — is real inference cached from a "
+                "Modal precompute. The Lab Notebook is the place where new things land "
+                "first; longer pieces graduate to the blog as Explainers."
+            ),
+        },
+        {
+            'heading': 'Applying',
+            'body': (
+                "**ELLIS PhD program 2026 cohort** — primary advisor track at TRL Lab "
+                "(Hulsebos + van de Meent). Open to FAANG research-internship "
+                "conversations for summer 2026 / 2027. [Contact me](#contact)."
+            ),
+        },
+        {
+            'heading': 'Life',
+            'body': (
+                "Married to Brittany; planning the wedding. Cooking through *Salt Fat "
+                "Acid Heat* one chapter at a time. Trail-running in the Middlesex Fells. "
+                "Reading: *Brideshead Revisited*, currently."
+            ),
+        },
+    ],
+    'inspired_by': [
+        ('Derek Sivers', 'https://sivers.org/now'),
+        ('Cal Newport', 'https://calnewport.com/now/'),
+        ('nownownow.com', 'https://nownownow.com/'),
+    ],
+}
+
+
 DEMOS = [
     {
         'slug': 'nanoparticle-viewer',

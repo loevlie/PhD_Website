@@ -62,7 +62,43 @@
     <div class="mb-6 text-[0.6875rem] font-semibold text-accent uppercase tracking-wider">{{ post.series }} — Part {{ post.series_order }}</div>
     {% endif %}
 
-    <!-- Header -->
+    {% if post.is_explainer %}
+    <!-- Explainer header — editorial / Distill register: ALL-CAPS eyebrow,
+         very large serif title centered, lede paragraph at large size,
+         meta row at bottom. Visually distinct from regular blog post header. -->
+    <header class="explainer-header mb-12 animate-fade-up">
+        <div class="explainer-eyebrow">
+            <span class="explainer-eyebrow-dot"></span>
+            <span>Explainer</span>
+            <span class="explainer-eyebrow-sep">·</span>
+            <time datetime="{{ post.date|date:'Y-m-d' }}">{{ post.date|date:'F Y' }}</time>
+        </div>
+        <h1 class="explainer-title">{{ post.title }}</h1>
+        {% if post.excerpt %}
+        <p class="explainer-lede">{{ post.excerpt }}</p>
+        {% endif %}
+        <div class="explainer-meta">
+            <div class="explainer-meta-author">
+                <img src="{% static 'portfolio/images/hero-still.png' %}" alt="{{ post.author }}" class="explainer-author-avatar" style="view-transition-name: site-avatar">
+                <div>
+                    <a href="/" class="explainer-author-name">{{ post.author }}</a>
+                    <p class="explainer-author-bio">ELLIS PhD Student · CWI &amp; University of Amsterdam</p>
+                </div>
+            </div>
+            <dl class="explainer-meta-stats">
+                <div><dt>Reading</dt><dd>{{ post.reading_time }} min</dd></div>
+                <div><dt>Words</dt><dd>{{ post.word_count }}</dd></div>
+                {% if post.updated %}<div><dt>Updated</dt><dd>{{ post.updated|date:'M j, Y' }}</dd></div>{% endif %}
+            </dl>
+        </div>
+        {% if post.tags %}
+        <div class="explainer-tags">
+            {% for tag in post.tags %}<span class="explainer-tag">{{ tag }}</span>{% endfor %}
+        </div>
+        {% endif %}
+    </header>
+    {% else %}
+    <!-- Standard blog post header (unchanged) -->
     <header class="mb-10 animate-fade-up">
         <div class="flex items-center gap-3 flex-wrap text-[0.8125rem] text-content-secondary mb-4">
             <time datetime="{{ post.date|date:'Y-m-d' }}">{{ post.date|date:'F j, Y' }}</time>
@@ -73,9 +109,6 @@
             <span class="w-1 h-1 rounded-full bg-content-muted/50"></span>
             <span>{{ post.reading_time }} min read</span>
         </div>
-        {% if post.is_explainer %}
-        <div class="mb-3"><span class="explainer-badge">Explainer</span></div>
-        {% endif %}
         <h1 class="text-2xl md:text-[2.25rem] font-bold text-content tracking-tight leading-[1.15] mb-4">{{ post.title }}</h1>
         {% if post.excerpt %}
         <p class="text-lg md:text-xl text-content-secondary leading-relaxed">{{ post.excerpt }}</p>
@@ -95,6 +128,7 @@
             </div>
         </div>
     </header>
+    {% endif %}
 
     <!-- Cover image -->
     {% if post.image %}
