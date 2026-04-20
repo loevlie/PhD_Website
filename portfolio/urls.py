@@ -3,12 +3,14 @@ from django.urls import path
 
 from . import views, analytics, analytics_dashboard
 from .feeds import BlogFeed
-from .sitemaps import StaticSitemap, BlogSitemap, BlogListSitemap
+from .sitemaps import StaticSitemap, BlogSitemap, BlogListSitemap, DemoDetailSitemap, TagDetailSitemap
 
 sitemaps = {
     'static': StaticSitemap,
     'blog': BlogSitemap,
     'pages': BlogListSitemap,
+    'demos': DemoDetailSitemap,
+    'tags': TagDetailSitemap,
 }
 
 urlpatterns = [
@@ -29,6 +31,8 @@ urlpatterns = [
     path('demos/<slug:slug>/', views.demo_detail, name='demo_detail'),
     path('now/', views.now, name='now'),
     path('garden/', views.garden, name='garden'),
+    path('tags/', views.tag_index, name='tag_index'),
+    path('tags/<slug:slug>/', views.tag_detail, name='tag_detail'),
     path('cv/', views.cv_page, name='cv_page'),
     path('cv.pdf', views.download_cv, name='download_cv'),
     # First-party privacy analytics. /a/p posts pageviews, /a/u updates

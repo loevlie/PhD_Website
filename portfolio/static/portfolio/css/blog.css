@@ -1614,3 +1614,39 @@
                           var(--color-bg-alt, transparent));
 }
 .blog-prose .callout--error > strong:first-child { color: var(--ctp-red, #f38ba8); }
+
+/* ─────────────────────────────────────────────────────────────────────
+   Code-block copy button (injected by code-copy.js).
+───────────────────────────────────────────────────────────────────── */
+.code-copy-btn {
+    position: absolute;
+    top: 8px;
+    right: 8px;
+    padding: 4px 10px;
+    background: color-mix(in oklch, var(--color-bg, var(--ctp-base, #1e1e2e)) 92%, transparent);
+    color: var(--color-text-muted, var(--ctp-subtext1, #bac2de));
+    border: 1px solid color-mix(in oklch, var(--color-text, var(--ctp-text, #cdd6f4)) 14%, transparent);
+    border-radius: 6px;
+    font-family: var(--font-mono, 'IBM Plex Mono', monospace);
+    font-size: 0.6875rem;
+    text-transform: uppercase;
+    letter-spacing: 0.08em;
+    cursor: pointer;
+    opacity: 0;
+    transition: opacity 150ms ease, background-color 150ms ease, color 150ms ease;
+    z-index: 2;
+}
+.blog-prose .highlight:hover > .code-copy-btn,
+.blog-prose pre:hover > .code-copy-btn,
+.code-copy-btn:focus-visible {
+    opacity: 1;
+}
+.code-copy-btn:hover {
+    background: color-mix(in oklch, var(--color-accent, var(--ctp-lavender, #7287fd)) 18%, transparent);
+    color: var(--color-text, var(--ctp-text, #cdd6f4));
+}
+.code-copy-btn.is-copied {
+    background: var(--ctp-green, #a6e3a1);
+    color: var(--ctp-base, #1e1e2e);
+    opacity: 1;
+}

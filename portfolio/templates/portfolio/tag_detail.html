@@ -1,0 +1,123 @@
+{% extends "portfolio/personal_base.html" %}
+{% load static %}
+
+{% block title %}#{{ tag }} — Tag · Dennis Loevlie{% endblock %}
+
+{% block og_meta %}
+<meta property="og:title" content="Posts tagged #{{ tag }} — Dennis Loevlie">
+<meta property="og:description" content="{{ count }} post{{ count|pluralize }} on {{ tag }}.">
+{% endblock %}
+
+{% block extra_head %}
+<style>
+.td-page { padding-block: clamp(40px, 6vw, 72px); }
+.td-inner { max-width: 920px; margin: 0 auto; padding: 0 24px; }
+.td-back {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    color: var(--text-muted);
+    text-decoration: none;
+    font-family: var(--font-mono);
+    font-size: 0.75rem;
+    text-transform: uppercase;
+    letter-spacing: 0.1em;
+    margin-bottom: 24px;
+}
+.td-back:hover { color: var(--accent); }
+.td-eyebrow {
+    font-family: var(--font-mono);
+    font-size: 0.75rem;
+    text-transform: uppercase;
+    letter-spacing: 0.14em;
+    color: var(--text-muted);
+    margin: 0 0 8px;
+}
+.td-title {
+    font-family: var(--font-serif);
+    font-size: clamp(2rem, 4vw, 2.75rem);
+    font-weight: 700;
+    line-height: 1.05;
+    margin: 0 0 8px;
+    color: var(--text-primary);
+}
+.td-title .hash { color: var(--accent); font-weight: 500; }
+.td-meta {
+    font-family: var(--font-mono);
+    font-size: 0.75rem;
+    color: var(--text-muted);
+    margin: 0 0 32px;
+}
+.td-list {
+    list-style: none;
+    padding: 0;
+    margin: 0;
+    display: flex;
+    flex-direction: column;
+    gap: 0;
+}
+.td-entry {
+    border-top: 1px solid var(--border-color);
+    padding: 18px 0;
+}
+.td-entry:last-child { border-bottom: 1px solid var(--border-color); }
+.td-entry a {
+    display: grid;
+    grid-template-columns: 100px 1fr;
+    gap: 18px;
+    text-decoration: none;
+    color: inherit;
+    align-items: baseline;
+}
+@media (max-width: 600px) {
+    .td-entry a { grid-template-columns: 1fr; gap: 4px; }
+}
+.td-entry-date {
+    font-family: var(--font-mono);
+    font-size: 0.75rem;
+    color: var(--text-muted);
+}
+.td-entry-title {
+    font-family: var(--font-serif);
+    font-size: 1.0625rem;
+    font-weight: 600;
+    color: var(--text-primary);
+    transition: color 150ms ease;
+}
+.td-entry:hover .td-entry-title { color: var(--accent); }
+.td-entry-excerpt {
+    grid-column: 2;
+    color: var(--text-secondary);
+    font-size: 0.875rem;
+    line-height: 1.55;
+    margin-top: 6px;
+}
+@media (max-width: 600px) {
+    .td-entry-excerpt { grid-column: 1; }
+}
+</style>
+{% endblock %}
+
+{% block content %}
+<section class="section td-page">
+    <div class="td-inner section-reveal">
+        <a href="{% url 'tag_index' %}" class="td-back">← all tags</a>
+        <p class="td-eyebrow">/tags/{{ tag_slug }}</p>
+        <h1 class="td-title"><span class="hash">#</span>{{ tag }}</h1>
+        <p class="td-meta">{{ count }} post{{ count|pluralize }}</p>
+        <ul class="td-list">
+            {% for p in posts %}
+            <li class="td-entry">
+                <a href="{% url 'blog_post' p.slug %}">
+                    <time class="td-entry-date" datetime="{{ p.date|date:'Y-m-d' }}">{{ p.date|date:'Y-m-d' }}</time>
+                    <span>
+                        <span class="td-entry-title">{{ p.title }}</span>
+                        {% if p.excerpt %}<span class="td-entry-excerpt">{{ p.excerpt|truncatechars:160 }}</span>{% endif %}
+                    </span>
+                </a>
+            </li>
+            {% endfor %}
+        </ul>
+    </div>
+</section>
+{% endblock %}

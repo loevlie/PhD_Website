@@ -150,7 +150,7 @@ If a post has an explicit cover (post.image), that takes precedence.
         {% endif %}
         {% if post.tags %}
         <div class="explainer-tags">
-            {% for tag in post.tags %}<span class="explainer-tag">{{ tag }}</span>{% endfor %}
+            {% for tag in post.tags %}<a class="explainer-tag" href="{% url 'tag_detail' tag|slugify %}">{{ tag }}</a>{% endfor %}
         </div>
         {% endif %}
     </header>
@@ -552,6 +552,8 @@ If a post has an explicit cover (post.image), that takes precedence.
      push the target post as a side-by-side column instead of navigating.
      URL state via ?stack=slug1,slug2. Mobile (<900 px) falls back to nav. -->
 <script defer src="{% static 'portfolio/js/stacked-notes.js' %}"></script>
+<!-- Hover-revealed Copy button on each fenced code block. -->
+<script defer src="{% static 'portfolio/js/code-copy.js' %}"></script>
 {% if post.is_paper_companion %}
 <!-- Paged.js — paper-companion posts get book-grade HTML→PDF when the
      reader hits "Save as PDF" or appends ?print=1. The polyfill reads

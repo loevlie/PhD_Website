@@ -440,6 +440,48 @@ def demo_detail(request, slug):
     })
 
 
+def tag_index(request):
+    """/tags/ — alphabetical list of all tags with post counts.
+    Cheap O(N×T) over posts; for a personal blog this is fine."""
+    posts = get_all_posts()
+    counts = {}
+    for p in posts:
+        for t in p.get('tags', []):
+            counts[t] = counts.get(t, 0) + 1
+    tags = sorted(counts.items(), key=lambda x: (-x[1], x[0].lower()))
+    return render(request, 'portfolio/tag_index.html', {
+        'tags': tags,
+        'total_posts': len(posts),
+    })
+
+
+def tag_detail(request, slug):
+    """/tags/<slug>/ — posts with this tag. Slug match is exact (we
+    don't slugify the tag — taggit stores the human form)."""
+    posts = get_all_posts()
+    matched = [p for p in posts if any(t.lower() == slug.lower() for t in p.get('tags', []))]
+    if not matched:
+        # Try fuzzy matching: hyphenated → spaces
+        candidates = []
+        for p in posts:
+            for t in p.get('tags', []):
+                if t.lower().replace(' ', '-').replace('_', '-') == slug.lower():
+                    if p not in candidates:
+                        candidates.append(p)
+        matched = candidates
+    if not matched:
+        raise Http404(f'No posts tagged "{slug}"')
+    # Resolve canonical tag display label from first match
+    tag_label = next((t for p in matched for t in p.get('tags', [])
+                      if t.lower().replace(' ', '-') == slug.lower()), slug)
+    return render(request, 'portfolio/tag_detail.html', {
+        'tag': tag_label,
+        'tag_slug': slug,
+        'posts': matched,
+        'count': len(matched),
+    })
+
+
 def garden(request):
     """/garden/ — posts filtered by maturity badge. Digital-garden
     convention: Seedlings (half-formed) and Budding (being developed)

@@ -1,0 +1,103 @@
+{% extends "portfolio/personal_base.html" %}
+{% load static %}
+
+{% block title %}Tags — Dennis Loevlie{% endblock %}
+
+{% block og_meta %}
+<meta property="og:title" content="Tags — Dennis Loevlie">
+<meta property="og:description" content="Browse blog posts by topic. {{ tags|length }} tag{{ tags|length|pluralize }} across {{ total_posts }} posts.">
+{% endblock %}
+
+{% block extra_head %}
+<style>
+.tag-index-page { padding-block: clamp(40px, 6vw, 72px); }
+.tag-index-inner { max-width: 920px; margin: 0 auto; padding: 0 24px; }
+.tag-index-eyebrow {
+    font-family: var(--font-mono);
+    font-size: 0.75rem;
+    text-transform: uppercase;
+    letter-spacing: 0.14em;
+    color: var(--text-muted);
+    margin: 0 0 8px;
+}
+.tag-index-title {
+    font-family: var(--font-serif);
+    font-size: clamp(2rem, 4vw, 2.75rem);
+    font-weight: 700;
+    line-height: 1.05;
+    margin: 0 0 12px;
+    color: var(--text-primary);
+}
+.tag-index-lede {
+    font-size: 1.0625rem;
+    line-height: 1.55;
+    color: var(--text-secondary);
+    max-width: 60ch;
+    margin: 0 0 32px;
+}
+.tag-cloud {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 10px;
+}
+.tag-pill {
+    display: inline-flex;
+    align-items: baseline;
+    gap: 8px;
+    padding: 8px 14px;
+    background: var(--bg-secondary, #fff);
+    border: 1px solid var(--border-color);
+    border-radius: 999px;
+    font-family: var(--font-mono);
+    font-size: 0.8125rem;
+    color: var(--text-primary);
+    text-decoration: none;
+    transition: all 150ms ease;
+}
+.tag-pill:hover, .tag-pill:focus-visible {
+    border-color: var(--accent);
+    background: color-mix(in oklch, var(--accent) 6%, var(--bg-secondary, #fff));
+    color: var(--accent);
+    transform: translateY(-1px);
+    outline: none;
+}
+.tag-pill .count {
+    font-size: 0.6875rem;
+    color: var(--text-muted);
+    padding: 1px 6px;
+    border-radius: 999px;
+    background: var(--bg-tertiary, #F1EEE5);
+}
+.tag-pill:hover .count {
+    background: color-mix(in oklch, var(--accent) 18%, transparent);
+    color: var(--accent);
+}
+.tag-pill.large {
+    font-size: 0.9375rem;
+    padding: 10px 16px;
+}
+</style>
+{% endblock %}
+
+{% block content %}
+<section class="section tag-index-page">
+    <div class="tag-index-inner section-reveal">
+        <p class="tag-index-eyebrow">/tags</p>
+        <h1 class="tag-index-title">Browse by topic</h1>
+        <p class="tag-index-lede">
+            {{ tags|length }} tag{{ tags|length|pluralize }} across {{ total_posts }} post{{ total_posts|pluralize }}.
+            Click any chip to see all posts under that tag.
+        </p>
+        <div class="tag-cloud">
+            {% for name, count in tags %}
+            <a class="tag-pill {% if count > 2 %}large{% endif %}" href="{% url 'tag_detail' name|slugify %}">
+                {{ name }}
+                <span class="count">{{ count }}</span>
+            </a>
+            {% empty %}
+            <p style="color: var(--text-muted);">No tags yet.</p>
+            {% endfor %}
+        </div>
+    </div>
+</section>
+{% endblock %}

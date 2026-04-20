@@ -1,7 +1,9 @@
 from django.contrib.sitemaps import Sitemap
 from django.urls import reverse
+from django.utils.text import slugify
 
 from portfolio.blog import get_all_posts
+from portfolio.data import DEMOS
 
 
 class StaticSitemap(Sitemap):
@@ -32,11 +34,46 @@ class BlogSitemap(Sitemap):
 
 
 class BlogListSitemap(Sitemap):
+    """Static editorial pages. Excludes admin surfaces (/site/insights,
+    editor) and dynamic ones that 302 (cv.pdf)."""
     changefreq = 'weekly'
     priority = 0.7
 
     def items(self):
-        return ['blog', 'publications', 'projects', 'recipes']
+        return ['blog', 'publications', 'projects', 'recipes', 'demos',
+                'now', 'garden', 'cv_page', 'tag_index']
 
     def location(self, item):
         return reverse(item)
+
+
+class DemoDetailSitemap(Sitemap):
+    """Each demo's standalone permalink page."""
+    changefreq = 'monthly'
+    priority = 0.6
+
+    def items(self):
+        return DEMOS
+
+    def location(self, item):
+        return reverse('demo_detail', args=[item['slug']])
+
+
+class TagDetailSitemap(Sitemap):
+    """Each tag's listing page. Tag slugs derived from the post tag set."""
+    changefreq = 'weekly'
+    priority = 0.5
+
+    def items(self):
+        seen = []
+        seen_set = set()
+        for p in get_all_posts():
+            for t in p.get('tags', []):
+                slug = slugify(t)
+                if slug and slug not in seen_set:
+                    seen_set.add(slug)
+                    seen.append(slug)
+        return sorted(seen)
+
+    def location(self, slug):
+        return reverse('tag_detail', args=[slug])
