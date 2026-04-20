@@ -252,7 +252,9 @@ panel.querySelectorAll('.mobile-disclosure-btn').forEach(function(btn) {
 });
 </script>
 
-{# First-party analytics; respects DNT/GPC server- and client-side. #}
+{% if not user.is_staff %}
+{# First-party analytics; staff visits skipped. Respects DNT/GPC server- and client-side. #}
 <script src="{% static 'portfolio/js/analytics.js' %}" defer></script>
+{% endif %}
 </body>
 </html>
