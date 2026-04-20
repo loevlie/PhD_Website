@@ -600,20 +600,23 @@ DEMOS = [
 
 NAV_LINKS = [
     # Trimmed 2026-04 to 4 primary items (Apple/Linear/Vercel pattern: ≤4 in
-    # the top bar so the eye finds the page identity, not the menu). News +
-    # Demos + Blog + Recipes all live under Explore as a single dropdown.
+    # the top bar so the eye finds the page identity, not the menu).
+    #
+    # Children re-pointed 2026-04 after the homepage restructure: the
+    # Publications / Experience / Projects sections are no longer stacked
+    # on the index page (they each have their own URL), so children
+    # previously pointing at #publications / #experience / #projects now
+    # link out to /publications/, /cv/, /projects/.
     {'label': 'About', 'href': '#about'},
-    {'label': 'Research', 'href': '#publications', 'children': [
-        {'label': 'Selected', 'href': '#publications'},
-        {'label': 'Full List', 'href': '/publications/'},
-        {'label': 'Experience', 'href': '#experience'},
+    {'label': 'Research', 'href': '/publications/', 'children': [
+        {'label': 'Publications', 'href': '/publications/'},
+        {'label': 'CV', 'href': '/cv/'},
         {'label': 'News', 'href': '#news'},
     ]},
     {'label': 'Writing', 'href': '/blog/', 'children': [
         {'label': 'Blog', 'href': '/blog/'},
         {'label': 'Garden (notes by maturity)', 'href': '/garden/'},
-        {'label': 'Featured Projects', 'href': '#projects'},
-        {'label': 'All Projects', 'href': '/projects/'},
+        {'label': 'Projects', 'href': '/projects/'},
     ]},
     {'label': 'Demos', 'href': '/demos/', 'children': [
         # Removed the static "Frozen Forecaster → #demos" anchor: the
