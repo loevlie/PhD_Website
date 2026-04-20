@@ -379,6 +379,9 @@
     </script>
     <script src="{% static 'portfolio/js/main.js' %}"></script>
     <script src="{% static 'portfolio/js/frozen-forecaster.js' %}" defer></script>
+    {% comment %}Top progress bar — same script as blog. Reveals only for navigations
+       slower than 150ms, so prerendered/cached jumps stay flicker-free.{% endcomment %}
+    <script src="{% static 'portfolio/js/nav-progress.js' %}" defer></script>
     {% if not user.is_staff %}
     {% comment %}First-party privacy analytics — loads only for non-staff visitors,
        so the author's own browsing doesn't pollute the dashboard.

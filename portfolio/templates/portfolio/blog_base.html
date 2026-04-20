@@ -583,6 +583,12 @@
         </div>
     </footer>
 
+    {% comment %}Top progress bar — gives instant feedback on link click for
+       cold-load navigations (Render free-tier wake, slow connections). The
+       150ms reveal delay means it never flashes when Speculation Rules
+       prerender hits.{% endcomment %}
+    <script src="{% static 'portfolio/js/nav-progress.js' %}" defer></script>
+
     {% block scripts %}{% endblock %}
     {% if not user.is_staff %}
     {% comment %}First-party analytics; staff visits skipped to keep the dashboard

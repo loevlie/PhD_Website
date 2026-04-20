@@ -252,8 +252,12 @@ panel.querySelectorAll('.mobile-disclosure-btn').forEach(function(btn) {
 });
 </script>
 
+{% comment %}Top progress bar — same script as blog. Reveals only for navigations
+   slower than 150ms.{% endcomment %}
+<script src="{% static 'portfolio/js/nav-progress.js' %}" defer></script>
+
 {% if not user.is_staff %}
-{# First-party analytics; staff visits skipped. Respects DNT/GPC server- and client-side. #}
+{% comment %}First-party analytics; staff visits skipped. Respects DNT/GPC server- and client-side.{% endcomment %}
 <script src="{% static 'portfolio/js/analytics.js' %}" defer></script>
 {% endif %}
 </body>
