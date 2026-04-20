@@ -24,6 +24,23 @@
     })();
     </script>
     <style>[x-cloak]{display:none!important}</style>
+    {% comment %}Native cross-document View Transitions — Chrome/Edge/Safari
+       crossfade between pages automatically. Firefox falls back to a hard
+       cut (silent degradation, no flash). Pairs with Speculation Rules:
+       prerendered pages already have a snapshot ready, so the crossfade
+       feels instant. Reduced-motion users get no animation.{% endcomment %}
+    <style>
+        @view-transition { navigation: auto; }
+        ::view-transition-old(root),
+        ::view-transition-new(root) {
+            animation-duration: 220ms;
+            animation-timing-function: cubic-bezier(0.4, 0, 0.2, 1);
+        }
+        @media (prefers-reduced-motion: reduce) {
+            ::view-transition-old(root),
+            ::view-transition-new(root) { animation: none; }
+        }
+    </style>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <meta name="google-site-verification" content="taeW6FXPdYhqD0YVOOdBfMv2h_lGfn_Ku-x9zMF_vfg">

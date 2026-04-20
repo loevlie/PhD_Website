@@ -96,6 +96,23 @@
        stops waiting on a third-party round-trip.{% endcomment %}
     <link rel="stylesheet" href="{% static 'portfolio/css/fonts.css' %}">
 
+    {% comment %}Native cross-document View Transitions — Chrome/Edge/Safari
+       crossfade between pages automatically. Firefox falls back to a hard
+       cut (silent degradation). Pairs with Speculation Rules so prerendered
+       jumps feel instant + considered.{% endcomment %}
+    <style>
+        @view-transition { navigation: auto; }
+        ::view-transition-old(root),
+        ::view-transition-new(root) {
+            animation-duration: 220ms;
+            animation-timing-function: cubic-bezier(0.4, 0, 0.2, 1);
+        }
+        @media (prefers-reduced-motion: reduce) {
+            ::view-transition-old(root),
+            ::view-transition-new(root) { animation: none; }
+        }
+    </style>
+
     <!-- Theme: dark by default (user preference); light is opt-in.
          Apply before CSS paints so we don't flash the wrong theme. -->
     <script>

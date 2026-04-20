@@ -50,6 +50,22 @@
           href="{% static 'portfolio/fonts/ibm-plex-serif-400-latin.woff2' %}">
     <link rel="stylesheet" href="{% static 'portfolio/css/fonts.css' %}">
 
+    {% comment %}Native cross-document View Transitions — Chrome/Edge/Safari
+       crossfade between pages automatically. Firefox falls back silently.
+       Pairs with Speculation Rules so prerendered jumps feel instant.{% endcomment %}
+    <style>
+        @view-transition { navigation: auto; }
+        ::view-transition-old(root),
+        ::view-transition-new(root) {
+            animation-duration: 220ms;
+            animation-timing-function: cubic-bezier(0.4, 0, 0.2, 1);
+        }
+        @media (prefers-reduced-motion: reduce) {
+            ::view-transition-old(root),
+            ::view-transition-new(root) { animation: none; }
+        }
+    </style>
+
     <!-- Theme: dark by default; light is opt-in. -->
     <script>
         (function() {
