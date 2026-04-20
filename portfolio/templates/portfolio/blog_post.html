@@ -585,11 +585,22 @@ If a post has an explicit cover (post.image), that takes precedence.
 {% endblock %}
 
 {% block scripts %}
-<!-- Interactive demos -->
+{% comment %}Interactive demos — each is gated on the presence of its target
+   div in the rendered post HTML, so a post only pulls the JS it actually
+   uses. brain-slices.js is the heaviest (three.js module import) so the
+   biggest win is keeping it off non-MIL posts.{% endcomment %}
+{% if 'lr-interactive-demo' in post.content_html %}
 <script src="{% static 'portfolio/js/lr-demo.js' %}"></script>
+{% endif %}
+{% if 'mil-interactive-demo' in post.content_html %}
 <script src="{% static 'portfolio/js/mil-demo.js' %}"></script>
+{% endif %}
+{% if 'brain-slice-demo' in post.content_html %}
 <script type="module" src="{% static 'portfolio/js/brain-slices.js' %}"></script>
+{% endif %}
+{% if 'mil-pipeline-demo' in post.content_html %}
 <script src="{% static 'portfolio/js/mil-pipeline.js' %}"></script>
+{% endif %}
 <!-- Hover-citation popovers (active wherever <cite class="ref" data-key="..."> appears) -->
 <script defer src="{% static 'portfolio/js/citations.js' %}"></script>
 <!-- Math-notation glossary — hover an inline <span class="g">θ</span>
