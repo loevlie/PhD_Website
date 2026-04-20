@@ -380,10 +380,10 @@
     <script src="{% static 'portfolio/js/main.js' %}"></script>
     <script src="{% static 'portfolio/js/frozen-forecaster.js' %}" defer></script>
     {% if not user.is_staff %}
-    {# First-party privacy analytics — loads only for non-staff visitors,
+    {% comment %}First-party privacy analytics — loads only for non-staff visitors,
        so the author's own browsing doesn't pollute the dashboard.
        Respects DNT / GPC / localStorage opt-out at runtime; the server
-       also enforces these. No third-party requests. #}
+       also enforces these. No third-party requests.{% endcomment %}
     <script src="{% static 'portfolio/js/analytics.js' %}" defer></script>
     {% endif %}
 </body>
