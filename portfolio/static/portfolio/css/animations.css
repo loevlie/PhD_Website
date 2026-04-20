@@ -115,10 +115,13 @@
     inset: 0;
     border-radius: inherit;
     pointer-events: none;
+    /* Softened: smaller radius (140 → was 220), lower-percent accent mix,
+       earlier fade-to-transparent (45% → was 65%). Spotlight is now a
+       hint rather than a wash; max opacity 0.55 instead of 1. */
     background: radial-gradient(
-        220px circle at var(--mx, 50%) var(--my, 50%),
-        var(--accent-bg-light, color-mix(in oklch, var(--accent) 14%, transparent)),
-        transparent 65%
+        140px circle at var(--mx, 50%) var(--my, 50%),
+        color-mix(in oklch, var(--accent) 8%, transparent),
+        transparent 45%
     );
     opacity: 0;
     transition: opacity 220ms ease;
@@ -132,7 +135,7 @@
             0 12px 28px -12px rgba(10, 37, 64, 0.18),
             0 0 0 1px var(--accent-bg-subtle);
     }
-    .tilt-card:hover::before { opacity: 1; }
+    .tilt-card:hover::before { opacity: 0.55; }
 }
 
 /* ─────────────────────────────────────────────────────────────────

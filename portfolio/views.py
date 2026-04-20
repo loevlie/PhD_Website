@@ -115,6 +115,53 @@ def blog_preview(request):
     return JsonResponse({'html': html, 'toc': toc})
 
 
+def _fetch_webmentions(target_url, limit=25, cache_seconds=300):
+    """Fetch incoming webmentions for a URL from the webmention.io public
+    API. Cached locally for `cache_seconds`. Returns a list of dicts:
+    {author, content, url, type, published}. Empty list on any failure.
+
+    No API token required for the public read endpoint — webmention.io
+    serves the JF2 feed for any registered domain at:
+       /api/mentions.jf2?target=<url>
+
+    Until the user registers dennisloevlie.com at webmention.io, this
+    will return [] cleanly. After registration it just starts working."""
+    from django.core.cache import cache
+    import json
+    import urllib.request
+    import urllib.parse
+
+    cache_key = f'webmentions:{target_url}'
+    cached = cache.get(cache_key)
+    if cached is not None:
+        return cached
+
+    api = (
+        'https://webmention.io/api/mentions.jf2?'
+        + urllib.parse.urlencode({'target': target_url, 'per-page': limit, 'sort-dir': 'down'})
+    )
+    items = []
+    try:
+        req = urllib.request.Request(api, headers={'User-Agent': 'dennisloevlie.com/webmentions'})
+        with urllib.request.urlopen(req, timeout=4) as resp:
+            data = json.loads(resp.read().decode('utf-8'))
+        for it in data.get('children', []):
+            author = it.get('author') or {}
+            items.append({
+                'type': it.get('wm-property', 'mention'),
+                'url': it.get('wm-source') or it.get('url'),
+                'author_name': author.get('name', 'Anonymous'),
+                'author_url': author.get('url', ''),
+                'author_photo': author.get('photo', ''),
+                'content': (it.get('content') or {}).get('text', '') if isinstance(it.get('content'), dict) else '',
+                'published': it.get('published') or it.get('wm-received'),
+            })
+    except Exception:
+        items = []
+    cache.set(cache_key, items, cache_seconds)
+    return items
+
+
 def blog_upload_image(request):
     """Editor image upload. POST a multipart `image` file; returns
     {url, markdown}. The editor inserts the markdown snippet at the
@@ -195,11 +242,20 @@ def blog_post(request, slug):
         if any(n in body for n in needles):
             backlinks.append({'slug': p['slug'], 'title': p['title'], 'date': p.get('date')})
 
+    # Webmentions — public-API fetch (cached). Returns [] cleanly until
+    # dennisloevlie.com is registered at webmention.io.
+    target_url = request.build_absolute_uri()
+    # Strip any query string (?stack=...) so all stacked variants share cache.
+    if '?' in target_url:
+        target_url = target_url.split('?', 1)[0]
+    webmentions = _fetch_webmentions(target_url)
+
     return render(request, 'portfolio/blog_post.html', {
         'post': post,
         'series_posts': series_posts,
         'related_posts': related,
         'backlinks': backlinks,
+        'webmentions': webmentions,
     })
 
 

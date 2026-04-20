@@ -544,6 +544,34 @@
     pointer-events: none;
 }
 
+/* Hue-shifting reading progress — the bar's color shifts from cool
+   (accent blue, hue ~250) at the top of the post to warm (gold, hue
+   ~60) by the end. --reading-progress is set 0..100 by the inline
+   scroll handler in blog_post.html. OKLCH gives smooth perceptual
+   hue interpolation; @supports falls through to the original solid
+   accent color for browsers without OKLCH support. */
+.reading-progress-bar {
+    background: var(--color-accent, var(--ctp-lavender, #7287fd));
+    box-shadow: 0 0 8px color-mix(in oklch,
+        var(--color-accent, #7287fd) 60%, transparent);
+}
+@supports (background: oklch(70% 0.15 calc(250 - 1 * 1.9))) {
+    .reading-progress-bar {
+        --reading-progress: 0;
+        background: oklch(
+            70%
+            0.16
+            calc(250 - var(--reading-progress) * 1.9)
+        );
+        box-shadow: 0 0 10px oklch(
+            70%
+            0.16
+            calc(250 - var(--reading-progress) * 1.9) / 0.6
+        );
+        transition: width 60ms linear, background-color 200ms linear;
+    }
+}
+
 /* ── Code Copy Button ── */
 .code-copy-btn {
     position: absolute;
@@ -796,11 +824,32 @@
     align-items: center;
     gap: 12px;
 }
-.explainer-author-avatar {
+.explainer-author-avatar,
+.webmention-avatar,
+.author-squircle {
     width: 40px; height: 40px;
-    border-radius: 50%;
     object-fit: cover;
     border: 1px solid var(--color-border, var(--ctp-surface0, #313244));
+    /* Squircle (Apple-signature shape) via shape() — perceptually rounder
+       than border-radius: 50% but not a circle. Falls through to a
+       circle on browsers without shape() support. */
+    border-radius: 50%;
+}
+.webmention-avatar { width: 32px; height: 32px; }
+
+@supports (clip-path: shape(from 0 0, line to 100% 0)) {
+    .explainer-author-avatar,
+    .author-squircle {
+        border-radius: 22%;
+        clip-path: shape(
+            from 50% 0,
+            curve to 100% 50% with 88% 0  82% 12%,
+            curve to 50% 100% with 100% 82% 88% 100%,
+            curve to 0   50% with 12% 100% 0  88%,
+            curve to 50% 0   with 0   12%  12% 0,
+            close
+        );
+    }
 }
 .explainer-author-name {
     display: block;
@@ -892,7 +941,10 @@
     color: var(--color-content-secondary, var(--ctp-subtext1, #bac2de));
     font-style: italic;
 }
-/* Pull-quote treatment for blockquotes */
+/* Pull-quote treatment for blockquotes — magazine register.
+   Baseline: italic serif with accent left rule.
+   Modern browsers (shape() supported): a soft tail-bearing card
+   with a subtle background, hanging quotation mark in the margin. */
 .is-paper-companion .blog-prose blockquote {
     font-family: 'IBM Plex Serif', Georgia, serif;
     font-size: 1.375rem;
@@ -903,8 +955,38 @@
     padding: 0 0 0 1.5em;
     border-left: 3px solid var(--color-accent, var(--ctp-lavender, #7287fd));
     text-wrap: pretty;
+    position: relative;
 }
 .is-paper-companion .blog-prose blockquote p { margin-bottom: 0.5em; }
+
+/* Hanging quotation mark before the blockquote — pure-CSS, no extra
+   markup. Sized for the serif body; positioned in the left gutter. */
+.is-paper-companion .blog-prose blockquote::before {
+    content: "\201C";  /* &ldquo; */
+    position: absolute;
+    left: -0.05em;
+    top: -0.35em;
+    font-size: 3em;
+    line-height: 1;
+    color: color-mix(in oklch, var(--color-accent, #7287fd) 60%, transparent);
+    font-style: normal;
+    font-weight: 700;
+    pointer-events: none;
+}
+
+/* Modern: shape() turns the blockquote into a soft tail-bearing card
+   with a subtle accent-tinted background. Browsers without shape()
+   keep the simpler rule above. */
+@supports (clip-path: shape(from 0 0, line to 100% 0)) {
+    .is-paper-companion .blog-prose blockquote {
+        background: color-mix(in oklch,
+            var(--color-accent, #7287fd) 6%,
+            var(--color-mantle, var(--ctp-mantle, #181825)));
+        border-left: 0;
+        padding: 1em 1.4em 1em 1.8em;
+        border-radius: 14px;
+    }
+}
 /* Drop cap on the first paragraph */
 .is-paper-companion .blog-prose > p:first-of-type::first-letter {
     font-family: 'IBM Plex Serif', Georgia, serif;

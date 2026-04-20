@@ -31,8 +31,14 @@
 {% endblock %}
 
 {% block content %}
-<!-- Reading progress -->
-<div id="blog-progress" class="fixed top-0 left-0 h-0.5 bg-gradient-to-r from-accent to-indigo-400 z-[60] pointer-events-none transition-[width] duration-75" style="width:0%"></div>
+<!-- Reading progress — hue-shifting bar.
+     Width tracks scroll position (set by inline JS at the bottom).
+     Color shifts from cool accent (hue 250) at the top of the post
+     to warm gold (hue 60) by the end — a subtle reward for finishing.
+     Powered by --reading-progress CSS var (0–100). On modern browsers
+     the bar uses scroll-driven CSS via animation-timeline; older
+     browsers fall back to the JS-driven width transition. -->
+<div id="blog-progress" class="fixed top-0 left-0 h-0.5 z-[60] pointer-events-none transition-[width] duration-75 reading-progress-bar" style="width:0%"></div>
 
 <article class="max-w-article {% if post.is_explainer %}lg:max-w-[1200px]{% elif post.is_paper_companion %}lg:max-w-[760px]{% else %}lg:max-w-[940px]{% endif %} mx-auto px-6 pt-12 pb-16{% if post.is_explainer %} is-explainer{% endif %}{% if post.is_paper_companion %} is-paper-companion{% endif %}">
     <!-- Back link + edit (staff only) -->
@@ -255,6 +261,35 @@
             <button type="submit" class="px-6 py-2.5 bg-accent hover:bg-accent-hover text-white rounded-lg text-sm font-medium transition-colors whitespace-nowrap">Subscribe</button>
         </form>
     </div>
+
+    <!-- Webmentions: incoming social-web replies via webmention.io.
+         Empty until dennisloevlie.com is registered there + Bridgy Fed
+         is enabled (see Mind Mapper note 72). Once active: Mastodon,
+         Bluesky, and other-blog replies show up here automatically. -->
+    {% if webmentions %}
+    <aside class="webmentions-block mt-16 pt-8 border-t border-border">
+        <div class="flex items-center gap-2 mb-4 text-content-muted">
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/></svg>
+            <span class="text-[0.6875rem] font-mono uppercase tracking-wider">Mentioned on the web · {{ webmentions|length }}</span>
+        </div>
+        <ul class="webmentions-list grid gap-4">
+            {% for w in webmentions %}
+            <li class="flex items-start gap-3 text-sm text-content-secondary">
+                {% if w.author_photo %}<img src="{{ w.author_photo }}" alt="" class="webmention-avatar" loading="lazy">{% endif %}
+                <div class="min-w-0 flex-1">
+                    <div class="text-xs text-content-muted mb-0.5">
+                        {% if w.author_url %}<a href="{{ w.author_url }}" rel="noopener" class="hover:text-accent">{{ w.author_name }}</a>{% else %}{{ w.author_name }}{% endif %}
+                        <span class="opacity-50 mx-1">·</span>
+                        <span class="font-mono uppercase tracking-wider text-[0.625rem]">{{ w.type }}</span>
+                        {% if w.url %}<span class="opacity-50 mx-1">·</span><a href="{{ w.url }}" rel="noopener" class="hover:text-accent">↗</a>{% endif %}
+                    </div>
+                    {% if w.content %}<div class="webmention-content text-sm text-content-secondary leading-relaxed">{{ w.content|truncatechars:300 }}</div>{% endif %}
+                </div>
+            </li>
+            {% endfor %}
+        </ul>
+    </aside>
+    {% endif %}
 
     <!-- Backlinks: "what links here" — other posts that reference this one.
          Garden-style affordance; reader-rewarding because it surfaces the
@@ -494,6 +529,10 @@
             var rect = article.getBoundingClientRect();
             var pct = Math.max(0, Math.min(100, (-rect.top / (article.offsetHeight - window.innerHeight)) * 100));
             bar.style.width = pct + '%';
+            // Expose progress as a CSS var so the bar's hue can shift
+            // smoothly from cool to warm via OKLCH calc() — see
+            // .reading-progress-bar in blog.css.
+            bar.style.setProperty('--reading-progress', pct);
         }, { passive: true });
     }
 
