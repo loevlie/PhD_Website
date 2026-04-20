@@ -39,11 +39,11 @@
         <a href="{% url 'blog' %}?drafts=1" class="px-3 py-1 rounded-full text-xs font-medium transition-colors {% if only_drafts %}bg-accent text-white{% else %}bg-surface-2 text-content-secondary hover:text-content{% endif %}">Drafts only</a>
     </div>
     {% endif %}
-    {# Tag filter dropdown — replaces the wrap-everywhere chip row.
+    {% comment %}Tag filter dropdown — replaces the wrap-everywhere chip row.
        Scales to N tags without eating vertical space. Mirrors the
        theme-picker pattern in blog_base.html for visual consistency.
        Per-tag buttons are appended by the inline script below before
-       Alpine initializes (defer), so Alpine binds them on first pass. #}
+       Alpine initializes (defer), so Alpine binds them on first pass.{% endcomment %}
     <div x-cloak class="mb-10" x-data="{ filterOpen: false }" @keydown.escape.window="filterOpen = false">
         <div class="relative inline-block">
             <button @click="filterOpen = !filterOpen"
