@@ -596,6 +596,17 @@ If a post has an explicit cover (post.image), that takes precedence.
 <script src="{% static 'portfolio/js/mil-demo.js' %}"></script>
 {% endif %}
 {% if 'brain-slice-demo' in post.content_html %}
+{% comment %}three.js bare-specifier resolver. Must be parsed before the
+   consuming module script — both live in this same gated block so they
+   stay co-located with the only post that needs three.js.{% endcomment %}
+<script type="importmap">
+{
+    "imports": {
+        "three": "https://unpkg.com/three@0.160.0/build/three.module.js",
+        "three/addons/": "https://unpkg.com/three@0.160.0/examples/jsm/"
+    }
+}
+</script>
 <script type="module" src="{% static 'portfolio/js/brain-slices.js' %}"></script>
 {% endif %}
 {% if 'mil-pipeline-demo' in post.content_html %}

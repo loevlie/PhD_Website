@@ -497,15 +497,9 @@
        no longer depends on a third-party CDN round-trip.{% endcomment %}
     <script defer src="{% static 'portfolio/js/vendor/alpine-3.14.1.min.js' %}"></script>
 
-    <!-- Three.js import map (ready for future interactive visuals) -->
-    <script type="importmap">
-    {
-        "imports": {
-            "three": "https://unpkg.com/three@0.160.0/build/three.module.js",
-            "three/addons/": "https://unpkg.com/three@0.160.0/examples/jsm/"
-        }
-    }
-    </script>
+    {% comment %}three.js importmap is no longer here — moved into the
+       brain-slices.js gate in blog_post.html so blog pages that don't use
+       three.js stay free of the JSON declaration entirely.{% endcomment %}
 
     {% block extra_head %}{% endblock %}
 </head>

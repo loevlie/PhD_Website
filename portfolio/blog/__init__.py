@@ -385,7 +385,10 @@ def _post_to_dict(post_obj, render_html=True):
         'date': post_obj.date,
         'updated': post_obj.updated,
         'author': post_obj.author,
-        'tags': list(post_obj.tags.names()),
+        # Use .all() (not .names()) so this hits the prefetch_related cache
+        # set up in _load_all_posts. .names() would issue a fresh query per
+        # post and defeat the prefetch entirely (5 queries for 2 posts → 3).
+        'tags': [t.name for t in post_obj.tags.all()],
         'excerpt': post_obj.excerpt,
         'image': post_obj.image,
         'draft': post_obj.draft,
