@@ -33,6 +33,7 @@ class Command(BaseCommand):
                     'series_order': fm.get('series_order', 0),
                     'medium_url': fm.get('medium_url', ''),
                     'draft': fm.get('draft', False),
+                    'is_explainer': fm.get('is_explainer', False),
                 },
             )
             # Set tags
