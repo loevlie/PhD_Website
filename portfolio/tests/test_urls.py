@@ -99,6 +99,29 @@ class PublicUrlsRespondTests(StaffClientMixin, TestCase):
         self.assertContains(r, 'Draft one')
         self.assertNotContains(r, 'Live one')
 
+    def test_media_route_serves_existing_file(self):
+        """Pyfig PNGs and editor image uploads live under /media/. The
+        URL must serve them in both dev and production (DEBUG=False)."""
+        from django.conf import settings as dj_settings
+        from pathlib import Path
+        media_root = Path(dj_settings.MEDIA_ROOT)
+        media_root.mkdir(parents=True, exist_ok=True)
+        test_file = media_root / 'route-test.txt'
+        test_file.write_bytes(b'hello from media')
+        try:
+            r = self.anon_client.get('/media/route-test.txt')
+            self.assertEqual(r.status_code, 200)
+            self.assertEqual(b''.join(r.streaming_content) if r.streaming else r.content, b'hello from media')
+        except AttributeError:
+            r = self.anon_client.get('/media/route-test.txt')
+            self.assertEqual(r.status_code, 200)
+        finally:
+            test_file.unlink(missing_ok=True)
+
+    def test_media_route_404s_missing_file(self):
+        r = self.anon_client.get('/media/no-such-file-xyz.png')
+        self.assertEqual(r.status_code, 404)
+
     def test_blog_drafts_filter_ignored_for_anon(self):
         make_post(slug='live-2', title='Live two')
         make_post(slug='draft-2', title='Draft two', draft=True)
