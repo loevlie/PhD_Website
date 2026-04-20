@@ -41,7 +41,7 @@ If a post has an explicit cover (post.image), that takes precedence.
 
 {% block extra_head %}
 <link rel="stylesheet" href="{% static 'portfolio/css/pygments.css' %}">
-<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/katex@0.16.9/dist/katex.min.css">
+<link rel="stylesheet" href="{% static 'portfolio/vendor/katex/katex.min.css' %}">
 {% endblock %}
 
 {% block content %}
@@ -375,26 +375,54 @@ If a post has an explicit cover (post.image), that takes precedence.
     </div>
     {% endif %}
 
-    <!-- Comments -->
-    <div class="mt-16 pt-8 border-t border-border">
+    {% comment %}Comments — Giscus is heavy (third-party iframe + GitHub
+       discussions). Inject the script only when the user scrolls near the
+       comments section so cold post loads stop fetching it. IntersectionObserver
+       fires once at 400px from viewport, then we drop the observer.{% endcomment %}
+    <div class="mt-16 pt-8 border-t border-border" id="comments">
         <h2 class="text-xl font-semibold text-content mb-6">Comments</h2>
-        <script src="https://giscus.app/client.js"
-            data-repo="loevlie/PhD_Website"
-            data-repo-id="R_kgDORfhvhw"
-            data-category="Blog Comments"
-            data-category-id="DIC_kwDORfhvh84C59cS"
-            data-mapping="pathname"
-            data-strict="0"
-            data-reactions-enabled="1"
-            data-emit-metadata="0"
-            data-input-position="top"
-            data-theme="preferred_color_scheme"
-            data-lang="en"
-            data-loading="lazy"
-            crossorigin="anonymous"
-            async>
-        </script>
+        <div id="giscus-mount" data-loaded="false"></div>
     </div>
+    <script>
+    (function() {
+        var mount = document.getElementById('giscus-mount');
+        if (!mount || mount.dataset.loaded === 'true') return;
+        function load() {
+            if (mount.dataset.loaded === 'true') return;
+            mount.dataset.loaded = 'true';
+            var s = document.createElement('script');
+            s.src = 'https://giscus.app/client.js';
+            s.crossOrigin = 'anonymous';
+            s.async = true;
+            var attrs = {
+                'data-repo': 'loevlie/PhD_Website',
+                'data-repo-id': 'R_kgDORfhvhw',
+                'data-category': 'Blog Comments',
+                'data-category-id': 'DIC_kwDORfhvh84C59cS',
+                'data-mapping': 'pathname',
+                'data-strict': '0',
+                'data-reactions-enabled': '1',
+                'data-emit-metadata': '0',
+                'data-input-position': 'top',
+                'data-theme': 'preferred_color_scheme',
+                'data-lang': 'en',
+                'data-loading': 'lazy'
+            };
+            Object.keys(attrs).forEach(function(k) { s.setAttribute(k, attrs[k]); });
+            mount.appendChild(s);
+        }
+        if ('IntersectionObserver' in window) {
+            var io = new IntersectionObserver(function(entries) {
+                entries.forEach(function(e) {
+                    if (e.isIntersecting) { load(); io.disconnect(); }
+                });
+            }, { rootMargin: '400px' });
+            io.observe(mount);
+        } else {
+            load();  // older browsers — just load
+        }
+    })();
+    </script>
 </article>
 
 {% if post.toc_html %}
@@ -548,8 +576,8 @@ If a post has an explicit cover (post.image), that takes precedence.
 {% endwith %}
 
 <!-- KaTeX -->
-<script defer src="https://cdn.jsdelivr.net/npm/katex@0.16.9/dist/katex.min.js"></script>
-<script defer src="https://cdn.jsdelivr.net/npm/katex@0.16.9/dist/contrib/auto-render.min.js"
+<script defer src="{% static 'portfolio/vendor/katex/katex.min.js' %}"></script>
+<script defer src="{% static 'portfolio/vendor/katex/auto-render.min.js' %}"
     onload="renderMathInElement(document.querySelector('.blog-prose'), {
         delimiters: [{left:'$$',right:'$$',display:true},{left:'$',right:'$',display:false}],
         throwOnError: false

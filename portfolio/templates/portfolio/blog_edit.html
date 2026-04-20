@@ -6,7 +6,7 @@
 
 {% block extra_head %}
 <link rel="stylesheet" href="{% static 'portfolio/css/pygments.css' %}">
-<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/katex@0.16.9/dist/katex.min.css">
+<link rel="stylesheet" href="{% static 'portfolio/vendor/katex/katex.min.css' %}">
 <style>
 /* Editor chrome — fits inside blog_base layout */
 .editor-shell { display: grid; grid-template-rows: auto 1fr; height: calc(100vh - 64px); position: relative; }
@@ -467,8 +467,8 @@
     </aside>
 </form>
 
-<script defer src="https://cdn.jsdelivr.net/npm/katex@0.16.9/dist/katex.min.js"></script>
-<script defer src="https://cdn.jsdelivr.net/npm/katex@0.16.9/dist/contrib/auto-render.min.js"></script>
+<script defer src="{% static 'portfolio/vendor/katex/katex.min.js' %}"></script>
+<script defer src="{% static 'portfolio/vendor/katex/auto-render.min.js' %}"></script>
 <script>
 (function() {
     const form = document.getElementById('editor-form');
