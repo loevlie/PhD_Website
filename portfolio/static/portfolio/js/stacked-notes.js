@@ -35,11 +35,15 @@
     if (window.innerWidth < NARROW_BREAKPOINT) return;
 
     /* ---------- DOM scaffolding ----------------------------------- */
+    // Lazy: don't restructure the DOM at all until the first push. The
+    // original article stays in its centered position (Tailwind mx-auto)
+    // and we only wrap it in the flex stack container when the user
+    // actually opens a side column. This keeps the default-case layout
+    // identical to a normal blog post.
     function ensureContainer() {
         let stack = document.getElementById('blog-stack');
         if (stack) return stack;
         const main = document.querySelector('article') || document.querySelector('main') || document.body;
-        // Wrap the existing main column inside a flex stack container.
         stack = document.createElement('div');
         stack.id = 'blog-stack';
         stack.className = 'blog-stack';
@@ -50,6 +54,19 @@
         root.appendChild(main);
         stack.appendChild(root);
         return stack;
+    }
+    function teardownContainerIfEmpty() {
+        const stack = document.getElementById('blog-stack');
+        if (!stack) return;
+        // If only the root column remains (no pushed/loading), unwrap.
+        const pushed = stack.querySelectorAll('.blog-stack-column--pushed, .blog-stack-column--loading');
+        if (pushed.length) return;
+        const root = stack.querySelector('.blog-stack-root');
+        if (!root) return;
+        const main = root.firstElementChild;
+        if (!main) return;
+        stack.parentNode.insertBefore(main, stack);
+        stack.remove();
     }
 
     function makeColumn(slug, articleHTML) {
@@ -118,6 +135,7 @@
         setTimeout(() => {
             col.remove();
             syncURL();
+            teardownContainerIfEmpty();
         }, 180);
     }
 
@@ -179,11 +197,14 @@
 
     /* ---------- Init ---------------------------------------------- */
     function init() {
-        ensureContainer();
+        // Don't pre-wrap. Wire links first; the wrapper appears lazily
+        // on the first push (so the default-case article stays in its
+        // natural Tailwind-mx-auto centered layout).
         wireLinksIn(document);
 
         // Restore stacked columns from URL
-        getStackParam().forEach(slug => pushSlug(slug));
+        const initialStack = getStackParam();
+        initialStack.forEach(slug => pushSlug(slug));
 
         // Esc closes the rightmost column
         document.addEventListener('keydown', (e) => {
