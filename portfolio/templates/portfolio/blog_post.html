@@ -183,7 +183,7 @@ If a post has an explicit cover (post.image), that takes precedence.
         <div class="flex gap-2 flex-wrap mt-5 items-center">
             {% if post.maturity %}<span class="maturity-badge maturity-{{ post.maturity }}">{{ post.maturity|title }}</span>{% endif %}
             {% for tag in post.tags %}
-            <span class="text-xs px-2.5 py-1 rounded-md bg-surface-2 text-content-muted border border-border">{{ tag }}</span>
+            <a href="{% url 'tag_detail' tag|slugify %}" class="text-xs px-2.5 py-1 rounded-md bg-surface-2 text-content-muted border border-border hover:text-accent hover:border-accent/40 transition-colors">{{ tag }}</a>
             {% endfor %}
         </div>
 
