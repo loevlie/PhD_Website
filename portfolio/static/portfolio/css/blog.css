@@ -1591,3 +1591,26 @@
     background: var(--color-accent, var(--ctp-lavender, #7287fd));
 }
 
+
+/* ─────────────────────────────────────────────────────────────────────
+   Callout asides — `<aside class="callout">…</aside>`
+   Used by the /callout slash command and the Python-figure error path.
+───────────────────────────────────────────────────────────────────── */
+.blog-prose .callout {
+    margin: 1.5em 0;
+    padding: 14px 18px;
+    border-left: 3px solid var(--color-accent, var(--ctp-lavender, #7287fd));
+    background: color-mix(in oklch, var(--color-accent, #7287fd) 6%,
+                          var(--color-bg-alt, var(--ctp-mantle, transparent)));
+    border-radius: 0 8px 8px 0;
+    font-size: 0.9375em;
+    line-height: 1.55;
+}
+.blog-prose .callout > strong:first-child { color: var(--color-accent, var(--ctp-lavender, #7287fd)); }
+
+.blog-prose .callout--error {
+    border-left-color: var(--ctp-red, #f38ba8);
+    background: color-mix(in oklch, var(--ctp-red, #f38ba8) 8%,
+                          var(--color-bg-alt, transparent));
+}
+.blog-prose .callout--error > strong:first-child { color: var(--ctp-red, #f38ba8); }

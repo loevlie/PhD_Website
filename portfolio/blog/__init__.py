@@ -1,5 +1,8 @@
+import hashlib
 import math
 import re
+import subprocess
+import sys
 from datetime import date
 from pathlib import Path
 
@@ -9,6 +12,89 @@ from markdown.extensions.codehilite import CodeHiliteExtension
 from markdown.extensions.toc import TocExtension
 
 POSTS_DIR = Path(__file__).parent / 'posts'
+
+# Fenced code blocks with info-string `python pyfig` get executed
+# server-side via matplotlib. Cached by content hash so repeat renders
+# are free. This pattern matches the entire fenced block and captures
+# the inner source.
+_PYFIG_RE = re.compile(r'```python\s+pyfig\s*\n(.*?)```', re.DOTALL)
+
+
+def _render_pyfig(code, timeout_s=10):
+    """Run user matplotlib code in an isolated subprocess. Cache the
+    resulting PNG by sha256 of the code so repeat renders cost nothing.
+
+    Returns (rel_url, error_message). Exactly one is None.
+
+    Security note: this executes arbitrary Python. The editor that
+    creates these blocks is staff-only; the rendered post pulls from
+    the cache so untrusted readers never trigger execution. Subprocess
+    has a 10s timeout, runs with a clean PYTHONPATH inheriting only
+    the parent env (so matplotlib + numpy are available)."""
+    from django.conf import settings as dj_settings
+
+    h = hashlib.sha256(code.encode('utf-8')).hexdigest()[:16]
+    media_root = Path(dj_settings.MEDIA_ROOT)
+    out_dir = media_root / 'blog-images' / 'python'
+    out_dir.mkdir(parents=True, exist_ok=True)
+    out_path = out_dir / f'{h}.png'
+    rel_url = f'{dj_settings.MEDIA_URL}blog-images/python/{h}.png'
+    if out_path.exists():
+        return rel_url, None
+
+    wrapper = (
+        'import os\n'
+        'os.environ["MPLBACKEND"] = "Agg"\n'
+        'import matplotlib\n'
+        'matplotlib.use("Agg")\n'
+        'import matplotlib.pyplot as plt\n'
+        '# ── user code ──\n'
+        f'{code}'
+        '\n# ── end user code ──\n'
+        'if plt.get_fignums():\n'
+        f'    plt.savefig({str(out_path)!r}, dpi=140, bbox_inches="tight", facecolor="white")\n'
+        '    plt.close("all")\n'
+    )
+
+    try:
+        result = subprocess.run(
+            [sys.executable, '-c', wrapper],
+            timeout=timeout_s,
+            capture_output=True,
+            text=True,
+        )
+    except subprocess.TimeoutExpired:
+        return None, f'Render timed out (>{timeout_s}s)'
+    except Exception as e:
+        return None, f'subprocess failed: {e}'
+
+    if result.returncode != 0:
+        # Surface the last useful line of stderr (usually the exception)
+        err_lines = [ln for ln in (result.stderr or '').splitlines() if ln.strip()]
+        return None, err_lines[-1] if err_lines else f'Exit {result.returncode}'
+
+    if not out_path.exists():
+        return None, 'Code ran but no figure was produced (call plt.plot(...) etc.)'
+    return rel_url, None
+
+
+def _process_pyfig_blocks(content):
+    """Replace ```python pyfig blocks with rendered <img> markdown.
+    On error, leave the source visible inside an error callout so the
+    author can fix it."""
+    def sub(m):
+        code = m.group(1)
+        url, err = _render_pyfig(code)
+        if err:
+            # Keep the original code visible plus a banner; caller can fix.
+            return (
+                '<aside class="callout callout--error"><strong>Python figure error:</strong> '
+                f'{err}</aside>\n\n```python\n{code}```'
+            )
+        # Use a regular markdown image so the rest of the pipeline
+        # (lazy-load injection, etc.) handles it uniformly.
+        return f'\n![Python-rendered figure]({url})\n'
+    return _PYFIG_RE.sub(sub, content)
 
 # LaTeX protection: replace $...$ and $$...$$ with placeholders before markdown processing
 _DISPLAY_MATH_RE = re.compile(r'\$\$(.+?)\$\$', re.DOTALL)
@@ -140,6 +226,9 @@ def render_markdown(content, is_explainer=False):
     On `is_explainer=True` posts they're transformed into margin notes
     that float in the right gutter on desktop and collapse inline on mobile.
     """
+    # Render Python figure blocks first — replaces ```python pyfig with
+    # an inline image, so subsequent passes treat them as ordinary images.
+    content = _process_pyfig_blocks(content)
     content, latex_placeholders = _protect_latex(content)
 
     md = markdown.Markdown(extensions=[

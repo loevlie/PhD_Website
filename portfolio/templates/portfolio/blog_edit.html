@@ -496,36 +496,80 @@
     // ── Slash-command menu ──────────────────────────────────────────
     // Insert scaffolds for common patterns. Trigger by typing "/" at
     // start-of-line or after whitespace, OR by pressing ⌘/.
+    //
+    // Each command has either:
+    //   insert: () => "text"        (with optional cursor: <offset from start>)
+    //   action: () => void          (handles insertion itself; e.g. opens a picker)
     const COMMANDS = [
         { id: 'sidenote', label: 'Sidenote', icon: '⌭', desc: 'Tufte-style margin note',
           insert: () => sidenoteInsert() },
         { id: 'cite',     label: 'Citation', icon: '¹', desc: 'Hover-revealing citation pill',
           insert: () => '<cite class="ref" data-key="key2024">[1]</cite>' },
         { id: 'math',     label: 'Math block', icon: 'Σ', desc: 'KaTeX display math',
-          insert: () => '\n$$\n  \\\\\n$$\n', cursor: 4 },
-        { id: 'imath',    label: 'Inline math', icon: 'σ', desc: 'KaTeX inline math',
-          insert: () => '$\\,$', cursor: 1 },
-        { id: 'figure',   label: 'Figure', icon: '▢', desc: 'Image with caption',
-          insert: () => '\n![caption](url)\n' },
+          // Layout: \n$$\n\n$$\n — cursor lands on the empty middle line.
+          insert: () => '\n$$\n\n$$\n', cursor: 4 },
+        { id: 'imath',    label: 'Inline math', icon: 'σ', desc: 'KaTeX inline math ($x$)',
+          // $$ with cursor between the dollars, ready for math.
+          insert: () => '$$', cursor: 1 },
+        { id: 'figure',   label: 'Figure (upload)', icon: '▢', desc: 'Pick an image; uploads + inserts at cursor',
+          action: () => openFigurePicker() },
+        { id: 'pyfig',    label: 'Python figure', icon: '🐍', desc: 'matplotlib code block — rendered server-side',
+          insert: () => (
+              '\n```python pyfig\n' +
+              'import matplotlib.pyplot as plt\n' +
+              'fig, ax = plt.subplots(figsize=(7, 4))\n' +
+              'ax.plot([1, 2, 3, 4], [1, 4, 9, 16])\n' +
+              'ax.set_xlabel("x"); ax.set_ylabel("y")\n' +
+              'ax.set_title("My figure")\n' +
+              'plt.tight_layout()\n' +
+              '```\n'
+          ) },
         { id: 'quote',    label: 'Blockquote', icon: '❝', desc: 'Standard blockquote',
           insert: () => '\n> A quote\n>\n> — Author\n' },
         { id: 'pullquote', label: 'Pull-quote', icon: '«', desc: 'Magazine-style pull quote',
           insert: () => '\n<blockquote class="pullquote">A line worth pulling out.</blockquote>\n' },
         { id: 'codeblock', label: 'Code block', icon: '⌘', desc: 'Fenced code with language',
+          // \n```python\n\n```\n — empty line between the fences for typing.
           insert: () => '\n```python\n\n```\n', cursor: 11 },
         { id: 'callout',  label: 'Callout', icon: '◉', desc: 'Aside / note callout',
-          insert: () => '\n<aside class="callout"><strong>Note:</strong> </aside>\n', cursor: 36 },
+          // Cursor lands right before </aside>, after "Note: " — len("\n<aside class=\"callout\"><strong>Note:</strong> ") = 47
+          insert: () => '\n<aside class="callout"><strong>Note:</strong> </aside>\n', cursor: 47 },
         { id: 'glossary', label: 'Notation', icon: 'ℰ', desc: 'Hoverable math symbol',
           insert: () => '<span class="g" data-g="θ">θ</span>' },
         { id: 'h2',       label: 'Heading 2', icon: 'H₂', desc: 'Section heading',
-          insert: () => '\n## Heading\n\n' },
+          insert: () => '\n## Heading\n\n', cursor: 4 },
         { id: 'h3',       label: 'Heading 3', icon: 'H₃', desc: 'Subsection heading',
-          insert: () => '\n### Subheading\n\n' },
+          insert: () => '\n### Subheading\n\n', cursor: 5 },
         { id: 'demo',     label: 'Demo embed', icon: '◫', desc: 'Embed a homepage demo',
           insert: () => '<div class="demo-embed" data-slug="frozen-forecaster"></div>' },
         { id: 'table',    label: 'Table', icon: '⊞', desc: '3×3 markdown table',
           insert: () => '\n| col1 | col2 | col3 |\n|------|------|------|\n| a    | b    | c    |\n| d    | e    | f    |\n' },
+        { id: 'hr',       label: 'Section break', icon: '⎯', desc: 'Horizontal rule (---)',
+          insert: () => '\n\n---\n\n' },
     ];
+
+    // ── /figure → file picker handler ───────────────────────────────
+    // Reuses the existing /blog/upload-image/ endpoint and the same
+    // upload status feedback as drag-drop / paste.
+    let figurePicker = null;
+    function getFigurePicker() {
+        if (figurePicker) return figurePicker;
+        figurePicker = document.createElement('input');
+        figurePicker.type = 'file';
+        figurePicker.accept = 'image/*';
+        figurePicker.style.display = 'none';
+        figurePicker.addEventListener('change', async () => {
+            const f = figurePicker.files && figurePicker.files[0];
+            if (!f) return;
+            await uploadFile(f);
+            figurePicker.value = '';  // reset for next pick
+        });
+        document.body.appendChild(figurePicker);
+        return figurePicker;
+    }
+    function openFigurePicker() {
+        getFigurePicker().click();
+    }
 
     function sidenoteInsert() {
         // Inserts [^slugN] at cursor and appends [^slugN]: ... at the end.
@@ -659,10 +703,15 @@
         // Strip the "/query" trigger
         body.value = body.value.substring(0, start) + body.value.substring(end);
         body.selectionStart = body.selectionEnd = start;
-        // Insert the snippet at the now-cleaned cursor
-        const snippet = cmd.insert();
-        insertAtCursor(snippet, cmd.cursor);
         closeMenu();
+        // Two command shapes: `insert()` returns text (most common);
+        // `action()` handles its own work (e.g. opens a file picker).
+        if (typeof cmd.action === 'function') {
+            cmd.action();
+        } else {
+            const snippet = cmd.insert();
+            insertAtCursor(snippet, cmd.cursor);
+        }
         body.focus();
     }
 
