@@ -473,8 +473,10 @@
         .giscus { margin-top: 1rem; }
     </style>
 
-    <!-- Alpine.js -->
-    <script defer src="https://cdn.jsdelivr.net/npm/alpinejs@3.x.x/dist/cdn.min.js"></script>
+    {% comment %}Alpine.js — vendored locally (from npm alpinejs@3.14.1) so WhiteNoise
+       serves it with a hashed filename + immutable caching, and first-paint
+       no longer depends on a third-party CDN round-trip.{% endcomment %}
+    <script defer src="{% static 'portfolio/js/vendor/alpine-3.14.1.min.js' %}"></script>
 
     <!-- Three.js import map (ready for future interactive visuals) -->
     <script type="importmap">
