@@ -745,25 +745,59 @@ button.pub-cite-btn {
 .pub-compact-item {
     display: flex;
     gap: 24px;
-    padding: 20px 0;
+    padding: 22px 20px;
+    margin: 0 -20px;
+    border-radius: 10px;
+    border: 1px solid transparent;
+    transition: background 200ms ease, border-color 200ms ease, transform 200ms var(--ease-spring, ease);
+    position: relative;
+}
+
+.pub-compact-item:not(:last-child) {
     border-bottom: 1px solid var(--border-color);
+    border-radius: 10px 10px 0 0;
+}
+
+@media (hover: hover) and (prefers-reduced-motion: no-preference) {
+    .pub-compact-item:hover {
+        background: var(--accent-bg-subtle);
+        border-color: var(--accent-bg-medium);
+        border-radius: 10px;
+    }
 }
 
 .pub-compact-item:first-child {
-    padding-top: 0;
+    padding-top: 22px;
 }
 
 .pub-compact-item:last-child {
     border-bottom: none;
 }
 
+/* Selected publications get a subtle accent ribbon on the left */
+.pub-compact-item:has(.pub-compact-star)::before {
+    content: "";
+    position: absolute;
+    left: 0;
+    top: 22px;
+    bottom: 22px;
+    width: 3px;
+    border-radius: 2px;
+    background: linear-gradient(180deg,
+                var(--accent),
+                color-mix(in oklch, var(--accent) 50%, transparent));
+}
+
 .pub-compact-year {
     flex-shrink: 0;
-    width: 48px;
-    font-size: var(--small-size);
-    font-weight: 700;
+    width: 56px;
+    font-family: var(--font-mono);
+    font-size: 0.875rem;
+    font-weight: 600;
     color: var(--text-muted);
-    padding-top: 2px;
+    padding-top: 4px;
+    font-variant-numeric: tabular-nums;
+    letter-spacing: 0.02em;
 }
 
 .pub-compact-body {
@@ -2455,6 +2489,111 @@ button.pub-cite-btn {
 /* (Earlier draft of a Cmd+K palette removed: the existing .cmdk
    palette in base.html is canonical. Adding /now and Lab Notebook
    to its data was the only change needed.) */
+
+/* ============================================================
+   404 page — editorial, search-forward.
+   ============================================================ */
+.not-found {
+    padding-top: clamp(80px, 12vh, 160px);
+    padding-bottom: clamp(80px, 10vh, 144px);
+}
+
+.not-found-inner {
+    max-width: 640px;
+    margin: 0 auto;
+}
+
+.not-found-eyebrow {
+    font-family: var(--font-mono);
+    font-size: 0.875rem;
+    text-transform: uppercase;
+    letter-spacing: 0.18em;
+    color: var(--accent);
+    margin: 0 0 24px;
+}
+
+.not-found-title {
+    font-family: var(--font-serif);
+    font-size: clamp(2rem, 1.5rem + 2.4vw, 3rem);
+    line-height: 1.1;
+    letter-spacing: -0.02em;
+    font-weight: 600;
+    color: var(--text-primary);
+    margin: 0 0 24px;
+    text-wrap: balance;
+}
+
+.not-found-lede {
+    font-family: var(--font-serif);
+    font-size: 1.125rem;
+    line-height: 1.6;
+    color: var(--text-secondary);
+    margin: 0 0 36px;
+    text-wrap: pretty;
+}
+
+.not-found-lede kbd {
+    font-family: var(--font-mono);
+    font-size: 0.8125rem;
+    color: var(--text-primary);
+    background: var(--bg-tertiary);
+    border: 1px solid var(--border-color);
+    padding: 1px 5px;
+    border-radius: 4px;
+    margin: 0 1px;
+}
+
+.not-found-links {
+    list-style: none;
+    padding: 0;
+    margin: 0 0 48px;
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+    gap: 12px 24px;
+    border-top: 1px solid var(--border-color);
+    border-bottom: 1px solid var(--border-color);
+    padding: 20px 0;
+}
+
+.not-found-links li {
+    display: flex;
+    flex-direction: column;
+}
+
+.not-found-links a {
+    font-family: var(--font-family);
+    font-size: 1rem;
+    font-weight: 600;
+    color: var(--text-primary);
+    text-decoration: none;
+    transition: color 150ms ease;
+}
+
+.not-found-links a:hover {
+    color: var(--accent);
+}
+
+.not-found-links span {
+    font-size: 0.8125rem;
+    color: var(--text-muted);
+    margin-top: 2px;
+}
+
+.not-found-foot {
+    font-size: 0.875rem;
+    color: var(--text-muted);
+    margin: 0;
+}
+
+.not-found-foot a {
+    color: var(--accent);
+    text-decoration: none;
+    border-bottom: 1px dotted var(--accent-bg-medium);
+}
+
+.not-found-foot a:hover {
+    border-bottom-style: solid;
+}
 
 /* ============================================================
    LAB NOTEBOOK — /demos/

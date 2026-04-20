@@ -247,3 +247,84 @@ Added two `<link rel="preload" as="font" type="font/woff2" crossorigin>` tags fo
 
 **Files:** `portfolio/static/portfolio/css/sections.css`
 
+---
+
+## Round 2 — visible-impact pass
+
+After round 1 the user noted the explainer template "looks almost as good (very similar) as before." Round 2 is about making the changes register at first glance and adding several substantive new pieces.
+
+### 16. Bug fixes (regressions from round 1)
+
+**(a) `_has_db()` returned True if the Post table existed regardless of contents.** Today's `migrate` created the empty table for the first time on this dev box, so the blog stopped falling through to file-based posts. Fix: `_has_db()` now returns `Post.objects.exists()` — table + at least one row required — so the markdown-author workflow keeps working without a populated DB.
+
+**(b) `blog_base.html` only loaded `blog-tw.css` (compiled Tailwind).** All the new sidenote / hover-citation / explainer-badge CSS lived in `blog.css` which wasn't linked. Fix: added `<link>` for `blog.css`. Did NOT inject `variables.css` into the blog scope (it would override the blog's themed `--color-accent` from Catppuccin). Instead, all sidenote/citation rules now route through the blog's existing tokens via `var(--color-accent, var(--ctp-lavender, #fallback))` fallback chains so the blog theme is preserved.
+
+**Files:** `portfolio/blog/__init__.py`, `portfolio/templates/portfolio/blog_base.html`, `portfolio/static/portfolio/css/blog.css`
+
+### 17. Dramatic explainer header redesign
+
+**What:** Explainer posts now have a centered editorial header that reads as a magazine feature, not a blog post:
+- ALL-CAPS pill **eyebrow** at the top with date (`EXPLAINER · APRIL 2026`)
+- Very large centered **serif title** (clamp 32 → 60 px, IBM Plex Serif, tight letter-spacing)
+- Italic serif **lede** paragraph centered below the title
+- Meta row: author block on left, `dt/dd` stat cards on right (Reading / Words / Updated)
+- Tag row centered at bottom of header
+- **Drop cap** on the first paragraph of the prose
+
+Regular blog posts use the existing minimalist header — no change for them.
+
+**Why:** The original explainer header was the same markup as a regular post with one extra badge. The user couldn't tell explainer posts apart at first glance. This is the visual register that signals "this is long-form, sit down."
+
+**Files:** `portfolio/templates/portfolio/blog_post.html`, `portfolio/static/portfolio/css/blog.css`
+
+### 18. New `/now/` page (Derek Sivers convention)
+
+**What:** Single editorial page at `/now/` that says what Dennis is focused on right now. Five sections (Research / Reading / Building / Applying / Life), serif body, dated, with footer linking to inspirations (Sivers, Newport, nownownow.com). Content lives in `NOW_PAGE` dict in `data.py` so it's editable without touching templates.
+
+**Why:** Per the design research synthesis, `/now` pages are a strong taste signal for FAANG/ELLIS reviewers and the cheapest credibility tool for academic personal sites. Also added to the Cmd+K palette.
+
+**Maintenance:** Update quarterly. The `updated` field at the top of `NOW_PAGE` is what the page displays — keeping it fresh is the whole point.
+
+**Files:** `portfolio/data.py` (NOW_PAGE dict), `portfolio/views.py` (now view), `portfolio/urls.py` (route), `portfolio/templates/portfolio/now.html`, `portfolio/static/portfolio/css/sections.css`
+
+### 19. Publications page filters + per-paper BibTeX export
+
+**What:**
+- New filter chips at the top: filter by year + by type (conference / journal / etc.). Click a chip → JS filters the visible items in place. "All" chip resets.
+- Each publication row gets a "BibTeX" copy button that uses `navigator.clipboard.writeText(pub.bibtex)` with a 1.4-s "✓ Copied" flash.
+- "Copy all BibTeX" button on the toolbar exports the BibTeX of all currently-visible (post-filter) publications.
+- Selected publications get a subtle accent gradient ribbon on the left edge.
+- Hover on any pub row: lifts into a subtle accent-tinted card.
+- Year column is now `font-mono` with tabular-nums for clean alignment.
+
+**Why:** The publications page is one of the highest-leverage pages for academic credibility. Hover popovers don't fit the listing register; per-row Cite buttons do, and they remove a friction point ("how do I get the BibTeX from this site").
+
+**Files:** `portfolio/templates/portfolio/publications.html`, `portfolio/templatetags/portfolio_tags.py` (new `unique_attr` filter), `portfolio/static/portfolio/css/sections.css`
+
+### 20. Visible Cmd+K hint pill in the desktop nav
+
+**What:** New pill button in the navbar (between nav links and theme toggle) showing a search icon + "Search" + `⌘K` keycap. Clicking opens the existing palette. Hidden on phones (mobile uses the hamburger menu).
+
+**Why:** The user couldn't tell at a glance that the palette existed. Discoverability matters — most visitors never try `⌘K` unless prompted. Linear, Vercel, and Notion all surface this hint in the nav.
+
+**Files:** `portfolio/templates/portfolio/sections/nav.html`, `portfolio/static/portfolio/css/layout.css`
+
+### 21. Editorial 404 page
+
+**What:** New `404.html` template (Django picks it up at the project level when `DEBUG=False`). Big serif title ("That page didn't make the cut."), monospace eyebrow, lede with `⌘K` hint, grid of curated quick-links (each with its own one-liner), contact-me footer.
+
+**Why:** Most 404s in production go to a default Django page. A real 404 catches lost-link traffic and turns it into navigation.
+
+**Files:** `portfolio/templates/404.html`, `portfolio/static/portfolio/css/sections.css`
+
+### 22. Cmd+K palette: added new entries
+
+**What:** Updated `cmdk-data` in `base.html` so the existing palette includes:
+- "What I'm thinking about" (jumps to the new homepage section)
+- "Lab Notebook" (replaces "Older demos" label)
+- "Now (what I'm doing right now)" (jumps to `/now/`)
+
+**Note:** I built a separate `command-palette.js` initially before realizing one already existed; the duplicate was deleted and conflicting CSS rules removed in favor of just updating the existing palette's data.
+
+**Files:** `portfolio/templates/portfolio/base.html`, deleted `portfolio/static/portfolio/js/command-palette.js`, removed `.cmdk-host` rules from `sections.css`
+

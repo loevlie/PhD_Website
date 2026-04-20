@@ -46,14 +46,75 @@
     justify-self: center;
 }
 
+.navbar-inner > .nav-cmdk,
 .navbar-inner > .theme-toggle {
     justify-self: end;
     grid-column: 3;
 }
 
+.navbar-inner > .nav-cmdk {
+    /* shift the theme toggle slightly left of the cmdk pill */
+    transform: translateX(-44px);
+}
+
 .navbar-inner > .hamburger {
     justify-self: end;
     grid-column: 3;
+}
+
+/* Cmd+K hint pill — discoverable affordance for the existing palette.
+   Hidden on narrow screens (mobile uses the hamburger). Click opens
+   the palette via the inline onclick handler in nav.html. */
+.nav-cmdk {
+    display: none;  /* shown on ≥768px below */
+    align-items: center;
+    gap: 8px;
+    padding: 6px 8px 6px 10px;
+    background: transparent;
+    border: 1px solid var(--border-color);
+    border-radius: 8px;
+    color: var(--text-muted);
+    cursor: pointer;
+    font-family: var(--font-family);
+    font-size: 0.8125rem;
+    transition: border-color 150ms ease, color 150ms ease, background 150ms ease;
+}
+
+.nav-cmdk:hover {
+    border-color: var(--accent);
+    color: var(--accent);
+    background: var(--accent-bg-subtle);
+}
+
+.nav-cmdk-text {
+    font-weight: 400;
+}
+
+.nav-cmdk-kbd {
+    font-family: var(--font-mono);
+    font-size: 0.6875rem;
+    color: inherit;
+    background: var(--bg-tertiary);
+    border: 1px solid var(--border-color);
+    padding: 1px 5px;
+    border-radius: 4px;
+    line-height: 1;
+    font-weight: 500;
+    display: inline-flex;
+    align-items: center;
+    gap: 2px;
+}
+
+.nav-cmdk-mod {
+    opacity: 0.85;
+}
+
+@media (min-width: 768px) {
+    .nav-cmdk { display: inline-flex; }
+    .navbar-inner { grid-template-columns: auto 1fr auto auto; }
+    .navbar-inner > .nav-cmdk { transform: none; grid-column: 3; }
+    .navbar-inner > .theme-toggle { grid-column: 4; }
+    .navbar-inner > .hamburger { grid-column: 4; }
 }
 
 .nav-logo {
