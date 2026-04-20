@@ -1,10 +1,17 @@
-/* Tailwind v4 input — compiled to blog-tw.css.
+/* Tailwind v4 input — compiled to portfolio/static/portfolio/css/blog-tw.css.
  *
  * Build:  npm run build:tw
- *         (or: npx tailwindcss -i .../blog-tw.input.css -o .../blog-tw.css --minify)
+ *
+ * This file lives OUTSIDE the staticfiles tree on purpose: WhiteNoise's
+ * CompressedManifestStaticFilesStorage post-processes every CSS file
+ * during collectstatic and tries to resolve @import directives as
+ * static-file paths — which breaks deploys (it sees `@import
+ * "tailwindcss"` and looks for a real file called `tailwindcss`).
+ * Keeping the input here means deploys only ever see the compiled
+ * output (blog-tw.css), never the raw directive.
  *
  * Why a CSS-side @theme: Tailwind v4 reads design tokens directly from
- * the input CSS instead of a JS config. Each --color-* token here turns
+ * the input CSS instead of a JS config. Each --color-* token turns
  * into matching utility classes (bg-accent, text-content, etc.).
  *
  * Token values point at Catppuccin variables defined in blog_base.html
@@ -13,13 +20,12 @@
  */
 @import "tailwindcss";
 
-/* @source paths are relative to THIS file. Tailwind walks them and
- * keeps only the utility classes that actually appear. */
-@source "../../../templates/portfolio/blog.html";
-@source "../../../templates/portfolio/blog_base.html";
-@source "../../../templates/portfolio/blog_post.html";
-@source "../../../templates/portfolio/blog_post_wip.html";
-@source "../../../templates/portfolio/blog_edit.html";
+/* @source paths are relative to THIS file (tailwind/blog-tw.input.css). */
+@source "../portfolio/templates/portfolio/blog.html";
+@source "../portfolio/templates/portfolio/blog_base.html";
+@source "../portfolio/templates/portfolio/blog_post.html";
+@source "../portfolio/templates/portfolio/blog_post_wip.html";
+@source "../portfolio/templates/portfolio/blog_edit.html";
 
 @theme {
     --color-accent: var(--ctp-lavender);
