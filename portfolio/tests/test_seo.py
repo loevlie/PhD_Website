@@ -67,6 +67,20 @@ class RobotsTxtTests(TestCase):
         self.assertIn('Sitemap:', r.content.decode())
 
 
+class RssFeedTests(TestCase):
+    def setUp(self):
+        make_post(slug='rss-test', title='RSS post', tags=['ml'])
+
+    def test_feed_returns_xml(self):
+        r = self.client.get('/blog/feed/')
+        self.assertEqual(r.status_code, 200)
+        self.assertIn('xml', r.headers.get('Content-Type', '').lower())
+
+    def test_feed_includes_recent_post(self):
+        r = self.client.get('/blog/feed/')
+        self.assertIn('RSS post', r.content.decode())
+
+
 class JsonLdHomeTests(TestCase):
     def test_home_has_person_jsonld(self):
         r = self.client.get('/')

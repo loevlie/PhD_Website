@@ -79,6 +79,25 @@ class BlogAutosaveTests(StaffClientMixin, TestCase):
         r = self.staff_client.post('/blog/no-such-slug/autosave/', {'title': 'X'})
         self.assertEqual(r.status_code, 404)
 
+    def test_autosave_persists_tags_and_maturity(self):
+        post = make_post(slug='auto-tags', tags=['old'])
+        r = self.staff_client.post(f'/blog/{post.slug}/autosave/', {
+            'title': 'Updated', 'tags': 'ml, tabular, new',
+            'maturity': 'evergreen',
+        })
+        self.assertEqual(r.status_code, 200)
+        post.refresh_from_db()
+        self.assertEqual(post.maturity, 'evergreen')
+        self.assertEqual(set(t.name for t in post.tags.all()), {'ml', 'tabular', 'new'})
+
+    def test_autosave_clears_tags_with_empty_string(self):
+        post = make_post(slug='auto-clear', tags=['old', 'tags'])
+        self.staff_client.post(f'/blog/{post.slug}/autosave/', {
+            'title': post.title, 'tags': '',
+        })
+        post.refresh_from_db()
+        self.assertEqual(list(post.tags.all()), [])
+
 
 class BlogPreviewTests(StaffClientMixin, TestCase):
     def test_preview_renders_markdown(self):
@@ -151,3 +170,15 @@ class BlogUploadImageTests(StaffClientMixin, TestCase):
         f = SimpleUploadedFile('test.png', b'fake', content_type='image/png')
         r = self.anon_client.post('/blog/upload-image/', {'image': f})
         self.assertEqual(r.status_code, 403)
+
+    def test_upload_rejects_oversize(self):
+        # Manufacture an >8MB "image" payload
+        big = b'x' * (9 * 1024 * 1024)
+        f = SimpleUploadedFile('big.png', big, content_type='image/png')
+        r = self.staff_client.post('/blog/upload-image/', {'image': f})
+        self.assertEqual(r.status_code, 400)
+        self.assertIn('too large', r.json()['error'])
+
+    def test_upload_get_returns_405(self):
+        r = self.staff_client.get('/blog/upload-image/')
+        self.assertEqual(r.status_code, 405)

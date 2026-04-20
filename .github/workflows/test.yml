@@ -1,0 +1,48 @@
+name: tests
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+    branches: [main]
+  workflow_dispatch:
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    timeout-minutes: 8
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+          cache: pip
+
+      - name: Install dependencies
+        run: |
+          python -m pip install --upgrade pip
+          pip install -r requirements.txt
+
+      - name: Run migrations (test DB is created automatically)
+        env:
+          # SQLite by default — no DATABASE_URL set means dj_database_url
+          # falls through to settings.DATABASES default.
+          DEBUG: 'False'
+          SECRET_KEY: 'ci-test-secret-key-not-for-prod'
+        run: python manage.py migrate --noinput
+
+      - name: Run tests
+        env:
+          DEBUG: 'False'
+          SECRET_KEY: 'ci-test-secret-key-not-for-prod'
+        run: python manage.py test portfolio.tests --verbosity=2
+
+      - name: Check no migrations missing
+        env:
+          DEBUG: 'False'
+          SECRET_KEY: 'ci-test-secret-key-not-for-prod'
+        run: |
+          python manage.py makemigrations --check --dry-run
