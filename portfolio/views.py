@@ -6,6 +6,9 @@ from portfolio.blog import get_all_posts, get_post
 
 
 def index(request):
+    # `featured_demo` (None when Frozen Forecaster is a draft) is provided
+    # by portfolio.context_processors.portfolio_data so all templates —
+    # the homepage section, Cmd+K palette, and nav dropdown — hide together.
     return render(request, 'portfolio/index.html')
 
 

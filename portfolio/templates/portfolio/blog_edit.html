@@ -836,12 +836,12 @@
         );
     }
 
+    // Brief lockout window after a keyboard nav event — stops mouseenter
+    // from hijacking the selection when the menu auto-scrolls under a
+    // stationary cursor (the "ArrowDown pushes me back up" bug).
+    let suppressHoverUntil = 0;
+
     function updateActiveClass() {
-        // Cheap visual update — only flip the .active class on existing
-        // nodes. Don't re-render the whole menu (that destroys the node
-        // mid-click and was the cause of "click does nothing" reports).
-        // Also scrolls the active item into view so ArrowUp/Down keeps
-        // the selection visible when the menu overflows its max-height.
         Array.from(menu.querySelectorAll('.si')).forEach(el => {
             const i = parseInt(el.dataset.i, 10);
             const isActive = i === menuActive;
@@ -878,9 +878,12 @@
                 executeActive();
             });
             // On hover, only update the active style — DO NOT re-render.
-            // Re-rendering replaces the DOM nodes mid-interaction and
-            // makes clicks vanish for fast mouse movements.
+            // Skip the update during the brief lockout after keyboard
+            // navigation: when ArrowDown auto-scrolls the menu, the
+            // stationary cursor lands on a new item and would otherwise
+            // hijack the selection back ("can't click down" bug).
             el.addEventListener('mouseenter', () => {
+                if (Date.now() < suppressHoverUntil) return;
                 menuActive = parseInt(el.dataset.i, 10);
                 updateActiveClass();
             });
@@ -959,10 +962,12 @@
         if (e.key === 'ArrowDown') {
             e.preventDefault();
             if (menuFiltered.length) menuActive = (menuActive + 1) % menuFiltered.length;
+            suppressHoverUntil = Date.now() + 400;  // ignore mouseenter from auto-scroll
             updateActiveClass();
         } else if (e.key === 'ArrowUp') {
             e.preventDefault();
             if (menuFiltered.length) menuActive = (menuActive - 1 + menuFiltered.length) % menuFiltered.length;
+            suppressHoverUntil = Date.now() + 400;
             updateActiveClass();
         } else if (e.key === 'Enter' || e.key === 'Tab') {
             e.preventDefault();

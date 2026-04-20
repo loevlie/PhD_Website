@@ -85,14 +85,25 @@ class PyFigTests(TestCase):
 
     def test_pyfig_block_is_detected(self):
         src = '```python pyfig\nx = 1\n```'
-        # Without mocking subprocess this will actually try to render.
-        # Validate the regex picks it up via the helper.
         with mock.patch('portfolio.blog._render_pyfig') as m:
             m.return_value = ('/media/blog-images/python/abc.png', None)
             out = _process_pyfig_blocks(src)
             m.assert_called_once()
-            self.assertIn('![Python-rendered figure]', out)
+            self.assertIn('<figure class="pyfig">', out)
             self.assertIn('/media/blog-images/python/abc.png', out)
+            self.assertIn('view source', out)
+            self.assertIn('<details', out)
+
+    def test_pyfig_caption_extracted_from_first_line(self):
+        src = '```python pyfig\n# caption: A tasty figure.\nplt.plot([1,2])\n```'
+        with mock.patch('portfolio.blog._render_pyfig') as m:
+            m.return_value = ('/media/x.png', None)
+            out = _process_pyfig_blocks(src)
+            self.assertIn('A tasty figure.', out)
+            # The caption comment line should be stripped from the source pre block
+            # (only the actual code remains in the <details>)
+            # caption is HTML escaped so check the text
+            self.assertNotIn('# caption: A tasty figure.', out)
 
     def test_pyfig_error_keeps_source_visible(self):
         src = '```python pyfig\nthis_breaks\n```'
@@ -123,8 +134,9 @@ class PyFigTests(TestCase):
         finally:
             cached.unlink(missing_ok=True)
 
-    def test_pyfig_render_pipeline_replaces_block_with_image(self):
-        """End-to-end: render_markdown turns pyfig into an inline <img>."""
+    def test_pyfig_render_pipeline_replaces_block_with_figure(self):
+        """End-to-end: render_markdown turns pyfig into a <figure> with
+        the rendered image and a collapsible source <details>."""
         src = '# title\n\n```python pyfig\nplt.plot([1,2])\n```\n\nend.'
         with mock.patch('portfolio.blog._render_pyfig') as m:
             m.return_value = ('/media/blog-images/python/zzz.png', None)
@@ -132,3 +144,4 @@ class PyFigTests(TestCase):
         self.assertIn('<img', html)
         self.assertIn('/media/blog-images/python/zzz.png', html)
         self.assertNotIn('python pyfig', html)
+        self.assertIn('pyfig-source', html)

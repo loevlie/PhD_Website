@@ -128,7 +128,7 @@
             {"label": "Publications", "href": "/#publications", "kind": "Section"},
             {"label": "Projects", "href": "/#projects", "kind": "Section"},
             {"label": "Contact", "href": "/#contact", "kind": "Section"},
-            {"label": "Frozen Forecaster (TabICL vs XGBoost)", "href": "/#demos", "kind": "Demo"},
+            {% if featured_demo %}{"label": "Frozen Forecaster (TabICL vs XGBoost)", "href": "/#demos", "kind": "Demo"},{% endif %}
             {"label": "All publications", "href": "/publications/", "kind": "Page"},
             {"label": "Lab Notebook", "href": "/demos/", "kind": "Page"},
             {"label": "Now (what I'm doing right now)", "href": "/now/", "kind": "Page"},

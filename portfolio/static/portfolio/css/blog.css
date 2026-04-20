@@ -1703,3 +1703,81 @@
     line-height: 1.4;
     white-space: nowrap;
 }
+
+/* ─────────────────────────────────────────────────────────────────────
+   Python figure (<figure class="pyfig">) — rendered image + collapsible
+   "view source" details under the caption. Default state shows just the
+   image and the caption; clicking "view source" reveals the code that
+   produced it.
+───────────────────────────────────────────────────────────────────── */
+.blog-prose .pyfig {
+    margin: 1.5em auto;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    text-align: center;
+}
+.blog-prose .pyfig img {
+    display: block;
+    max-width: 100%;
+    height: auto;
+    border-radius: 6px;
+    margin: 0;
+}
+.blog-prose .pyfig-caption {
+    margin-top: 10px;
+    font-family: var(--font-mono, 'IBM Plex Mono', monospace);
+    font-size: 0.8125em;
+    color: var(--color-text-muted, var(--ctp-subtext0, #a6adc8));
+    line-height: 1.5;
+    max-width: 60ch;
+}
+.blog-prose .pyfig-caption-text {
+    display: block;
+    margin-bottom: 6px;
+    font-family: var(--font-serif, 'IBM Plex Serif', Georgia, serif);
+    font-style: italic;
+    font-size: 0.9375em;
+    color: var(--color-text, var(--ctp-text, #cdd6f4));
+}
+.blog-prose .pyfig-source {
+    display: inline-block;
+    text-align: left;
+    margin-top: 4px;
+}
+.blog-prose .pyfig-source > summary {
+    cursor: pointer;
+    list-style: none;
+    color: var(--color-accent, var(--ctp-lavender, #7287fd));
+    font-size: 0.75em;
+    text-transform: uppercase;
+    letter-spacing: 0.08em;
+    padding: 2px 8px;
+    border-radius: 4px;
+    border: 1px solid color-mix(in oklch, var(--color-accent, #7287fd) 30%, transparent);
+    transition: background 150ms ease;
+    user-select: none;
+}
+.blog-prose .pyfig-source > summary::-webkit-details-marker { display: none; }
+.blog-prose .pyfig-source > summary:hover {
+    background: color-mix(in oklch, var(--color-accent, #7287fd) 14%, transparent);
+}
+.blog-prose .pyfig-source[open] > summary::after { content: ' ✕'; }
+.blog-prose .pyfig-source pre {
+    margin-top: 8px;
+    text-align: left;
+    background: var(--color-bg-alt, var(--ctp-mantle, #181825));
+    padding: 12px 14px;
+    border-radius: 6px;
+    font-size: 0.8125em;
+    line-height: 1.5;
+    overflow-x: auto;
+    max-width: 720px;
+}
+.blog-prose .pyfig-source code {
+    background: transparent;
+    padding: 0;
+    color: var(--color-text, var(--ctp-text, #cdd6f4));
+    font-family: var(--font-mono, 'JetBrains Mono', monospace);
+    white-space: pre;
+}

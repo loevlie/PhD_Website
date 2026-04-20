@@ -616,7 +616,9 @@ NAV_LINKS = [
         {'label': 'All Projects', 'href': '/projects/'},
     ]},
     {'label': 'Demos', 'href': '/demos/', 'children': [
-        {'label': 'Frozen Forecaster', 'href': '#demos'},
+        # Removed the static "Frozen Forecaster → #demos" anchor: the
+        # homepage section is hidden when the demo is draft, leaving a
+        # dead anchor. Lab Notebook is the canonical entry point.
         {'label': 'Lab Notebook', 'href': '/demos/'},
         {'label': 'Recipes', 'href': '/recipes/'},
     ]},

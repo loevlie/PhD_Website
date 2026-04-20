@@ -109,6 +109,24 @@ class DemoDetailTests(StaffClientMixin, TestCase):
                 self.assertNotIn(f'/demos/{d["slug"]}/', r.content.decode(),
                                  msg=f'draft demo {d["slug"]} leaked into sitemap')
 
+    def test_draft_demo_hidden_from_homepage_for_anon_and_staff(self):
+        """If the featured homepage demo (Frozen Forecaster) is draft,
+        the entire 'Interactive Demo' section should be hidden — and the
+        same for both anon and staff. The standalone /demos/<slug>/ is
+        where staff previews."""
+        ff = next((d for d in DEMOS if d['slug'] == 'frozen-forecaster'), None)
+        if ff is None or not ff.get('draft'):
+            self.skipTest('Frozen Forecaster is not currently draft')
+        for client_name, client in (('anon', self.anon_client),
+                                    ('staff', self.staff_client)):
+            with self.subTest(client=client_name):
+                r = client.get('/')
+                # No ff-canvas (the slider) should appear when demo is draft
+                self.assertNotContains(r, 'ff-canvas',
+                                       msg_prefix=f'{client_name}: ')
+                self.assertNotContains(r, 'Interactive Demo',
+                                       msg_prefix=f'{client_name}: ')
+
 
 class CvPageTests(TestCase):
     def test_cv_page_renders(self):

@@ -91,6 +91,20 @@ import sys as _sys
 if 'test' in _sys.argv or any('pytest' in a for a in _sys.argv):
     STATICFILES_STORAGE = 'django.contrib.staticfiles.storage.StaticFilesStorage'
 
+# Local in-memory cache. Per-process — Render's free tier runs a single
+# gunicorn worker so this is fine; if/when we scale to multiple workers,
+# swap in a shared backend (Redis, Memcached). Used by:
+#   - blog.get_all_posts()      (10-min TTL, invalidated on Post save)
+#   - analytics._fetch_webmentions  (5-min TTL)
+#   - DailySalt.for_today        (DB-backed, but cheap)
+CACHES = {
+    'default': {
+        'BACKEND': 'django.core.cache.backends.locmem.LocMemCache',
+        'LOCATION': 'phd-website-locmem',
+        'TIMEOUT': 600,
+    }
+}
+
 # User-uploaded media (blog images posted via the in-browser editor).
 # In production this needs to be backed by S3 or equivalent — local
 # disk on Render's free tier is ephemeral. For local dev this is fine.

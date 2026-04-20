@@ -79,21 +79,49 @@ def _render_pyfig(code, timeout_s=10):
 
 
 def _process_pyfig_blocks(content):
-    """Replace ```python pyfig blocks with rendered <img> markdown.
+    """Replace ```python pyfig blocks with a <figure> wrapping the
+    rendered image plus a collapsible <details> for the source.
+
+    Authors can opt into a caption with a leading `# caption: ...` line:
+        ```python pyfig
+        # caption: A figure caption.
+        plt.plot(...)
+        ```
+
     On error, leave the source visible inside an error callout so the
     author can fix it."""
+    import html as _html
     def sub(m):
         code = m.group(1)
+        # Pull an optional caption off the first comment line
+        caption = ''
+        lines = code.splitlines()
+        if lines and lines[0].lstrip().startswith('# caption:'):
+            caption = lines[0].split('# caption:', 1)[1].strip()
+            code = '\n'.join(lines[1:]) + ('\n' if not code.endswith('\n') else '')
         url, err = _render_pyfig(code)
         if err:
-            # Keep the original code visible plus a banner; caller can fix.
             return (
                 '<aside class="callout callout--error"><strong>Python figure error:</strong> '
                 f'{err}</aside>\n\n```python\n{code}```'
             )
-        # Use a regular markdown image so the rest of the pipeline
-        # (lazy-load injection, etc.) handles it uniformly.
-        return f'\n![Python-rendered figure]({url})\n'
+        # <figure> with image + <details> source. Escape code for safe HTML.
+        escaped = _html.escape(code).rstrip()
+        cap_html = (
+            f'<span class="pyfig-caption-text">{_html.escape(caption)}</span>'
+            if caption else ''
+        )
+        return (
+            '\n<figure class="pyfig">'
+            f'<img loading="lazy" src="{url}" alt="{_html.escape(caption) or "Python-rendered figure"}">'
+            '<figcaption class="pyfig-caption">'
+            f'{cap_html}'
+            '<details class="pyfig-source"><summary>view source</summary>'
+            f'<pre><code class="language-python">{escaped}</code></pre>'
+            '</details>'
+            '</figcaption>'
+            '</figure>\n'
+        )
     return _PYFIG_RE.sub(sub, content)
 
 # LaTeX protection: replace $...$ and $$...$$ with placeholders before markdown processing
@@ -341,7 +369,30 @@ def _has_db():
 
 
 def get_all_posts(include_drafts=False):
-    """Load all blog posts from DB (if available) or markdown files."""
+    """Load all blog posts from DB (if available) or markdown files.
+
+    Cached per (include_drafts) variant. Cache key is invalidated by the
+    Post post_save / post_delete signals (see portfolio/signals.py) so
+    edits land in the listing on the next request without a manual flush."""
+    from django.core.cache import cache
+    cache_key = f'all_posts:drafts={int(bool(include_drafts))}'
+    cached = cache.get(cache_key)
+    if cached is not None:
+        return cached
+    posts = _load_all_posts(include_drafts=include_drafts)
+    cache.set(cache_key, posts, 600)  # 10-min TTL — also invalidated on Post save
+    return posts
+
+
+def invalidate_post_cache():
+    """Drop the get_all_posts cache for both variants. Called from the
+    Post post_save / post_delete signals."""
+    from django.core.cache import cache
+    cache.delete_many(['all_posts:drafts=0', 'all_posts:drafts=1'])
+
+
+def _load_all_posts(include_drafts=False):
+    """Uncached implementation of get_all_posts."""
     if _has_db():
         from portfolio.models import Post
         qs = Post.objects.all()
