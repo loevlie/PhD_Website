@@ -21,10 +21,16 @@ def recipe_detail(request, slug):
 
 
 def blog(request):
-    posts = get_all_posts()
+    is_staff = request.user.is_authenticated and request.user.is_staff
+    # Staff see drafts in the listing (so we don't lose track of WIP);
+    # public listing excludes them entirely.
+    posts = get_all_posts(include_drafts=is_staff)
     tag = request.GET.get('tag')
     query = request.GET.get('q', '').strip()
+    only_drafts = request.GET.get('drafts') == '1'
 
+    if only_drafts and is_staff:
+        posts = [p for p in posts if p.get('draft')]
     if tag:
         posts = [p for p in posts if tag in p['tags']]
     if query:
@@ -34,10 +40,15 @@ def blog(request):
                  q_lower in p['excerpt'].lower() or
                  any(q_lower in t.lower() for t in p['tags'])]
 
+    draft_count = sum(1 for p in posts if p.get('draft')) if is_staff else 0
+
     return render(request, 'portfolio/blog.html', {
         'posts': posts,
         'active_tag': tag,
         'search_query': query,
+        'is_staff': is_staff,
+        'only_drafts': only_drafts,
+        'draft_count': draft_count,
     })
 
 

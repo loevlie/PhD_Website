@@ -31,6 +31,14 @@
     </form>
 
     {% if posts %}
+    {% if is_staff %}
+    {# Staff-only "Drafts" filter chip — only visible when logged-in as staff. #}
+    <div class="flex gap-2 flex-wrap mb-4 items-center">
+        <span class="text-[0.6875rem] uppercase tracking-wider text-content-muted font-mono">Staff:</span>
+        <a href="{% url 'blog' %}" class="px-3 py-1 rounded-full text-xs font-medium transition-colors {% if not only_drafts %}bg-accent text-white{% else %}bg-surface-2 text-content-secondary hover:text-content{% endif %}">All ({{ posts|length }})</a>
+        <a href="{% url 'blog' %}?drafts=1" class="px-3 py-1 rounded-full text-xs font-medium transition-colors {% if only_drafts %}bg-accent text-white{% else %}bg-surface-2 text-content-secondary hover:text-content{% endif %}">Drafts only</a>
+    </div>
+    {% endif %}
     <!-- Tag filters -->
     <div class="flex gap-2 flex-wrap mb-10" id="blog-filter-tags">
         <button @click="activeTag = ''" :class="activeTag === '' ? 'bg-accent text-white' : 'bg-surface-2 text-content-secondary hover:text-content'"
@@ -54,6 +62,9 @@
                         <time datetime="{{ post.date|date:'Y-m-d' }}">{{ post.date|date:'M j, Y' }}</time>
                         <span class="w-1 h-1 rounded-full bg-content-muted/40"></span>
                         <span>{{ post.reading_time }} min read</span>
+                        {% if post.draft %}
+                        <span class="ml-auto px-2 py-0.5 rounded font-mono text-[0.6875rem] tracking-wide uppercase bg-yellow-500/10 text-yellow-600 border border-yellow-500/30">Draft</span>
+                        {% endif %}
                     </div>
                     <h2 class="text-lg font-semibold text-content mb-1.5 group-hover:text-accent transition-colors leading-snug tracking-tight">{{ post.title }}</h2>
                     <p class="text-content-secondary text-sm leading-relaxed line-clamp-2 mb-3">{{ post.excerpt }}</p>

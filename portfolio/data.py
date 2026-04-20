@@ -6,10 +6,10 @@ No database needed — academic portfolios change rarely.
 HERO = {
     'name': 'Dennis Johan Loevlie',
     'title': 'ELLIS PhD Student',
-    'affiliation': 'CWI & University of Amsterdam',
+    'affiliation': 'Centrum Wiskunde & Informatica & University of Amsterdam',
     'bio': (
         'I am an <a href="https://ellis.eu/research/phd-postdoc" target="_blank">ELLIS</a> PhD student at the <a href="https://www.cwi.nl/" target="_blank">Centrum Wiskunde & Informatica (CWI)</a> '
-        'and the <a href="https://www.uva.nl/" target="_blank">University of Amsterdam</a>, '
+        'and the <a href="https://www.uva.nl/" target="_blank">University of Amsterdam</a> (UvA), '
         'working in the <a href="https://trl-lab.github.io/" target="_blank">Table Representation Learning Lab (TRLab)</a> '
         'and the <a href="https://amlab.science.uva.nl/" target="_blank">Amsterdam Machine Learning Lab (AMLab)</a>. '
         'I am advised by <a href="https://madelonhulsebos.github.io/" target="_blank">Madelon Hulsebos</a> '

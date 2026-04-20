@@ -83,6 +83,30 @@ class PublicUrlsRespondTests(StaffClientMixin, TestCase):
         self.assertContains(r, 'Public post')
         self.assertNotContains(r, 'Hidden draft')
 
+    def test_draft_post_visible_to_staff_in_blog_listing(self):
+        make_post(slug='visible-public', title='Visible public')
+        make_post(slug='visible-draft', title='Visible draft', draft=True)
+        r = self.staff_client.get('/blog/')
+        self.assertContains(r, 'Visible public')
+        self.assertContains(r, 'Visible draft')
+        # Card should be marked as Draft
+        self.assertContains(r, 'Draft')
+
+    def test_blog_drafts_only_filter_for_staff(self):
+        make_post(slug='live-1', title='Live one')
+        make_post(slug='draft-1', title='Draft one', draft=True)
+        r = self.staff_client.get('/blog/?drafts=1')
+        self.assertContains(r, 'Draft one')
+        self.assertNotContains(r, 'Live one')
+
+    def test_blog_drafts_filter_ignored_for_anon(self):
+        make_post(slug='live-2', title='Live two')
+        make_post(slug='draft-2', title='Draft two', draft=True)
+        # Anon hitting ?drafts=1 should still only see public posts
+        r = self.anon_client.get('/blog/?drafts=1')
+        self.assertContains(r, 'Live two')
+        self.assertNotContains(r, 'Draft two')
+
     def test_demo_detail_known(self):
         # frozen-forecaster ships in DEMOS
         r = self.anon_client.get('/demos/frozen-forecaster/')
