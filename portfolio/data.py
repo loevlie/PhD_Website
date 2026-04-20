@@ -430,24 +430,27 @@ NOW_PAGE = {
     'location': 'Boston, MA',
     'sections': [
         {
-            'heading': 'Research — current finding',
+            'heading': 'Research — current direction',
             'body': (
-                "Working on **MIL attention regularization** with the Hughes Lab. "
-                "The headline result we're chasing down: a **per-instance Gaussian "
-                "baseline beats transformer-based MIL methods on instance-level "
-                "metrics**, even though the transformers win on bag-level metrics. "
-                "That gap has been quietly there in our benchmarks for months and "
-                "matters a lot — instance-level localization is what drives the "
-                "clinical interpretation of these models. "
+                "Wrapping the camera-ready for our **CHIL 2026** benchmark "
+                "(equal-contribution second author with Ethan Harvey, Hughes Lab) — "
+                "two headline results from that paper:"
+                "\n\n"
+                "1. A simple **mean-pooling MIL baseline** matches attention-MIL on "
+                "4 of 6 moderate-sized neuroimage tasks while training **25× faster**.\n"
+                "2. A **centered-Gaussian (Gaussian-axial) baseline** beats "
+                "transformer-based MIL methods on **instance-level** metrics, even "
+                "though the transformers win on bag-level metrics."
+                "\n\n"
+                "The second one is the thread I'm pulling on now. Instance-level "
+                "localization is what drives the clinical interpretation of these "
+                "models — a method that's right at the bag level but wrong at the "
+                "instance level is dangerous in a pathology-review setting. "
                 "I'm investigating **attention-regularization techniques** "
                 "(entropy penalties, sparsity priors, contrastive instance objectives, "
-                "TopK-attention with a learned k) to drastically improve transformer "
+                "TopK attention with a learned k) to drastically improve transformer "
                 "instance-level metrics *without* sacrificing bag-level accuracy. "
-                "Targeting a NeurIPS 2026 submission. "
-                "Also wrapping the camera-ready for our **CHIL 2026** benchmark "
-                "(equal-contribution second author with Ethan Harvey) — mean-pooling "
-                "MIL matches attention-MIL on 4 of 6 moderate-sized neuroimage tasks "
-                "while training **25× faster**."
+                "Targeting a NeurIPS 2026 submission."
             ),
         },
         {

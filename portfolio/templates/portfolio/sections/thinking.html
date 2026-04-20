@@ -16,24 +16,24 @@
 
             <div class="thinking-prose">
                 <p>
-                    A <strong>per-instance Gaussian baseline beats transformer-based MIL methods
-                    on instance-level metrics</strong> in our benchmarks, even though the
-                    transformers win on bag-level metrics. That gap matters — instance-level
-                    localization is what drives the clinical interpretation of these models.
-                    I'm investigating <strong>attention-regularization techniques</strong>
+                    Our <strong>CHIL 2026 benchmark</strong> with Ethan Harvey landed two
+                    results worth pulling on. First: a simple
+                    <strong>mean-pooling MIL baseline</strong> matches attention-MIL on
+                    4 of 6 moderate-sized neuroimage tasks while training
+                    <strong>25× faster</strong>. Second &mdash; the more interesting one &mdash;
+                    a <strong>centered-Gaussian (Gaussian-axial) baseline</strong> beats
+                    transformer-based MIL methods on <em>instance-level</em> metrics,
+                    even though the transformers still win on bag-level metrics.
+                </p>
+                <p>
+                    That second gap matters for clinical interpretation. I'm investigating
+                    <strong>attention-regularization techniques</strong>
                     (entropy penalties, sparsity priors, learned-k TopK attention) to
                     drastically improve transformer instance-level metrics
                     <em>without</em> sacrificing bag-level accuracy. Targeting NeurIPS 2026.
                 </p>
                 <p>
-                    On the same axis: our <strong>CHIL 2026 benchmark</strong> with Ethan Harvey
-                    showed a simple mean-pooling MIL baseline matches attention-MIL on
-                    4 of 6 moderate-sized neuroimage tasks while training
-                    <strong>25× faster</strong>. The follow-up question is how we predict,
-                    <em>before training</em>, which regime a new dataset is in.
-                </p>
-                <p>
-                    Looking ahead — picking the central PhD thread on
+                    Looking ahead &mdash; picking the central PhD thread on
                     <strong>tabular foundation models</strong>. Top candidates:
                     V-JEPA-style world models for table dynamics, contrastive
                     table-language alignment ("CLIP for tables") with column-then-row

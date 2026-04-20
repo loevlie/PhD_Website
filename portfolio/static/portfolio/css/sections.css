@@ -2357,13 +2357,20 @@ button.pub-cite-btn {
     margin-bottom: 0;
 }
 
-.now-section-body strong {
+.now-section-body strong,
+.thinking-prose strong {
+    /* IBM Plex Serif at 600 reads as barely-bold against a 400 body —
+       jump to 700 for clear visual weight. The Google Fonts URL only
+       requests up to 600 today, so the browser synthesizes 700 (which
+       is acceptable for 1-2 emphasized phrases per paragraph). Color
+       also shifts up to text-primary so dark-mode bold is unambiguous. */
     color: var(--text-primary);
-    font-weight: 600;
+    font-weight: 700;
 }
 
 .now-section-body em {
     color: var(--text-primary);
+    font-style: italic;
 }
 
 .now-section-body a {
