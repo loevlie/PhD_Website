@@ -232,11 +232,13 @@ def _parse_file_post(filepath):
 
 
 def _has_db():
-    """Check if the Post table exists (database is set up)."""
+    """Return True only if the Post table exists AND has at least one row.
+    An empty table (e.g., fresh dev DB after running migrations but before
+    `manage.py import_posts`) falls through to file-based posts so the
+    markdown-author workflow keeps working without a populated DB."""
     try:
         from portfolio.models import Post
-        Post.objects.exists()
-        return True
+        return Post.objects.exists()
     except Exception:
         return False
 
