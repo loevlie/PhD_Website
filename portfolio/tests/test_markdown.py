@@ -84,13 +84,15 @@ class PyFigTests(TestCase):
     matplotlib installed in the CI environment."""
 
     def test_pyfig_block_is_detected(self):
+        # _render_pyfig now returns the inline figure HTML directly
+        # (SVG preferred, base64 PNG fallback) — no /media/ URL.
         src = '```python pyfig\nx = 1\n```'
         with mock.patch('portfolio.blog._render_pyfig') as m:
-            m.return_value = ('/media/blog-images/python/abc.png', None)
+            m.return_value = ('<svg role="img" aria-label="">FAKE-SVG</svg>', None)
             out = _process_pyfig_blocks(src)
             m.assert_called_once()
             self.assertIn('<figure class="pyfig">', out)
-            self.assertIn('/media/blog-images/python/abc.png', out)
+            self.assertIn('FAKE-SVG', out)
             self.assertIn('<summary>source</summary>', out)
             self.assertIn('<details', out)
             # Pygments-highlighted, not raw <code>
@@ -99,12 +101,14 @@ class PyFigTests(TestCase):
     def test_pyfig_caption_extracted_from_first_line(self):
         src = '```python pyfig\n# caption: A tasty figure.\nplt.plot([1,2])\n```'
         with mock.patch('portfolio.blog._render_pyfig') as m:
-            m.return_value = ('/media/x.png', None)
+            m.return_value = ('<svg>x</svg>', None)
             out = _process_pyfig_blocks(src)
             self.assertIn('A tasty figure.', out)
-            # The caption comment line should be stripped from the source pre block
-            # (only the actual code remains in the <details>)
-            # caption is HTML escaped so check the text
+            # The caption is passed to _render_pyfig as the alt text
+            # so it lands as aria-label on the SVG (or alt= on the PNG).
+            self.assertEqual(m.call_args.kwargs.get('alt'), 'A tasty figure.')
+            # The caption comment line should be stripped from the source
+            # pre block (only the actual code remains in the <details>)
             self.assertNotIn('# caption: A tasty figure.', out)
 
     def test_pyfig_error_uses_banner_with_collapsed_source(self):
@@ -121,25 +125,24 @@ class PyFigTests(TestCase):
             self.assertIn('<details class="pyfig-source"', out)
             self.assertIn('this_breaks', out)
 
-    def test_pyfig_cache_hit_skips_subprocess(self):
-        """When the PNG already exists, no subprocess call is made."""
-        from pathlib import Path
-        from django.conf import settings as dj_settings
-        # Pre-create the cached file
-        code = 'import matplotlib.pyplot as plt\nplt.plot([1,2,3])'
-        h = hashlib.sha256(code.encode()).hexdigest()[:16]
-        out_dir = Path(dj_settings.MEDIA_ROOT) / 'blog-images' / 'python'
-        out_dir.mkdir(parents=True, exist_ok=True)
-        cached = out_dir / f'{h}.png'
-        cached.write_bytes(b'\x89PNG\r\n\x1a\n' + b'\0' * 100)
-        try:
-            with mock.patch('subprocess.run') as m:
-                url, err = _render_pyfig(code)
-                self.assertIsNone(err)
-                self.assertIn(h, url)
-                m.assert_not_called()
-        finally:
-            cached.unlink(missing_ok=True)
+    def test_pyfig_persistence_skipped_on_pyfig_error(self):
+        """When any pyfig block errors, render_markdown should append to
+        the errors_out list — the post_save signal uses this to skip
+        persisting a render with a "Figure failed to render" banner
+        frozen in. Without this guard, a one-time matplotlib hiccup
+        would freeze a broken figure into the DB until the next save."""
+        src = '# t\n\n```python pyfig\nthis_breaks\n```'
+        with mock.patch('portfolio.blog._render_pyfig') as m:
+            m.return_value = (None, 'NameError')
+            errors = []
+            html, _ = render_markdown(src, errors_out=errors)
+            self.assertEqual(len(errors), 1)
+            self.assertIn('NameError', errors[0])
+            # Successful path appends nothing
+            errors2 = []
+            m.return_value = ('<svg>ok</svg>', None)
+            render_markdown(src, errors_out=errors2)
+            self.assertEqual(errors2, [])
 
     def test_get_all_posts_skips_html_render_for_speed(self):
         """Listings should not pay the markdown-render cost. content_html
@@ -164,13 +167,36 @@ class PyFigTests(TestCase):
         self.assertIn('<h1', p['content_html'])
 
     def test_pyfig_render_pipeline_replaces_block_with_figure(self):
-        """End-to-end: render_markdown turns pyfig into a <figure> with
-        the rendered image and a collapsible source <details>."""
+        """End-to-end: render_markdown turns pyfig into a <figure>
+        containing the inline rendered figure (SVG or base64 PNG) and
+        a collapsible source <details>."""
         src = '# title\n\n```python pyfig\nplt.plot([1,2])\n```\n\nend.'
         with mock.patch('portfolio.blog._render_pyfig') as m:
-            m.return_value = ('/media/blog-images/python/zzz.png', None)
+            m.return_value = ('<svg role="img"><g>FAKE</g></svg>', None)
             html, _ = render_markdown(src)
-        self.assertIn('<img', html)
-        self.assertIn('/media/blog-images/python/zzz.png', html)
+        self.assertIn('<svg', html)
+        self.assertIn('FAKE', html)
         self.assertNotIn('python pyfig', html)
         self.assertIn('pyfig-source', html)
+
+    def test_get_post_uses_persisted_rendered_html_when_fresh(self):
+        """When Post.rendered_html is set and not stale, get_post should
+        return it without invoking the markdown render path."""
+        from portfolio.tests._helpers import make_post
+        from portfolio.blog import get_post
+        from portfolio.models import Post
+        from django.utils import timezone
+        make_post(slug='persisted', title='P', body='# body\n\nstuff.')
+        # Stamp a custom rendered_html that doesn't match what render
+        # would produce; if get_post truly uses the stored field, we'll
+        # see this string back.
+        sentinel = '<p>STORED-HTML-SENTINEL</p>'
+        Post.objects.filter(slug='persisted').update(
+            rendered_html=sentinel,
+            rendered_toc_html='',
+            rendered_at=timezone.now(),
+        )
+        with mock.patch('portfolio.blog.render_markdown') as m:
+            p = get_post('persisted')
+            m.assert_not_called()
+        self.assertEqual(p['content_html'], sentinel)

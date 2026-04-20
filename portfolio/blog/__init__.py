@@ -59,11 +59,22 @@ def _ensure_post_deps(slug, cache_dir):
         return None  # fall through; pyfig will fail with a clear ImportError
 
 
-def _render_pyfig(code, timeout_s=15, post_slug=None):
-    """Run user matplotlib code in an isolated subprocess. Cache the
-    resulting PNG by sha256 of the code so repeat renders cost nothing.
+# SVG > this many bytes → fall back to base64 PNG. Keeps dense scatter
+# plots / heatmaps from inflating the post HTML to megabytes.
+_PYFIG_SVG_MAX_BYTES = 250 * 1024
 
-    Returns (rel_url, error_message). Exactly one is None.
+
+def _render_pyfig(code, alt='', timeout_s=15, post_slug=None):
+    """Run user matplotlib code in an isolated subprocess and return an
+    inline HTML snippet — either a sharp `<svg>` (preferred, scales on
+    retina, ~5-30 KB for typical line plots) or a base64 `<img>` PNG
+    fallback when the SVG would be too large (dense scatters, heatmaps).
+
+    Returns (inline_html, error_message). Exactly one is None.
+
+    No /media/ dependency: the figure data lives inside the returned
+    HTML so the post can be persisted to Post.rendered_html and
+    survive deploy-time disk wipes.
 
     Per-post extra deps: if a file exists at
         portfolio/blog/posts/<slug>.deps.txt
@@ -72,61 +83,90 @@ def _render_pyfig(code, timeout_s=15, post_slug=None):
     install only runs once per (slug, deps-content) combo.
 
     Security note: this executes arbitrary Python. The editor that
-    creates these blocks is staff-only; the rendered post pulls from
-    the cache so untrusted readers never trigger execution."""
+    creates these blocks is staff-only; rendered output is persisted on
+    save so untrusted readers never trigger execution at view time.
+    """
+    import base64
+    import html as _html
     import os as _os
+    import tempfile
     from django.conf import settings as dj_settings
 
-    h = hashlib.sha256(code.encode('utf-8')).hexdigest()[:16]
     media_root = Path(dj_settings.MEDIA_ROOT)
-    out_dir = media_root / 'blog-images' / 'python'
-    out_dir.mkdir(parents=True, exist_ok=True)
-    out_path = out_dir / f'{h}.png'
-    rel_url = f'{dj_settings.MEDIA_URL}blog-images/python/{h}.png'
-    if out_path.exists():
-        return rel_url, None
-
+    media_root.mkdir(parents=True, exist_ok=True)
     extras = _ensure_post_deps(post_slug, media_root)
 
-    wrapper = (
-        'import os, sys\n'
-        'os.environ["MPLBACKEND"] = "Agg"\n'
-        'import matplotlib\n'
-        'matplotlib.use("Agg")\n'
-        'import matplotlib.pyplot as plt\n'
-        '# ── user code ──\n'
-        f'{code}'
-        '\n# ── end user code ──\n'
-        'if plt.get_fignums():\n'
-        f'    plt.savefig({str(out_path)!r}, dpi=140, bbox_inches="tight", facecolor="white")\n'
-        '    plt.close("all")\n'
-    )
+    with tempfile.TemporaryDirectory() as td_str:
+        td = Path(td_str)
+        svg_path = td / 'out.svg'
+        png_path = td / 'out.png'
 
-    env = _os.environ.copy()
-    if extras:
-        env['PYTHONPATH'] = extras + _os.pathsep + env.get('PYTHONPATH', '')
-
-    try:
-        result = subprocess.run(
-            [sys.executable, '-c', wrapper],
-            timeout=timeout_s,
-            capture_output=True,
-            text=True,
-            env=env,
+        # Save BOTH formats in one subprocess call. The marginal cost over
+        # rendering one is negligible (matplotlib already has the figure
+        # composed); avoids a second Python startup if SVG turns out too big.
+        wrapper = (
+            'import os, sys\n'
+            'os.environ["MPLBACKEND"] = "Agg"\n'
+            'import matplotlib\n'
+            'matplotlib.use("Agg")\n'
+            'import matplotlib.pyplot as plt\n'
+            '# ── user code ──\n'
+            f'{code}'
+            '\n# ── end user code ──\n'
+            'if plt.get_fignums():\n'
+            f'    plt.savefig({str(svg_path)!r}, format="svg", bbox_inches="tight", facecolor="white")\n'
+            f'    plt.savefig({str(png_path)!r}, format="png", dpi=140, bbox_inches="tight", facecolor="white")\n'
+            '    plt.close("all")\n'
         )
-    except subprocess.TimeoutExpired:
-        return None, f'Render timed out (>{timeout_s}s)'
-    except Exception as e:
-        return None, f'subprocess failed: {e}'
 
-    if result.returncode != 0:
-        # Surface the last useful line of stderr (usually the exception)
-        err_lines = [ln for ln in (result.stderr or '').splitlines() if ln.strip()]
-        return None, err_lines[-1] if err_lines else f'Exit {result.returncode}'
+        env = _os.environ.copy()
+        if extras:
+            env['PYTHONPATH'] = extras + _os.pathsep + env.get('PYTHONPATH', '')
 
-    if not out_path.exists():
-        return None, 'Code ran but no figure was produced (call plt.plot(...) etc.)'
-    return rel_url, None
+        try:
+            result = subprocess.run(
+                [sys.executable, '-c', wrapper],
+                timeout=timeout_s,
+                capture_output=True,
+                text=True,
+                env=env,
+            )
+        except subprocess.TimeoutExpired:
+            return None, f'Render timed out (>{timeout_s}s)'
+        except Exception as e:
+            return None, f'subprocess failed: {e}'
+
+        if result.returncode != 0:
+            err_lines = [ln for ln in (result.stderr or '').splitlines() if ln.strip()]
+            return None, err_lines[-1] if err_lines else f'Exit {result.returncode}'
+
+        if not (svg_path.exists() or png_path.exists()):
+            return None, 'Code ran but no figure was produced (call plt.plot(...) etc.)'
+
+        # Prefer SVG for sharpness + accessibility (text stays selectable),
+        # but fall back to base64 PNG for dense plots where SVG balloons.
+        if svg_path.exists() and svg_path.stat().st_size <= _PYFIG_SVG_MAX_BYTES:
+            svg = svg_path.read_text(encoding='utf-8')
+            # Strip the XML decl + DOCTYPE so the <svg> can be inlined
+            # cleanly inside an HTML document (these are XML-only and
+            # invalid mid-HTML).
+            svg = re.sub(r'^<\?xml[^?]*\?>\s*', '', svg)
+            svg = re.sub(r'<!DOCTYPE[^>]*>\s*', '', svg).strip()
+            # Inject role + aria-label for screen readers. matplotlib
+            # gives the <svg> a width/height and viewBox already.
+            label_attr = f' aria-label="{_html.escape(alt)}"' if alt else ''
+            svg = re.sub(
+                r'<svg\b',
+                f'<svg role="img"{label_attr}',
+                svg, count=1, flags=re.IGNORECASE,
+            )
+            return svg, None
+
+        # PNG fallback: inline as a data URL so we still don't depend on
+        # /media/ being present at view time. The lazy-load injector in
+        # render_markdown will add loading="lazy" to this <img>.
+        b64 = base64.b64encode(png_path.read_bytes()).decode('ascii')
+        return f'<img src="data:image/png;base64,{b64}" alt="{_html.escape(alt)}">', None
 
 
 def _highlight_python(code):
@@ -142,16 +182,21 @@ def _highlight_python(code):
     )
 
 
-def _process_pyfig_blocks(content, post_slug=None):
+def _process_pyfig_blocks(content, post_slug=None, errors_out=None):
     """Replace ```python pyfig blocks with a clean <figure>:
-        - just the image
+        - inline SVG (or base64 PNG fallback) — no /media/ dependency
         - optional italic-serif caption underneath
         - tiny, unobtrusive "source" toggle that reveals
           the code highlighted by Pygments (same look as other code blocks).
 
     Optional caption via a leading `# caption: ...` line.
+
     On error, render an inline banner with a collapsed source toggle —
-    same chrome as success, so nothing leaks visibly."""
+    same chrome as success, so nothing leaks visibly. If `errors_out` is
+    provided, each error message is appended; the post_save signal uses
+    this to skip persistence when any pyfig in the post failed (so a
+    partial-failure render isn't frozen into the DB).
+    """
     import html as _html
 
     def sub(m):
@@ -162,14 +207,14 @@ def _process_pyfig_blocks(content, post_slug=None):
         if lines and lines[0].lstrip().startswith('# caption:'):
             caption = lines[0].split('# caption:', 1)[1].strip()
             code = '\n'.join(lines[1:]) + ('\n' if not code.endswith('\n') else '')
-        url, err = _render_pyfig(code, post_slug=post_slug)
+        figure_html, err = _render_pyfig(code, alt=caption, post_slug=post_slug)
         # Render the source through Pygments so it matches the theme
-        # of every other code block on the site (no per-line bubbles,
-        # no pill styling — proper syntax highlighting in a single block).
+        # of every other code block on the site.
         source_html = _highlight_python(code.rstrip())
 
         if err:
-            # Error path: same chrome (no orphaned visible source).
+            if errors_out is not None:
+                errors_out.append(err)
             return (
                 '\n<figure class="pyfig pyfig--error">'
                 f'<div class="pyfig-error">Figure failed to render. <small>{_html.escape(err)}</small></div>'
@@ -185,12 +230,11 @@ def _process_pyfig_blocks(content, post_slug=None):
             f'<span class="pyfig-cap-text">{_html.escape(caption)}</span>'
             if caption else ''
         )
-        # alt = caption if provided, else empty (decorative)
-        alt = _html.escape(caption) if caption else ''
         return (
             '\n<figure class="pyfig">'
-            # `loading="lazy"` is added later by render_markdown's lazy-load injector
-            f'<img src="{url}" alt="{alt}">'
+            # figure_html is either an inline <svg> or a base64 <img>;
+            # both inline directly without an external file reference.
+            f'{figure_html}'
             '<figcaption class="pyfig-caption">'
             f'{cap_html}'
             '<details class="pyfig-source"><summary>source</summary>'
@@ -318,7 +362,7 @@ def _transform_footnotes_to_sidenotes(html):
     return html
 
 
-def render_markdown(content, is_explainer=False, post_slug=None):
+def render_markdown(content, is_explainer=False, post_slug=None, errors_out=None):
     """Convert markdown string to HTML with syntax highlighting, ToC, and
     (for explainer posts) Tufte-style sidenotes from footnote markup.
 
@@ -330,10 +374,15 @@ def render_markdown(content, is_explainer=False, post_slug=None):
     On regular posts these render as classic numbered footnotes.
     On `is_explainer=True` posts they're transformed into margin notes
     that float in the right gutter on desktop and collapse inline on mobile.
+
+    If `errors_out` is provided (a mutable list), any pyfig rendering
+    errors are appended to it. The post_save signal uses this to avoid
+    persisting a partial-failure render into Post.rendered_html.
     """
     # Render Python figure blocks first — replaces ```python pyfig with
-    # an inline image, so subsequent passes treat them as ordinary images.
-    content = _process_pyfig_blocks(content, post_slug=post_slug)
+    # an inline figure (SVG or base64 PNG), so subsequent passes treat
+    # them as ordinary images.
+    content = _process_pyfig_blocks(content, post_slug=post_slug, errors_out=errors_out)
     content, latex_placeholders = _protect_latex(content)
 
     md = markdown.Markdown(extensions=[
@@ -409,13 +458,46 @@ def _post_to_dict(post_obj, render_html=True):
     `render_html=False` skips the markdown render — used by listings and
     by the cached get_all_posts() so a single bad pyfig block can't
     poison every listing for 10 minutes. content_html / toc_html are
-    rendered fresh in the single-post view path."""
+    rendered fresh in the single-post view path.
+
+    Render path: if the Post has a persisted rendered_html that is
+    not stale (modified_at <= rendered_at), use it directly — no
+    pyfig subprocess, no markdown parse. Otherwise live-render and
+    opportunistically warm the persisted cache via the same path the
+    post_save signal uses, so subsequent views are cheap.
+    """
     is_explainer = bool(getattr(post_obj, 'is_explainer', False))
     is_paper_companion = bool(getattr(post_obj, 'is_paper_companion', False))
     if render_html:
-        content_html, toc_html = render_markdown(
-            post_obj.body, is_explainer=is_explainer, post_slug=post_obj.slug,
+        cached_html = getattr(post_obj, 'rendered_html', '') or ''
+        cached_at = getattr(post_obj, 'rendered_at', None)
+        modified_at = getattr(post_obj, 'modified_at', None)
+        is_fresh = bool(
+            cached_html
+            and cached_at is not None
+            and (modified_at is None or modified_at <= cached_at)
         )
+        if is_fresh:
+            content_html = cached_html
+            toc_html = getattr(post_obj, 'rendered_toc_html', '') or ''
+        else:
+            errors = []
+            content_html, toc_html = render_markdown(
+                post_obj.body, is_explainer=is_explainer, post_slug=post_obj.slug,
+                errors_out=errors,
+            )
+            # Warm the persisted render only when the body actually has
+            # an id (not an unsaved instance) and no pyfig errored.
+            # .filter().update() bypasses the post_save signal so this
+            # doesn't recurse.
+            if not errors and getattr(post_obj, 'pk', None):
+                from django.utils import timezone
+                from portfolio.models import Post as _Post
+                _Post.objects.filter(pk=post_obj.pk).update(
+                    rendered_html=content_html,
+                    rendered_toc_html=toc_html,
+                    rendered_at=timezone.now(),
+                )
     else:
         content_html, toc_html = '', ''
     return {

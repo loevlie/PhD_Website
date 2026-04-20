@@ -92,6 +92,15 @@ class Post(models.Model):
     created_at = models.DateTimeField(auto_now_add=True)
     modified_at = models.DateTimeField(auto_now=True)
 
+    # Persisted render output. Updated by the post_save signal so a cold
+    # dyno / fresh deploy serves blog posts without re-running pyfig
+    # subprocesses on the first request. Stays NULL until the first
+    # successful render; falls back to live render in get_post() when
+    # missing or stale (modified_at > rendered_at).
+    rendered_html = models.TextField(blank=True, default='')
+    rendered_toc_html = models.TextField(blank=True, default='')
+    rendered_at = models.DateTimeField(null=True, blank=True)
+
     tags = TaggableManager(blank=True)
 
     class Meta:

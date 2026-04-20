@@ -1,20 +1,70 @@
-"""Signals that keep the get_all_posts() cache fresh.
+"""Signals for the Post model:
 
-When a Post is saved or deleted (admin, editor, autosave, mgmt command),
-the cached listing for both variants (drafts on/off) is dropped so the
-next request rebuilds it. Cheap — the cache key is two strings."""
+1. Invalidate the get_all_posts() cache on save/delete so listings
+   reflect edits on the next request.
+2. After save, render markdown → SVG/PNG inline → store in
+   Post.rendered_html so subsequent views serve pre-rendered HTML
+   without re-running pyfig subprocesses (Render's disk is ephemeral
+   so the per-pyfig PNG cache vanishes on every deploy; persisting
+   the rendered HTML in Postgres survives deploys cleanly).
+
+The persistence step uses Post.objects.filter(pk=...).update(...) to
+bypass the post_save signal, so it cannot recurse.
+"""
 from django.db.models.signals import post_save, post_delete
 from django.dispatch import receiver
+from django.utils import timezone
 
 from portfolio.models import Post
-from portfolio.blog import invalidate_post_cache
+from portfolio.blog import invalidate_post_cache, render_markdown
 
 
 @receiver(post_save, sender=Post)
-def _post_saved(sender, **kwargs):
+def _post_saved(sender, instance, raw=False, update_fields=None, **kwargs):
     invalidate_post_cache()
+    # Skip render in two cases:
+    # - `raw=True` happens during loaddata/fixture loads; the body may
+    #   be in an inconsistent state with related rows.
+    # - `update_fields` is a subset of the rendered_* fields, meaning
+    #   this save was the persistence step itself (defensive — we
+    #   bypass via .update() so this path normally won't trigger).
+    if raw:
+        return
+    if update_fields and set(update_fields).issubset(
+        {'rendered_html', 'rendered_toc_html', 'rendered_at'}
+    ):
+        return
+    _render_and_persist(instance)
 
 
 @receiver(post_delete, sender=Post)
 def _post_deleted(sender, **kwargs):
     invalidate_post_cache()
+
+
+def _render_and_persist(post):
+    """Render the post's markdown and store the result on the row.
+
+    Skipped when any pyfig errors — a partial render would freeze a
+    visible "Figure failed to render" banner into the DB until the
+    next save. Live render in get_post() handles the fallback path.
+    """
+    try:
+        errors = []
+        html, toc = render_markdown(
+            post.body or '',
+            is_explainer=getattr(post, 'is_explainer', False),
+            post_slug=post.slug,
+            errors_out=errors,
+        )
+    except Exception:
+        # Don't break save() if render itself crashes — fall back to
+        # live render at view time.
+        return
+    if errors:
+        return
+    Post.objects.filter(pk=post.pk).update(
+        rendered_html=html,
+        rendered_toc_html=toc,
+        rendered_at=timezone.now(),
+    )
