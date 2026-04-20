@@ -432,9 +432,8 @@ NOW_PAGE = {
         {
             'heading': 'Research',
             'body': (
-                "Investigating **attention-regularization** for transformer MIL — "
-                "entropy penalties, sparsity priors, learned-k TopK — aiming to "
-                "close the instance-level gap that our **centered-Gaussian "
+                "Investigating **attention regularization** for transformer MIL, "
+                "aiming to close the instance-level gap that our **centered-Gaussian "
                 "(Gaussian-axial) baseline** opens up in our CHIL 2026 paper. "
                 "Targeting NeurIPS 2026."
             ),
