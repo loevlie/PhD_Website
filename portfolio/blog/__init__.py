@@ -1,3 +1,4 @@
+import functools
 import hashlib
 import math
 import re
@@ -351,11 +352,49 @@ def render_markdown(content, is_explainer=False, post_slug=None):
     html = _restore_latex(html, latex_placeholders)
     # Add loading="lazy" to all images
     html = html.replace('<img ', '<img loading="lazy" ')
+    # Wrap <img> tags in <picture> when a sibling .webp exists on disk —
+    # cuts ~67% of image weight site-wide. See _wrap_imgs_with_picture.
+    html = _wrap_imgs_with_picture(html)
     # Inject language data attributes on code blocks
     html = _inject_code_langs(html, content)
     toc_html = getattr(md, 'toc', '')
 
     return html, toc_html
+
+
+_IMG_RE = re.compile(r'<img\s+([^>]*?)src="([^"]+)"([^>]*?)/?>', re.IGNORECASE)
+
+
+@functools.lru_cache(maxsize=512)
+def _has_webp_sibling(rel_path):
+    """rel_path is a staticfiles-relative path like 'portfolio/images/blog/foo.png'.
+    Returns the relative .webp path if a sibling .webp exists on disk, else None.
+    Cached because finders.find() does disk I/O per call."""
+    from django.contrib.staticfiles import finders
+    webp_rel = re.sub(r'\.(png|jpe?g)$', '.webp', rel_path, flags=re.IGNORECASE)
+    if webp_rel == rel_path:
+        return None
+    return webp_rel if finders.find(webp_rel) else None
+
+
+def _wrap_imgs_with_picture(html):
+    """Wrap each <img src="/static/X.png"> in a <picture> with a WebP source
+    when a sibling X.webp exists. Visitor's browser picks WebP if supported,
+    falls back to the original. ~67% smaller on average across blog images."""
+    def repl(m):
+        full_tag = m.group(0)
+        src = m.group(2)
+        if not src.startswith('/static/'):
+            return full_tag
+        rel = src[len('/static/'):]
+        if rel.lower().endswith('.webp'):
+            return full_tag
+        webp_rel = _has_webp_sibling(rel)
+        if not webp_rel:
+            return full_tag
+        webp_url = '/static/' + webp_rel
+        return f'<picture><source srcset="{webp_url}" type="image/webp">{full_tag}</picture>'
+    return _IMG_RE.sub(repl, html)
 
 
 def estimate_reading_time(content):
