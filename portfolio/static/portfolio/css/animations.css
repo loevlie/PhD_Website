@@ -96,13 +96,33 @@
 
 /* Card hover — replaced 3D mouse-tilt (Webflow tell) with a CSS-only
    subtle lift + softer accent border. The transform uses translate3d
-   so it gets its own compositor layer (cheap, no relayout). */
+   so it gets its own compositor layer (cheap, no relayout).
+   Cursor-aware accent gradient (Linear pattern): a faint accent-tinted
+   spotlight follows the mouse via --mx/--my CSS vars, set in main.js
+   on pointermove. Pure CSS rendering, GPU-cheap. */
 .tilt-card {
     transition:
         transform 320ms var(--ease-spring),
         box-shadow 240ms ease,
         border-color 240ms ease;
     will-change: transform;
+    position: relative;
+    isolation: isolate;
+}
+.tilt-card::before {
+    content: '';
+    position: absolute;
+    inset: 0;
+    border-radius: inherit;
+    pointer-events: none;
+    background: radial-gradient(
+        220px circle at var(--mx, 50%) var(--my, 50%),
+        var(--accent-bg-light, color-mix(in oklch, var(--accent) 14%, transparent)),
+        transparent 65%
+    );
+    opacity: 0;
+    transition: opacity 220ms ease;
+    z-index: -1;
 }
 @media (hover: hover) and (prefers-reduced-motion: no-preference) {
     .tilt-card:hover {
@@ -112,6 +132,7 @@
             0 12px 28px -12px rgba(10, 37, 64, 0.18),
             0 0 0 1px var(--accent-bg-subtle);
     }
+    .tilt-card:hover::before { opacity: 1; }
 }
 
 /* ─────────────────────────────────────────────────────────────────

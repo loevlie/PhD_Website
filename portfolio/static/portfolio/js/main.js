@@ -162,6 +162,35 @@ window.addEventListener('scroll', () => {
 // Native CSS hover reads as more confident; JS mousemove handlers
 // also burn the main thread and conflict with view-transitions.
 
+// ── Cursor-aware accent spotlight on cards (Linear pattern) ──
+// Sets --mx/--my as CSS pixel values inside the hovered card so the
+// pseudo-element radial-gradient tracks the cursor. Cheap: only fires
+// when actually hovering a .tilt-card; coalesces with rAF so we set
+// at most once per frame. CSS in animations.css does the painting.
+(function () {
+    if (window.matchMedia('(hover: none)').matches) return;
+    const cards = document.querySelectorAll('.tilt-card');
+    if (!cards.length) return;
+    let pending = null;
+    cards.forEach(card => {
+        card.addEventListener('pointermove', (e) => {
+            const rect = card.getBoundingClientRect();
+            const x = ((e.clientX - rect.left) / rect.width) * 100;
+            const y = ((e.clientY - rect.top) / rect.height) * 100;
+            if (pending) cancelAnimationFrame(pending);
+            pending = requestAnimationFrame(() => {
+                card.style.setProperty('--mx', x + '%');
+                card.style.setProperty('--my', y + '%');
+                pending = null;
+            });
+        }, { passive: true });
+        card.addEventListener('pointerleave', () => {
+            card.style.removeProperty('--mx');
+            card.style.removeProperty('--my');
+        });
+    });
+})();
+
 // ── Animated Timeline ──
 (function () {
     const timeline = document.querySelector('.timeline');

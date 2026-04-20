@@ -462,6 +462,10 @@
 <script src="{% static 'portfolio/js/mil-pipeline.js' %}"></script>
 <!-- Hover-citation popovers (active wherever <cite class="ref" data-key="..."> appears) -->
 <script defer src="{% static 'portfolio/js/citations.js' %}"></script>
+<!-- Stacked notes — Andy Matuschak pattern. Click an internal blog link to
+     push the target post as a side-by-side column instead of navigating.
+     URL state via ?stack=slug1,slug2. Mobile (<900 px) falls back to nav. -->
+<script defer src="{% static 'portfolio/js/stacked-notes.js' %}"></script>
 <script>
 (function() {
     // Reading progress

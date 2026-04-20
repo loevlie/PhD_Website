@@ -322,7 +322,11 @@
     background-color: var(--accent-bg-subtle);
 }
 
-/* Section dividers */
+/* Section dividers — gradient line baseline + native CSS shape() upgrade.
+   Modern browsers (Chrome 130+, Safari 18.x) render a subtle scallop:
+   the divider becomes a shallow asymmetric wave instead of a flat line.
+   Older browsers fall through to the original gradient. shape() is the
+   current replacement for polygon() / SVG path divisors. */
 .section + .section::before {
     content: '';
     display: block;
@@ -332,6 +336,31 @@
     margin: 0 auto 0;
     background: linear-gradient(90deg, transparent, var(--accent) 50%, transparent);
     opacity: 0.3;
+}
+
+@supports (clip-path: shape(from 0 0, line to 100% 0)) {
+    .section + .section::before {
+        height: 18px;
+        background: linear-gradient(90deg,
+            transparent 0%,
+            var(--accent) 30%,
+            var(--accent) 70%,
+            transparent 100%);
+        clip-path: shape(
+            from 0   50%,
+            curve to 25%  40% with 12% 50%,
+            curve to 50%  50% with 38% 60%,
+            curve to 75%  60% with 62% 50%,
+            curve to 100% 50% with 88% 40%,
+            line  to 100% 52%,
+            curve to 75%  62% with 88% 42%,
+            curve to 50%  52% with 62% 52%,
+            curve to 25%  42% with 38% 62%,
+            curve to 0    52% with 12% 52%,
+            close
+        );
+        opacity: 0.4;
+    }
 }
 
 /* News */

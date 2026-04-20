@@ -70,6 +70,17 @@
     font-family: 'JetBrains Mono', ui-monospace, monospace;
     font-size: 0.875rem; line-height: 1.6;
     tab-size: 2;
+    transition: background-color 150ms ease;
+}
+.editor-source.drop-target textarea {
+    background: color-mix(in oklch, var(--ctp-lavender, #7287fd) 18%, var(--ctp-base, #1e1e2e));
+}
+.editor-source.uploading textarea { opacity: 0.7; cursor: wait; }
+.editor-bar .upload-hint {
+    color: var(--ctp-overlay0, #6c7086);
+    font-size: 0.6875rem;
+    font-family: 'JetBrains Mono', monospace;
+    margin-right: auto;
 }
 .editor-preview {
     background: var(--ctp-mantle, #181825);
@@ -96,6 +107,7 @@
         <input type="text" name="title" value="{{ post.title }}" placeholder="Post title">
         <label><input type="checkbox" name="is_explainer" {% if post.is_explainer %}checked{% endif %}> Explainer</label>
         <label><input type="checkbox" name="draft" {% if post.draft %}checked{% endif %}> Draft</label>
+        <span class="upload-hint">drop an image · or paste a screenshot</span>
         <span class="save-status" id="save-status">unchanged</span>
         <button type="submit" name="action" value="save">Save</button>
         <button type="submit" name="action" value="view" class="secondary">Save &amp; view</button>
@@ -183,6 +195,78 @@
         if ((e.metaKey || e.ctrlKey) && e.key === 's') {
             e.preventDefault();
             form.querySelector('button[name=action][value=save]').click();
+        }
+    });
+
+    // ── Image upload: drag-drop, paste from clipboard, or click "Upload" ──
+    // POST multipart to /blog/upload-image/, insert returned ![alt](url)
+    // at cursor on success. Visual feedback: source pane background tints
+    // accent-blue while drop-target; status text shows "uploading…".
+    const sourcePane = document.querySelector('.editor-source');
+
+    function insertAtCursor(text) {
+        const start = body.selectionStart;
+        const end = body.selectionEnd;
+        const before = body.value.slice(0, start);
+        const after = body.value.slice(end);
+        body.value = before + text + after;
+        body.selectionStart = body.selectionEnd = start + text.length;
+        body.dispatchEvent(new Event('input', { bubbles: true }));
+    }
+
+    async function uploadFile(file) {
+        if (!file || !file.type.startsWith('image/')) return false;
+        sourcePane.classList.add('uploading');
+        status.textContent = 'uploading ' + file.name + '…';
+        status.classList.add('is-dirty');
+        const fd = new FormData();
+        fd.append('image', file);
+        fd.append('alt', file.name.replace(/\.[a-z0-9]+$/i, '').replace(/[-_]+/g, ' '));
+        fd.append('csrfmiddlewaretoken', csrf);
+        try {
+            const r = await fetch('{% url "blog_upload_image" %}', {
+                method: 'POST', body: fd, credentials: 'same-origin',
+            });
+            const data = await r.json();
+            if (!r.ok) throw new Error(data.error || r.statusText);
+            insertAtCursor('\n\n' + data.markdown + '\n\n');
+            status.textContent = 'image inserted — unsaved';
+        } catch (e) {
+            status.textContent = 'upload failed: ' + e.message;
+        } finally {
+            sourcePane.classList.remove('uploading');
+        }
+        return true;
+    }
+
+    // Drag-and-drop onto the source pane
+    ['dragenter', 'dragover'].forEach(ev =>
+        sourcePane.addEventListener(ev, (e) => {
+            if (e.dataTransfer && Array.from(e.dataTransfer.items || []).some(i => i.kind === 'file')) {
+                e.preventDefault();
+                sourcePane.classList.add('drop-target');
+            }
+        })
+    );
+    ['dragleave', 'dragend', 'drop'].forEach(ev =>
+        sourcePane.addEventListener(ev, () => sourcePane.classList.remove('drop-target'))
+    );
+    sourcePane.addEventListener('drop', async (e) => {
+        if (!e.dataTransfer.files || !e.dataTransfer.files.length) return;
+        e.preventDefault();
+        for (const f of e.dataTransfer.files) await uploadFile(f);
+    });
+
+    // Paste image from clipboard (screenshots, etc.)
+    body.addEventListener('paste', async (e) => {
+        const items = e.clipboardData && e.clipboardData.items;
+        if (!items) return;
+        for (const item of items) {
+            if (item.kind === 'file' && item.type.startsWith('image/')) {
+                e.preventDefault();
+                await uploadFile(item.getAsFile());
+                break;
+            }
         }
     });
 

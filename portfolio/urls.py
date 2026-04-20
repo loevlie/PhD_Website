@@ -19,6 +19,7 @@ urlpatterns = [
     path('blog/feed/', BlogFeed(), name='blog_feed'),
     path('blog/new/', views.blog_new, name='blog_new'),
     path('blog/preview/', views.blog_preview, name='blog_preview'),
+    path('blog/upload-image/', views.blog_upload_image, name='blog_upload_image'),
     path('blog/<slug:slug>/', views.blog_post, name='blog_post'),
     path('blog/<slug:slug>/edit/', views.blog_edit, name='blog_edit'),
     path('publications/', views.publications, name='publications'),

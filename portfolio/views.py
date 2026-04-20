@@ -115,6 +115,55 @@ def blog_preview(request):
     return JsonResponse({'html': html, 'toc': toc})
 
 
+def blog_upload_image(request):
+    """Editor image upload. POST a multipart `image` file; returns
+    {url, markdown}. The editor inserts the markdown snippet at the
+    cursor. Files land in MEDIA_ROOT/blog-images/YYYY/MM/<slug>-<n>.ext.
+
+    Production caveat: ephemeral filesystems (Render free tier) lose
+    these on every redeploy. Move MEDIA_ROOT to S3 or equivalent
+    before relying on this in prod."""
+    from django.conf import settings as dj_settings
+    from django.core.files.storage import FileSystemStorage
+    from django.http import JsonResponse
+    from django.utils.text import slugify
+    from datetime import date as date_cls
+    import os, re
+
+    if not _can_edit(request):
+        return JsonResponse({'error': 'unauthorized'}, status=403)
+    if request.method != 'POST':
+        return JsonResponse({'error': 'POST required'}, status=405)
+    f = request.FILES.get('image')
+    if not f:
+        return JsonResponse({'error': 'no file'}, status=400)
+    # Basic content-type allow-list: PNG/JPEG/WEBP/GIF/AVIF + size cap (8 MB).
+    if (f.content_type or '').split('/')[0] != 'image':
+        return JsonResponse({'error': 'not an image'}, status=400)
+    if f.size > 8 * 1024 * 1024:
+        return JsonResponse({'error': 'file too large (8 MB max)'}, status=400)
+
+    today = date_cls.today()
+    subdir = f'blog-images/{today:%Y}/{today:%m}'
+    base, ext = os.path.splitext(f.name)
+    safe_base = slugify(base) or 'image'
+    safe_ext = re.sub(r'[^a-zA-Z0-9]', '', ext.lower())[:5] or 'png'
+    fname = f'{safe_base}.{safe_ext}'
+
+    storage = FileSystemStorage(
+        location=os.path.join(dj_settings.MEDIA_ROOT, subdir),
+        base_url=dj_settings.MEDIA_URL + subdir + '/',
+    )
+    saved_name = storage.save(fname, f)  # auto-suffixes on collisions
+    url = storage.url(saved_name)
+    alt = request.POST.get('alt', '') or safe_base.replace('-', ' ')
+    return JsonResponse({
+        'url': url,
+        'markdown': f'![{alt}]({url})',
+        'filename': saved_name,
+    })
+
+
 def blog_post(request, slug):
     post = get_post(slug)
     if post is None:

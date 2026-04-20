@@ -38,6 +38,65 @@ h1, h2, h3, h4, h5, h6 {
     text-wrap: balance;
 }
 
+/* ----- Academic-grade prose hyphenation -----------------------------
+   Proper book/journal-style line breaks. `hyphens: auto` alone tends to
+   shred words; the `hyphenate-limit-*` properties prevent that — only
+   hyphenate words ≥6 chars with at least 3 chars before / 2 after the
+   break, and never hyphenate more than 2 lines in a row. `orphans` /
+   `widows` only fire in paged contexts (print) but cost nothing.
+   Applied broadly to prose containers; opt-out via .no-hyphens. */
+.blog-prose, .thinking-prose, .now-section-body, .explainer-lede,
+.lab-entry-summary, .hero-bio, .pub-compact-title {
+    hyphens: auto;
+    -webkit-hyphens: auto;
+    hyphenate-character: "\2010";          /* hyphen, not minus */
+    hyphenate-limit-chars: 6 3 2;          /* min-word before-break after-break */
+    hyphenate-limit-lines: 2;
+    orphans: 3;
+    widows: 3;
+}
+.no-hyphens { hyphens: none !important; -webkit-hyphens: none !important; }
+/* Code, slugs, monospace identifiers — never hyphenate. */
+code, pre, kbd, samp, .font-mono, [class*="font-mono"] {
+    hyphens: none !important;
+}
+
+/* ----- Print stylesheet (Save as PDF) -------------------------------
+   Most personal sites print badly. This makes "save as PDF" produce a
+   readable artifact: A4 size, sane margins, color-scheme: light, link
+   URLs printed inline, sidenotes collapsed back into the flow, page
+   numbers in the footer, and forced no-break inside figures + after
+   headings. The Paged.js polyfill (https://pagedjs.org) builds on these
+   primitives if a paper-companion essay needs book-grade output. */
+@page {
+    size: A4;
+    margin: 2cm 2.2cm;
+    @bottom-right { content: counter(page) " / " counter(pages); font-family: monospace; font-size: 9pt; color: #888; }
+}
+@media print {
+    :root { color-scheme: light; }
+    body { background: white; color: black; }
+    nav, .navbar, .mobile-panel, .section-rail, .nav-cmdk,
+    .section-view-all, .lab-entry-embed, .footer, .blog-stack-close,
+    .demo-card-toggle, .ff-canvas-wrap { display: none !important; }
+    a { color: black; text-decoration: underline; }
+    a[href^="http"]::after,
+    a[href^="/"]::after { content: " (" attr(href) ")"; font-size: 0.85em; color: #555; }
+    a[href^="#"]::after, a[href^="mailto:"]::after { content: ""; }
+    .blog-prose .sidenote {
+        float: none !important;
+        width: auto !important;
+        margin: 0.4em 0 0.6em 0 !important;
+        font-size: 0.9em !important;
+        font-style: italic !important;
+        color: #444 !important;
+        page-break-inside: avoid;
+    }
+    h1, h2, h3, h4 { break-after: avoid; }
+    figure, pre, table, .blog-stack-column { break-inside: avoid; }
+    img { max-width: 100% !important; }
+}
+
 /* --- Prose serif treatment for academic register --------------------- */
 /* Use Plex Serif for prose-heavy regions: hero subtitle/bio, news entries,
    publication titles + authors. Sans stays for nav, buttons, dates, code.
