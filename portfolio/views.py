@@ -281,17 +281,23 @@ def blog_preview(request):
     return JsonResponse({'html': html, 'toc': toc})
 
 
-def _fetch_webmentions(target_url, limit=25, cache_seconds=300):
+def _fetch_webmentions(target_url, limit=25):
     """Fetch incoming webmentions for a URL from the webmention.io public
-    API. Cached locally for `cache_seconds`. Returns a list of dicts:
+    API. Cached locally. Returns a list of dicts:
     {author, content, url, type, published}. Empty list on any failure.
 
-    No API token required for the public read endpoint — webmention.io
-    serves the JF2 feed for any registered domain at:
-       /api/mentions.jf2?target=<url>
+    Gated on settings.WEBMENTIONS_ENABLED (env: WEBMENTIONS_ENABLED=1).
+    Until the domain is registered at webmention.io, keep this disabled —
+    every blog-post view would otherwise eat a 1-2s external round-trip
+    waiting for a 404. Flip the env var after registering.
 
-    Until the user registers dennisloevlie.com at webmention.io, this
-    will return [] cleanly. After registration it just starts working."""
+    When enabled: 1s timeout (fast-fail on network hiccups), success
+    cached 10 min, failure cached 24h (so one slow failure doesn't
+    punish every subsequent visitor)."""
+    from django.conf import settings as dj_settings
+    if not getattr(dj_settings, 'WEBMENTIONS_ENABLED', False):
+        return []
+
     from django.core.cache import cache
     import json
     import urllib.request
@@ -307,9 +313,10 @@ def _fetch_webmentions(target_url, limit=25, cache_seconds=300):
         + urllib.parse.urlencode({'target': target_url, 'per-page': limit, 'sort-dir': 'down'})
     )
     items = []
+    ok = False
     try:
         req = urllib.request.Request(api, headers={'User-Agent': 'dennisloevlie.com/webmentions'})
-        with urllib.request.urlopen(req, timeout=4) as resp:
+        with urllib.request.urlopen(req, timeout=1) as resp:
             data = json.loads(resp.read().decode('utf-8'))
         for it in data.get('children', []):
             author = it.get('author') or {}
@@ -322,9 +329,12 @@ def _fetch_webmentions(target_url, limit=25, cache_seconds=300):
                 'content': (it.get('content') or {}).get('text', '') if isinstance(it.get('content'), dict) else '',
                 'published': it.get('published') or it.get('wm-received'),
             })
+        ok = True
     except Exception:
         items = []
-    cache.set(cache_key, items, cache_seconds)
+    # Hit-path TTL: 10 min. Miss-path TTL: 24h so a flaky/404 response
+    # doesn't re-cost us on every visitor for the next 5 minutes.
+    cache.set(cache_key, items, 600 if ok else 86400)
     return items
 
 

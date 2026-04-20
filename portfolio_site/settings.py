@@ -105,6 +105,12 @@ CACHES = {
     }
 }
 
+# Webmentions: off by default. Every blog-post view would otherwise eat
+# a 1-2s external round-trip to webmention.io before we got a cached
+# miss. Flip WEBMENTIONS_ENABLED=1 on Render after registering the
+# domain at webmention.io.
+WEBMENTIONS_ENABLED = os.environ.get('WEBMENTIONS_ENABLED', '').lower() in ('1', 'true', 'yes')
+
 # User-uploaded media (blog images posted via the in-browser editor).
 # In production this needs to be backed by S3 or equivalent — local
 # disk on Render's free tier is ephemeral. For local dev this is fine.
