@@ -140,3 +140,27 @@ img {
 ul, ol {
     list-style: none;
 }
+
+/* ─────────────────────────────────────────────────────────────────
+   Below-the-fold paint optimization. content-visibility: auto tells
+   the browser to skip layout/paint for elements outside the viewport
+   until they're near it — a free LCP/INP win on long pages. The
+   contain-intrinsic-size hints the layout box so the page doesn't
+   jump when the section eventually paints (no CLS).
+
+   Applied via .cv-auto class on long content sections (timelines,
+   publication grids, lab-notebook entries, blog post listings).
+   Browsers without support fall through cleanly.
+   Spec: https://web.dev/articles/content-visibility
+───────────────────────────────────────────────────────────────── */
+.cv-auto {
+    content-visibility: auto;
+    contain-intrinsic-size: 1px 800px;
+}
+
+/* Specific tuned sizes per element class — closer to actual height
+   means less layout thrash on first paint. */
+.lab-entry { contain-intrinsic-size: 1px 900px; }
+.timeline-item { contain-intrinsic-size: 1px 240px; }
+.blog-card { contain-intrinsic-size: 1px 320px; }
+

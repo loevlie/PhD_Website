@@ -81,8 +81,65 @@ def _inject_code_langs(html, raw_content):
     return re.sub(r'<div class="highlight">', replacer, html)
 
 
-def render_markdown(content):
-    """Convert markdown string to HTML with syntax highlighting and ToC."""
+_FOOTNOTE_LI_RE = re.compile(
+    r'<li id="fn:([^"]+)">\s*(?:<p>)?(.+?)(?:&#160;)?\s*'
+    r'<a class="footnote-backref"[^>]*>[^<]*</a>\s*(?:</p>)?\s*</li>',
+    re.DOTALL,
+)
+_FOOTNOTE_SUP_RE = re.compile(
+    r'(<sup id="fnref:([^"]+)">\s*<a class="footnote-ref" href="[^"]*">(\d+)</a>\s*</sup>)'
+)
+_FOOTNOTE_BLOCK_RE = re.compile(
+    r'<div class="footnote">.*?</div>', re.DOTALL,
+)
+
+
+def _transform_footnotes_to_sidenotes(html):
+    """For explainer posts: pull footnote bodies out of the bottom <div class="footnote">
+    block and inline each one as <aside class="sidenote"> right after its marker.
+
+    Standard markdown footnote markup (rendered by python-markdown's `footnotes`
+    extension) becomes Tufte-style margin notes that float into the right gutter
+    on wide viewports (CSS in blog.css handles positioning)."""
+    # Collect {slug: inner_html} from the footnote list.
+    notes = {slug: body.strip() for slug, body in _FOOTNOTE_LI_RE.findall(html)}
+    if not notes:
+        return html
+
+    # Replace each in-text marker with marker + adjacent <aside class="sidenote">.
+    def insert_aside(m):
+        sup_html, slug, num = m.group(1), m.group(2), m.group(3)
+        body = notes.get(slug, '')
+        if not body:
+            return sup_html
+        return (
+            f'{sup_html}'
+            f'<aside class="sidenote sidenote-{slug}">'
+            f'<span class="sidenote-num">{num}.</span> {body}'
+            f'</aside>'
+        )
+    html = _FOOTNOTE_SUP_RE.sub(insert_aside, html)
+
+    # Strip the now-redundant bottom-of-page footnote block. CSS also hides
+    # it (.is-explainer .blog-prose .footnote { display: none }) as a belt-
+    # and-braces fallback in case this regex misses an edge case.
+    html = _FOOTNOTE_BLOCK_RE.sub('', html)
+    return html
+
+
+def render_markdown(content, is_explainer=False):
+    """Convert markdown string to HTML with syntax highlighting, ToC, and
+    (for explainer posts) Tufte-style sidenotes from footnote markup.
+
+    Authors write standard markdown footnotes:
+        The transformer architecture[^attention] is everywhere now.
+        ...
+        [^attention]: Vaswani et al. 2017. Attention Is All You Need.
+
+    On regular posts these render as classic numbered footnotes.
+    On `is_explainer=True` posts they're transformed into margin notes
+    that float in the right gutter on desktop and collapse inline on mobile.
+    """
     content, latex_placeholders = _protect_latex(content)
 
     md = markdown.Markdown(extensions=[
@@ -92,9 +149,12 @@ def render_markdown(content):
         TocExtension(toc_depth='2-3', permalink=True, permalink_class='toc-link'),
         'smarty',
         'attr_list',
+        'footnotes',
     ])
 
     html = md.convert(content)
+    if is_explainer:
+        html = _transform_footnotes_to_sidenotes(html)
     html = _restore_latex(html, latex_placeholders)
     # Add loading="lazy" to all images
     html = html.replace('<img ', '<img loading="lazy" ')
@@ -113,7 +173,8 @@ def estimate_reading_time(content):
 
 def _post_to_dict(post_obj):
     """Convert a Post model instance to the standard post dict."""
-    content_html, toc_html = render_markdown(post_obj.body)
+    is_explainer = bool(getattr(post_obj, 'is_explainer', False))
+    content_html, toc_html = render_markdown(post_obj.body, is_explainer=is_explainer)
     return {
         'slug': post_obj.slug,
         'title': post_obj.title,
@@ -127,6 +188,7 @@ def _post_to_dict(post_obj):
         'series': post_obj.series,
         'series_order': post_obj.series_order,
         'medium_url': post_obj.medium_url,
+        'is_explainer': is_explainer,
         'reading_time': estimate_reading_time(post_obj.body),
         'content_html': content_html,
         'toc_html': toc_html,
@@ -140,7 +202,8 @@ def _parse_file_post(filepath):
     slug = filepath.stem
 
     raw_content = post.content
-    content_html, toc_html = render_markdown(raw_content)
+    is_explainer = bool(post.get('is_explainer', False))
+    content_html, toc_html = render_markdown(raw_content, is_explainer=is_explainer)
     reading_time = estimate_reading_time(raw_content)
 
     post_date = post.get('date', date.today())
@@ -160,6 +223,7 @@ def _parse_file_post(filepath):
         'series': post.get('series', ''),
         'series_order': post.get('series_order', 0),
         'medium_url': post.get('medium_url', ''),
+        'is_explainer': is_explainer,
         'reading_time': reading_time,
         'content_html': content_html,
         'toc_html': toc_html,
@@ -168,11 +232,13 @@ def _parse_file_post(filepath):
 
 
 def _has_db():
-    """Check if the Post table exists (database is set up)."""
+    """Return True only if the Post table exists AND has at least one row.
+    An empty table (e.g., fresh dev DB after running migrations but before
+    `manage.py import_posts`) falls through to file-based posts so the
+    markdown-author workflow keeps working without a populated DB."""
     try:
         from portfolio.models import Post
-        Post.objects.exists()
-        return True
+        return Post.objects.exists()
     except Exception:
         return False
 

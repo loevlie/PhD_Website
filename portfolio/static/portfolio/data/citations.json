@@ -1,0 +1,44 @@
+{
+  "harvey2026benchmark": {
+    "title": "A Multi-Dataset Benchmark of Multiple Instance Learning for 3D Neuroimage Classification",
+    "authors": "E. Harvey*, D.J. Loevlie*, A.A. Satani, W. Chen, D.M. Kent, M.C. Hughes",
+    "venue": "CHIL 2026 (forthcoming)",
+    "url": "https://github.com/tufts-ml/neuroimage-classifiers",
+    "bibtex": "@inproceedings{harvey2026benchmark,\n  author = {Harvey, Ethan and Loevlie, Dennis Johan and Satani, Amir Ali and Chen, Wansu and Kent, David M. and Hughes, Michael C.},\n  title = {A Multi-Dataset Benchmark of Multiple Instance Learning for 3D Neuroimage Classification},\n  booktitle = {CHIL 2026},\n  year = {2026}\n}"
+  },
+  "harvey2025synthetic": {
+    "title": "Synthetic Data Reveals Generalization Gaps in Correlated Multiple Instance Learning",
+    "authors": "E. Harvey, D.J. Loevlie, M.C. Hughes",
+    "venue": "ML4H 2025 (Findings Track)",
+    "url": "https://arxiv.org/abs/2510.25759",
+    "bibtex": "@inproceedings{harvey2025synthetic,\n  author = {Harvey, Ethan and Loevlie, Dennis Johan and Hughes, Michael C.},\n  title = {Synthetic Data Reveals Generalization Gaps in Correlated Multiple Instance Learning},\n  booktitle = {ML4H 2025 Symposium (Findings Track)},\n  year = {2025}\n}"
+  },
+  "loevlie2023demystifying": {
+    "title": "Demystifying the Chemical Ordering of Multimetallic Nanoparticles",
+    "authors": "D.J. Loevlie, B. Ferreira, G. Mpourmpakis",
+    "venue": "Acc. Chem. Res. 56, 248–257 (2023)",
+    "url": "https://doi.org/10.1021/acs.accounts.2c00646",
+    "bibtex": "@article{loevlie2023demystifying,\n  author = {Loevlie, Dennis Johan and Ferreira, Brenno and Mpourmpakis, Giannis},\n  title = {Demystifying the Chemical Ordering of Multimetallic Nanoparticles},\n  journal = {Accounts of Chemical Research},\n  volume = {56},\n  number = {3},\n  pages = {248--257},\n  year = {2023},\n  doi = {10.1021/acs.accounts.2c00646}\n}"
+  },
+  "salem2023single": {
+    "title": "Single Atom Alloys Segregation in the Presence of Ligands",
+    "authors": "M. Salem, D.J. Loevlie, G. Mpourmpakis",
+    "venue": "J. Phys. Chem. C 127, 22790–22798 (2023)",
+    "url": "https://doi.org/10.1021/acs.jpcc.3c05827",
+    "bibtex": "@article{salem2023single,\n  author = {Salem, Maya and Loevlie, Dennis Johan and Mpourmpakis, Giannis},\n  title = {Single Atom Alloys Segregation in the Presence of Ligands},\n  journal = {Journal of Physical Chemistry C},\n  volume = {127},\n  number = {46},\n  pages = {22790--22798},\n  year = {2023},\n  doi = {10.1021/acs.jpcc.3c05827}\n}"
+  },
+  "ding2022size": {
+    "title": "Size-Dependent Shape Distributions of Platinum Nanoparticles",
+    "authors": "R. Ding, I.M. Padilla Espinosa, D. Loevlie, S. Azadehranjbar, A.J. Baker, G. Mpourmpakis, A. Martini, T.D.B. Jacobs",
+    "venue": "Nanoscale Advances 4, 3978–3986 (2022)",
+    "url": "https://doi.org/10.1039/D2NA00326K",
+    "bibtex": "@article{ding2022size,\n  author = {Ding, Ruikang and Padilla Espinosa, Ingrid M. and Loevlie, Dennis and Azadehranjbar, Soodabeh and Baker, Andrew J. and Mpourmpakis, Giannis and Martini, Ashlie and Jacobs, Tevis D. B.},\n  title = {Size-Dependent Shape Distributions of Platinum Nanoparticles},\n  journal = {Nanoscale Advances},\n  volume = {4},\n  pages = {3978--3986},\n  year = {2022},\n  doi = {10.1039/D2NA00326K}\n}"
+  },
+  "nagarajan2022resolving": {
+    "title": "Resolving Electrocatalytic Imprecision in Atomically Precise Metal Nanoclusters",
+    "authors": "A.V. Nagarajan, D.J. Loevlie, M.J. Cowan, G. Mpourmpakis",
+    "venue": "Curr. Opin. Chem. Eng. 36, 100784 (2022)",
+    "url": "https://doi.org/10.1016/j.coche.2021.100784",
+    "bibtex": "@article{nagarajan2022resolving,\n  author = {Nagarajan, Anantha Venkataraman and Loevlie, Dennis Johan and Cowan, Michael J. and Mpourmpakis, Giannis},\n  title = {Resolving Electrocatalytic Imprecision in Atomically Precise Metal Nanoclusters},\n  journal = {Current Opinion in Chemical Engineering},\n  volume = {36},\n  pages = {100784},\n  year = {2022},\n  doi = {10.1016/j.coche.2021.100784}\n}"
+  }
+}

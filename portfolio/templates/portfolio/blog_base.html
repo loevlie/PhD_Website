@@ -33,6 +33,11 @@
 
     <!-- Tailwind CSS (pre-built, no CDN flash) -->
     <link rel="stylesheet" href="{% static 'portfolio/css/blog-tw.css' %}">
+    <!-- Blog-specific extras (sidenotes, hover citations, explainer badge).
+         Uses var(--color-accent, fallback) chains to read Catppuccin
+         tokens from blog-tw.css; doesn't depend on the portfolio's
+         variables.css so the blog theme is preserved. -->
+    <link rel="stylesheet" href="{% static 'portfolio/css/blog.css' %}">
 
     <style>
         /* Catppuccin — all 4 flavors, all 26 colors each */

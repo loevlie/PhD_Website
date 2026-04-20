@@ -1,0 +1,52 @@
+{% load static %}
+<!--
+  "What I'm thinking about" — short editorial section, 3 paragraphs.
+  Goal: research-taste signal. Per the design research, this is the
+  cheapest credibility signal for FAANG/ELLIS-tier reviewers because
+  almost no one does it well, and recruiters can't fake it.
+
+  Update cadence: ~quarterly. Keep it short (3 paragraphs, ≤180 words
+  each), opinionated, and dated. Stale dates kill the signal.
+-->
+<section class="section thinking-section" id="thinking" aria-labelledby="thinking-title">
+    <div class="container">
+        <div class="thinking-inner section-reveal">
+            <p class="thinking-eyebrow">Currently</p>
+            <h2 class="thinking-title" id="thinking-title">What I'm thinking about</h2>
+
+            <div class="thinking-prose">
+                <p>
+                    Our <strong>CHIL 2026 benchmark</strong> with Ethan Harvey landed two
+                    results worth pulling on. First: a simple
+                    <strong>mean-pooling MIL baseline</strong> matches attention-MIL on
+                    4 of 6 moderate-sized neuroimage tasks while training
+                    <strong>25× faster</strong>. Second &mdash; the more interesting one &mdash;
+                    a <strong>centered-Gaussian (Gaussian-axial) baseline</strong> beats
+                    transformer-based MIL methods on <em>instance-level</em> metrics.
+                </p>
+                <p>
+                    That gap matters for clinical interpretation: if a transformer
+                    can't find the right <em>instances</em> but a fixed Gaussian prior on
+                    instance positions can, the attention is poorly regularized. I'm
+                    investigating <strong>attention regularization</strong> to close
+                    the instance-level gap <em>without</em> hurting bag-level
+                    accuracy. Targeting NeurIPS 2026.
+                </p>
+                <p>
+                    Looking ahead &mdash; picking the central PhD thread on
+                    <strong>tabular foundation models</strong>. Top candidates:
+                    V-JEPA-style world models for table dynamics, contrastive
+                    table-language alignment ("CLIP for tables") with column-then-row
+                    encoders + JEPA-in-modality, scaling-law theory for tabular
+                    pretraining, and causal structure inside TFMs.
+                    See <a href="/now/">the /now page</a> for details.
+                </p>
+            </div>
+
+            <p class="thinking-updated">
+                Last updated <time datetime="2026-04-19">19 April 2026</time>.
+                <a href="https://bsky.app/profile/dennisloevlie.bsky.social">More on Bluesky</a>.
+            </p>
+        </div>
+    </div>
+</section>

@@ -13,14 +13,38 @@
 {% endblock %}
 
 {% block content %}
-<section class="section listing-page">
+<section class="section listing-page" data-pub-page>
     <div class="container">
         <h1 class="listing-page-title fade-in">Publications</h1>
         <p class="listing-page-subtitle fade-in">Research papers, posters, and conference proceedings.</p>
 
+        <!-- Filters: year + type. Pure CSS-driven via :checked + sibling selectors
+             would be nicest, but with arbitrary years it's easier to do with a
+             small JS filter (loaded inline at the bottom of this template). -->
+        <div class="pub-filters fade-in" role="toolbar" aria-label="Filter publications">
+            <div class="pub-filter-group">
+                <span class="pub-filter-label">Year</span>
+                <button class="pub-filter-chip is-active" data-filter="year" data-value="all" type="button">All</button>
+                {% for year in publications|dictsortreversed:"year"|unique_attr:"year" %}
+                <button class="pub-filter-chip" data-filter="year" data-value="{{ year }}" type="button">{{ year }}</button>
+                {% endfor %}
+            </div>
+            <div class="pub-filter-group">
+                <span class="pub-filter-label">Type</span>
+                <button class="pub-filter-chip is-active" data-filter="type" data-value="all" type="button">All</button>
+                {% for type in publications|unique_attr:"type" %}
+                <button class="pub-filter-chip" data-filter="type" data-value="{{ type }}" type="button">{{ type }}</button>
+                {% endfor %}
+            </div>
+            <button class="pub-filter-chip pub-filter-export" data-action="export-bib" type="button" title="Copy BibTeX of all visible publications">
+                <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round" style="vertical-align:-2px"><rect x="9" y="9" width="13" height="13" rx="2" ry="2"/><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"/></svg>
+                Copy all BibTeX
+            </button>
+        </div>
+
         <div class="pub-compact-list fade-in-group">
             {% for pub in publications %}
-            <div class="pub-compact-item fade-in">
+            <div class="pub-compact-item fade-in" data-pub-year="{{ pub.year }}" data-pub-type="{{ pub.type }}">
                 <div class="pub-compact-year">{{ pub.year }}</div>
                 <div class="pub-compact-body">
                     <div class="pub-compact-top">
@@ -32,17 +56,82 @@
                         {% for author in pub.authors %}{% if not forloop.first %}, {% endif %}{{ author|highlight_author }}{% endfor %}
                     </p>
                     <p class="pub-compact-venue">{{ pub.venue }}</p>
-                    {% if pub.links %}
                     <div class="pub-links">
                         {% for link in pub.links %}
                         <a href="{{ link.url }}" class="link-pill" target="_blank" rel="noopener">{{ link.label }}</a>
                         {% endfor %}
+                        {% if pub.bibtex %}
+                        <button type="button" class="link-pill link-pill--cite" data-action="copy-bib"
+                                data-bib="{{ pub.bibtex|escape }}">
+                            <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round" style="vertical-align:-2px"><rect x="9" y="9" width="13" height="13" rx="2" ry="2"/><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"/></svg>
+                            BibTeX
+                        </button>
+                        {% endif %}
                     </div>
-                    {% endif %}
                 </div>
             </div>
             {% endfor %}
         </div>
     </div>
 </section>
+
+<script>
+(function() {
+    // ── Filter chips ─────────────────────────────────────────────
+    const root = document.querySelector('[data-pub-page]');
+    if (!root) return;
+    const items = root.querySelectorAll('.pub-compact-item');
+    const filters = { year: 'all', type: 'all' };
+
+    function applyFilters() {
+        items.forEach(it => {
+            const yr = it.dataset.pubYear, ty = it.dataset.pubType;
+            const ok = (filters.year === 'all' || filters.year === yr)
+                    && (filters.type === 'all' || filters.type === ty);
+            it.style.display = ok ? '' : 'none';
+        });
+    }
+
+    root.querySelectorAll('.pub-filter-chip[data-filter]').forEach(chip => {
+        chip.addEventListener('click', () => {
+            const f = chip.dataset.filter, v = chip.dataset.value;
+            root.querySelectorAll(`.pub-filter-chip[data-filter="${f}"]`).forEach(c => c.classList.remove('is-active'));
+            chip.classList.add('is-active');
+            filters[f] = v;
+            applyFilters();
+        });
+    });
+
+    // ── Per-pub BibTeX copy ──────────────────────────────────────
+    async function copyAndFlash(btn, text, originalLabel) {
+        try {
+            await navigator.clipboard.writeText(text);
+            const inner = btn.querySelector('.btn-label') || btn;
+            const before = btn.innerHTML;
+            btn.innerHTML = '✓ Copied';
+            btn.classList.add('is-copied');
+            setTimeout(() => { btn.innerHTML = before; btn.classList.remove('is-copied'); }, 1400);
+        } catch (e) {
+            btn.innerHTML = '⚠ Copy failed';
+            setTimeout(() => location.reload(), 800);
+        }
+    }
+    root.querySelectorAll('[data-action="copy-bib"]').forEach(btn => {
+        btn.addEventListener('click', () => copyAndFlash(btn, btn.dataset.bib));
+    });
+
+    // ── Export-all visible ────────────────────────────────────────
+    const exportBtn = root.querySelector('[data-action="export-bib"]');
+    if (exportBtn) {
+        exportBtn.addEventListener('click', () => {
+            const visible = Array.from(items).filter(it => it.style.display !== 'none');
+            const all = visible.map(it => {
+                const b = it.querySelector('[data-bib]');
+                return b ? b.dataset.bib : '';
+            }).filter(Boolean).join('\n\n');
+            copyAndFlash(exportBtn, all);
+        });
+    }
+})();
+</script>
 {% endblock %}

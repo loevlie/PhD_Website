@@ -8,7 +8,8 @@
     min-height: 100vh;
     display: flex;
     align-items: center;
-    padding-top: calc(var(--nav-height) + 32px);
+    padding-top: calc(var(--nav-height) + 16px);
+    padding-bottom: 24px;
     position: relative;
     overflow: hidden;
     isolation: isolate;
@@ -104,10 +105,10 @@
        OUTSIDE the grid (intentional margins) instead of INSIDE the bio
        column (which read as "left-justify dead space" on wide screens).
        The whole grid then centers within the wide container. */
-    grid-template-columns: minmax(280px, 360px) minmax(540px, 720px);
+    grid-template-columns: minmax(260px, 320px) minmax(540px, 720px);
     justify-content: center;
-    column-gap: 64px;
-    row-gap: 32px;
+    column-gap: 56px;
+    row-gap: 20px;
     align-items: center;
 }
 
@@ -128,10 +129,15 @@
 }
 
 .hero-name {
-    font-size: var(--h2-size);
+    /* Fluid typography — scales between 26 px on phones and 48 px on
+       wide screens without breakpoint jumps. Sized down from the
+       earlier 56 px max so the hero + interests pills fit on a
+       standard MacBook viewport without scrolling. */
+    font-size: clamp(1.625rem, 1.3rem + 1.5vw, 3rem);
     font-weight: 700;
     margin-bottom: 4px;
     letter-spacing: -0.03em;
+    line-height: 1.05;
 }
 
 .hero-title {
@@ -151,8 +157,8 @@
 .hero-bio {
     font-size: var(--body-size);
     color: var(--text-secondary);
-    margin-bottom: 16px;
-    line-height: 1.8;
+    margin-bottom: 12px;
+    line-height: 1.65;
 }
 
 .hero-preview-toggle {
@@ -280,14 +286,14 @@
 .hero-interests {
     grid-column: 1 / -1;
     border-top: 1px solid var(--border-color);
-    padding-top: 24px;
+    padding-top: 16px;
 }
 
 .hero-interests-title {
     font-size: var(--small-size);
     font-weight: 600;
     color: var(--text-primary);
-    margin-bottom: 12px;
+    margin-bottom: 8px;
     text-transform: uppercase;
     letter-spacing: 0.05em;
 }
@@ -741,25 +747,59 @@ button.pub-cite-btn {
 .pub-compact-item {
     display: flex;
     gap: 24px;
-    padding: 20px 0;
+    padding: 22px 20px;
+    margin: 0 -20px;
+    border-radius: 10px;
+    border: 1px solid transparent;
+    transition: background 200ms ease, border-color 200ms ease, transform 200ms var(--ease-spring, ease);
+    position: relative;
+}
+
+.pub-compact-item:not(:last-child) {
     border-bottom: 1px solid var(--border-color);
+    border-radius: 10px 10px 0 0;
+}
+
+@media (hover: hover) and (prefers-reduced-motion: no-preference) {
+    .pub-compact-item:hover {
+        background: var(--accent-bg-subtle);
+        border-color: var(--accent-bg-medium);
+        border-radius: 10px;
+    }
 }
 
 .pub-compact-item:first-child {
-    padding-top: 0;
+    padding-top: 22px;
 }
 
 .pub-compact-item:last-child {
     border-bottom: none;
 }
 
+/* Selected publications get a subtle accent ribbon on the left */
+.pub-compact-item:has(.pub-compact-star)::before {
+    content: "";
+    position: absolute;
+    left: 0;
+    top: 22px;
+    bottom: 22px;
+    width: 3px;
+    border-radius: 2px;
+    background: linear-gradient(180deg,
+                var(--accent),
+                color-mix(in oklch, var(--accent) 50%, transparent));
+}
+
 .pub-compact-year {
     flex-shrink: 0;
-    width: 48px;
-    font-size: var(--small-size);
-    font-weight: 700;
+    width: 56px;
+    font-family: var(--font-mono);
+    font-size: 0.875rem;
+    font-weight: 600;
     color: var(--text-muted);
-    padding-top: 2px;
+    padding-top: 4px;
+    font-variant-numeric: tabular-nums;
+    letter-spacing: 0.02em;
 }
 
 .pub-compact-body {
@@ -2163,4 +2203,575 @@ button.pub-cite-btn {
     font-size: 3rem;
     display: block;
     margin-bottom: 16px;
+}
+
+/* ============================================================
+   "Currently / What I'm thinking about" — homepage research-taste
+   section. Editorial register: narrow measure, body-serif, dated.
+   Pattern: Lilian Weng / Sasha Rush / Cal Newport.
+   ============================================================ */
+.thinking-section {
+    padding-top: clamp(48px, 5vw, 80px);
+    padding-bottom: clamp(48px, 5vw, 80px);
+}
+
+.thinking-inner {
+    max-width: 720px;
+    margin: 0 auto;
+}
+
+.thinking-eyebrow {
+    font-family: var(--font-mono);
+    font-size: 0.75rem;
+    text-transform: uppercase;
+    letter-spacing: 0.12em;
+    color: var(--accent);
+    margin: 0 0 14px;
+}
+
+.thinking-title {
+    font-family: var(--font-serif);
+    font-size: clamp(1.75rem, 1.4rem + 1.4vw, 2.75rem);
+    line-height: 1.1;
+    letter-spacing: -0.015em;
+    color: var(--text-primary);
+    margin: 0 0 32px;
+}
+
+.thinking-prose {
+    font-family: var(--font-serif);
+    font-size: clamp(1rem, 0.95rem + 0.25vw, 1.1875rem);
+    line-height: 1.75;
+    color: var(--text-secondary);
+}
+
+.thinking-prose p {
+    margin: 0 0 1.25em;
+}
+
+.thinking-prose strong {
+    color: var(--text-primary);
+    font-weight: 600;
+}
+
+.thinking-prose em {
+    color: var(--text-primary);
+}
+
+.thinking-updated {
+    margin-top: 32px;
+    padding-top: 20px;
+    border-top: 1px solid var(--border-color);
+    font-size: 0.8125rem;
+    color: var(--text-muted);
+    font-style: italic;
+}
+
+.thinking-updated a {
+    color: var(--accent);
+    text-decoration: none;
+    border-bottom: 1px dotted var(--accent-bg-medium);
+}
+
+.thinking-updated a:hover {
+    border-bottom-style: solid;
+}
+
+/* ============================================================
+   /now/ — Derek Sivers convention. A single page that says what
+   you're focused on right now. Editorial, dated, sectioned.
+   ============================================================ */
+.now-page {
+    padding-top: clamp(64px, 8vw, 128px);
+    padding-bottom: clamp(96px, 8vw, 144px);
+}
+
+.now-inner {
+    max-width: 720px;
+    margin: 0 auto;
+}
+
+.now-header {
+    margin-bottom: 64px;
+    padding-bottom: 32px;
+    border-bottom: 1px solid var(--border-color);
+}
+
+.now-eyebrow {
+    font-family: var(--font-mono);
+    font-size: 0.75rem;
+    text-transform: uppercase;
+    letter-spacing: 0.16em;
+    color: var(--accent);
+    margin: 0 0 16px;
+}
+
+.now-title {
+    font-family: var(--font-serif);
+    font-size: clamp(2rem, 1.5rem + 2.5vw, 3.5rem);
+    line-height: 1.05;
+    letter-spacing: -0.02em;
+    font-weight: 600;
+    color: var(--text-primary);
+    margin: 0 0 16px;
+}
+
+.now-meta {
+    font-family: var(--font-mono);
+    font-size: 0.8125rem;
+    color: var(--text-muted);
+    margin: 0;
+    font-variant-numeric: tabular-nums;
+}
+
+.now-meta-sep {
+    margin: 0 8px;
+    opacity: 0.4;
+}
+
+.now-section {
+    margin-bottom: 48px;
+}
+
+.now-section-title {
+    font-family: var(--font-mono);
+    font-size: 0.75rem;
+    text-transform: uppercase;
+    letter-spacing: 0.14em;
+    color: var(--accent);
+    margin: 0 0 16px;
+    padding-bottom: 8px;
+    border-bottom: 1px solid var(--accent-bg-subtle);
+}
+
+.now-section-body {
+    font-family: var(--font-serif);
+    font-size: 1.0625rem;
+    line-height: 1.75;
+    color: var(--text-secondary);
+}
+
+.now-section-body p {
+    margin: 0 0 1.1em;
+}
+
+.now-section-body p:last-child {
+    margin-bottom: 0;
+}
+
+.now-section-body strong,
+.thinking-prose strong {
+    /* IBM Plex Serif at 600 reads as barely-bold against a 400 body —
+       jump to 700 for clear visual weight. The Google Fonts URL only
+       requests up to 600 today, so the browser synthesizes 700 (which
+       is acceptable for 1-2 emphasized phrases per paragraph). Color
+       also shifts up to text-primary so dark-mode bold is unambiguous. */
+    color: var(--text-primary);
+    font-weight: 700;
+}
+
+.now-section-body em {
+    color: var(--text-primary);
+    font-style: italic;
+}
+
+.now-section-body a {
+    color: var(--accent);
+    text-decoration: none;
+    border-bottom: 1px dotted var(--accent-bg-medium);
+}
+
+.now-section-body a:hover {
+    border-bottom-style: solid;
+}
+
+.now-footer {
+    margin-top: 80px;
+    padding-top: 32px;
+    border-top: 1px solid var(--border-color);
+}
+
+.now-footer-note {
+    font-size: 0.875rem;
+    color: var(--text-muted);
+    line-height: 1.6;
+    margin: 0 0 12px;
+}
+
+.now-footer-note a {
+    color: var(--text-muted);
+    border-bottom: 1px dotted var(--border-color);
+    text-decoration: none;
+}
+
+.now-footer-note a:hover {
+    color: var(--accent);
+    border-bottom-color: var(--accent);
+}
+
+/* ============================================================
+   Publications page filters + per-pub BibTeX-copy button
+   ============================================================ */
+.pub-filters {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: 12px 24px;
+    margin: 32px 0 36px;
+    padding: 16px 20px;
+    border: 1px solid var(--border-color);
+    border-radius: 12px;
+    background: var(--bg-secondary);
+}
+
+.pub-filter-group {
+    display: flex;
+    align-items: center;
+    flex-wrap: wrap;
+    gap: 6px;
+}
+
+.pub-filter-label {
+    font-family: var(--font-mono);
+    font-size: 0.6875rem;
+    text-transform: uppercase;
+    letter-spacing: 0.1em;
+    color: var(--text-muted);
+    margin-right: 8px;
+}
+
+.pub-filter-chip {
+    appearance: none;
+    background: transparent;
+    border: 1px solid var(--border-color);
+    color: var(--text-secondary);
+    font-family: var(--font-family);
+    font-size: 0.8125rem;
+    padding: 4px 10px;
+    border-radius: 999px;
+    cursor: pointer;
+    transition: all 150ms ease;
+    line-height: 1.2;
+    font-variant-numeric: tabular-nums;
+}
+
+.pub-filter-chip:hover {
+    border-color: var(--accent);
+    color: var(--accent);
+}
+
+.pub-filter-chip.is-active {
+    background: var(--accent);
+    border-color: var(--accent);
+    color: var(--bg-primary);
+    font-weight: 500;
+}
+
+.pub-filter-export {
+    margin-left: auto;
+    border-color: var(--accent-bg-medium);
+    color: var(--accent);
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+}
+
+.pub-filter-export:hover {
+    background: var(--accent-bg-subtle);
+}
+
+.link-pill--cite {
+    appearance: none;
+    cursor: pointer;
+    font-family: var(--font-family);
+    border: 1px solid var(--accent-bg-medium);
+    background: transparent;
+    color: var(--accent);
+    display: inline-flex;
+    align-items: center;
+    gap: 4px;
+}
+
+.link-pill--cite:hover {
+    background: var(--accent-bg-subtle);
+}
+
+.link-pill--cite.is-copied,
+.pub-filter-export.is-copied {
+    background: var(--accent);
+    color: var(--bg-primary);
+    border-color: var(--accent);
+}
+
+/* (Earlier draft of a Cmd+K palette removed: the existing .cmdk
+   palette in base.html is canonical. Adding /now and Lab Notebook
+   to its data was the only change needed.) */
+
+/* ============================================================
+   404 page — editorial, search-forward.
+   ============================================================ */
+.not-found {
+    padding-top: clamp(80px, 12vh, 160px);
+    padding-bottom: clamp(80px, 10vh, 144px);
+}
+
+.not-found-inner {
+    max-width: 640px;
+    margin: 0 auto;
+}
+
+.not-found-eyebrow {
+    font-family: var(--font-mono);
+    font-size: 0.875rem;
+    text-transform: uppercase;
+    letter-spacing: 0.18em;
+    color: var(--accent);
+    margin: 0 0 24px;
+}
+
+.not-found-title {
+    font-family: var(--font-serif);
+    font-size: clamp(2rem, 1.5rem + 2.4vw, 3rem);
+    line-height: 1.1;
+    letter-spacing: -0.02em;
+    font-weight: 600;
+    color: var(--text-primary);
+    margin: 0 0 24px;
+    text-wrap: balance;
+}
+
+.not-found-lede {
+    font-family: var(--font-serif);
+    font-size: 1.125rem;
+    line-height: 1.6;
+    color: var(--text-secondary);
+    margin: 0 0 36px;
+    text-wrap: pretty;
+}
+
+.not-found-lede kbd {
+    font-family: var(--font-mono);
+    font-size: 0.8125rem;
+    color: var(--text-primary);
+    background: var(--bg-tertiary);
+    border: 1px solid var(--border-color);
+    padding: 1px 5px;
+    border-radius: 4px;
+    margin: 0 1px;
+}
+
+.not-found-links {
+    list-style: none;
+    padding: 0;
+    margin: 0 0 48px;
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+    gap: 12px 24px;
+    border-top: 1px solid var(--border-color);
+    border-bottom: 1px solid var(--border-color);
+    padding: 20px 0;
+}
+
+.not-found-links li {
+    display: flex;
+    flex-direction: column;
+}
+
+.not-found-links a {
+    font-family: var(--font-family);
+    font-size: 1rem;
+    font-weight: 600;
+    color: var(--text-primary);
+    text-decoration: none;
+    transition: color 150ms ease;
+}
+
+.not-found-links a:hover {
+    color: var(--accent);
+}
+
+.not-found-links span {
+    font-size: 0.8125rem;
+    color: var(--text-muted);
+    margin-top: 2px;
+}
+
+.not-found-foot {
+    font-size: 0.875rem;
+    color: var(--text-muted);
+    margin: 0;
+}
+
+.not-found-foot a {
+    color: var(--accent);
+    text-decoration: none;
+    border-bottom: 1px dotted var(--accent-bg-medium);
+}
+
+.not-found-foot a:hover {
+    border-bottom-style: solid;
+}
+
+/* ============================================================
+   LAB NOTEBOOK — /demos/
+   Editorial register: dated entries (Karpathy / Ciechanowski /
+   Red Blob Games model). The page is an ordered timeline, not a
+   card grid; each entry has the embed inline plus three muted
+   "what / why / what I learned" notes underneath.
+   ============================================================ */
+
+.lab-notebook {
+    padding-top: 48px;
+}
+
+.lab-notebook-header {
+    max-width: 720px;
+    margin: 0 0 64px;
+}
+
+.lab-notebook-eyebrow {
+    font-family: var(--font-mono);
+    font-size: 0.75rem;
+    text-transform: uppercase;
+    letter-spacing: 0.12em;
+    color: var(--accent);
+    margin: 0 0 12px;
+}
+
+.lab-notebook-list {
+    list-style: none;
+    margin: 0;
+    padding: 0;
+    display: grid;
+    grid-template-columns: 1fr;
+    gap: 96px;
+    counter-reset: lab-entry;
+}
+
+.lab-entry {
+    display: grid;
+    grid-template-columns: 160px 1fr;
+    gap: 48px;
+    align-items: start;
+    counter-increment: lab-entry;
+    padding-top: 24px;
+    border-top: 1px solid var(--border-color);
+}
+
+.lab-entry-meta {
+    position: sticky;
+    top: 96px;
+    display: flex;
+    flex-direction: column;
+    gap: 12px;
+}
+
+.lab-entry-date {
+    font-family: var(--font-mono);
+    font-size: 0.8125rem;
+    color: var(--text-muted);
+    letter-spacing: 0.02em;
+}
+
+.lab-entry-tags {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 6px;
+}
+
+.lab-entry-tag {
+    font-size: 0.6875rem;
+    text-transform: uppercase;
+    letter-spacing: 0.06em;
+    color: var(--text-muted);
+    padding: 2px 8px;
+    border-radius: 4px;
+    background: var(--accent-bg-subtle);
+}
+
+.lab-entry-body {
+    min-width: 0;  /* let canvas children shrink */
+}
+
+.lab-entry-title {
+    font-size: clamp(1.5rem, 2.5vw, 2rem);
+    line-height: 1.15;
+    letter-spacing: -0.01em;
+    margin: 0 0 12px;
+    color: var(--text-primary);
+}
+
+.lab-entry-title a {
+    color: inherit;
+    text-decoration: none;
+    transition: color 200ms ease;
+}
+
+.lab-entry-title a:hover {
+    color: var(--accent);
+}
+
+.lab-entry-summary {
+    font-size: 1.0625rem;
+    line-height: 1.55;
+    color: var(--text-secondary);
+    margin: 0 0 28px;
+    max-width: 60ch;
+}
+
+.lab-entry-embed {
+    margin: 0 0 36px;
+    padding: 24px;
+    border: 1px solid var(--border-color);
+    border-radius: 12px;
+    background: var(--bg-secondary);
+}
+
+.lab-entry-notes {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+    gap: 24px 32px;
+    padding-top: 24px;
+    border-top: 1px solid var(--border-color);
+}
+
+.lab-note {
+    min-width: 0;
+}
+
+.lab-note-label {
+    display: block;
+    font-family: var(--font-mono);
+    font-size: 0.6875rem;
+    text-transform: uppercase;
+    letter-spacing: 0.08em;
+    color: var(--accent);
+    margin: 0 0 8px;
+}
+
+.lab-note p {
+    margin: 0;
+    font-size: 0.9375rem;
+    line-height: 1.6;
+    color: var(--text-secondary);
+}
+
+.lab-entry-updated {
+    margin: 24px 0 0;
+    font-size: 0.8125rem;
+    color: var(--text-muted);
+    font-style: italic;
+}
+
+@media (max-width: 880px) {
+    .lab-entry {
+        grid-template-columns: 1fr;
+        gap: 16px;
+    }
+    .lab-entry-meta {
+        position: static;
+        flex-direction: row;
+        align-items: center;
+    }
+    .lab-notebook-list { gap: 64px; }
 }

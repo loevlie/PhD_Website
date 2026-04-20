@@ -1,0 +1,20 @@
+<div id="depth-drop-zone" class="depth-drop-zone">
+    <svg width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5">
+        <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/>
+        <polyline points="17 8 12 3 7 8"/>
+        <line x1="12" y1="3" x2="12" y2="15"/>
+    </svg>
+    <span>Drop an image or click to upload</span>
+    <input type="file" id="depth-file-input" accept="image/*" hidden>
+</div>
+<div id="depth-spinner" class="depth-spinner" style="display:none;">
+    <div class="spinner"></div>
+    <span id="depth-status"></span>
+</div>
+<div id="depth-comparison" class="depth-comparison" style="display:none;">
+    <canvas id="depth-result" class="depth-canvas"></canvas>
+    <div id="depth-overlay" class="depth-overlay">
+        <canvas id="depth-original" class="depth-canvas"></canvas>
+    </div>
+    <div id="depth-slider-handle" class="depth-slider-handle"></div>
+</div>

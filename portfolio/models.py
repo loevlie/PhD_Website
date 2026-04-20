@@ -17,6 +17,10 @@ class Post(models.Model):
     series_order = models.PositiveIntegerField(default=0, help_text="Order within the series (1, 2, 3...)")
     medium_url = models.URLField(blank=True, help_text="Canonical URL if originally published elsewhere")
     draft = models.BooleanField(default=False)
+    is_explainer = models.BooleanField(
+        default=False,
+        help_text="Render with explainer chrome: Tufte sidenotes, hover citations, BibTeX export, wider figure canvas.",
+    )
     created_at = models.DateTimeField(auto_now_add=True)
     modified_at = models.DateTimeField(auto_now=True)
 

@@ -46,14 +46,222 @@
     justify-self: center;
 }
 
+.navbar-inner > .nav-cmdk,
 .navbar-inner > .theme-toggle {
     justify-self: end;
     grid-column: 3;
 }
 
+.navbar-inner > .nav-cmdk {
+    /* shift the theme toggle slightly left of the cmdk pill */
+    transform: translateX(-44px);
+}
+
 .navbar-inner > .hamburger {
     justify-self: end;
     grid-column: 3;
+}
+
+/* Cmd+K hint pill — discoverable affordance for the existing palette.
+   Hidden on narrow screens (mobile uses the hamburger). Click opens
+   the palette via the inline onclick handler in nav.html. */
+.nav-cmdk {
+    display: none;  /* shown on ≥768px below */
+    align-items: center;
+    gap: 8px;
+    padding: 6px 8px 6px 10px;
+    background: transparent;
+    border: 1px solid var(--border-color);
+    border-radius: 8px;
+    color: var(--text-muted);
+    cursor: pointer;
+    font-family: var(--font-family);
+    font-size: 0.8125rem;
+    transition: border-color 150ms ease, color 150ms ease, background 150ms ease;
+}
+
+.nav-cmdk:hover {
+    border-color: var(--accent);
+    color: var(--accent);
+    background: var(--accent-bg-subtle);
+}
+
+.nav-cmdk-text {
+    font-weight: 400;
+}
+
+.nav-cmdk-kbd {
+    font-family: var(--font-mono);
+    font-size: 0.6875rem;
+    color: inherit;
+    background: var(--bg-tertiary);
+    border: 1px solid var(--border-color);
+    padding: 1px 5px;
+    border-radius: 4px;
+    line-height: 1;
+    font-weight: 500;
+    display: inline-flex;
+    align-items: center;
+    gap: 2px;
+}
+
+.nav-cmdk-mod {
+    opacity: 0.85;
+}
+
+@media (min-width: 768px) {
+    .nav-cmdk { display: inline-flex; }
+    .navbar-inner { grid-template-columns: auto 1fr auto auto; }
+    .navbar-inner > .nav-cmdk { transform: none; grid-column: 3; }
+    .navbar-inner > .theme-toggle { grid-column: 4; }
+    .navbar-inner > .hamburger { grid-column: 4; }
+}
+
+/* ============================================================
+   Section rail — fixed left-edge in-page nav (homepage only).
+   Pattern: GitHub issue page TOC, Linear sidebar, Apple Vision
+   Pro spec page. Dots expand to labels on hover/active.
+   Hidden on phones; the existing top nav handles mobile.
+   ============================================================ */
+.section-rail {
+    position: fixed;
+    left: 22px;
+    top: 50%;
+    transform: translateY(-50%);
+    z-index: 40;
+    display: none;             /* hidden by default; shown ≥1024px */
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 14px;
+    pointer-events: none;      /* dots are pointer-events:auto below */
+    transition: opacity 200ms ease;
+}
+
+.section-rail-list {
+    list-style: none;
+    margin: 0;
+    padding: 0;
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
+    pointer-events: auto;
+}
+
+.section-rail-list a {
+    position: relative;
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    padding: 6px 10px 6px 4px;
+    color: var(--text-muted);
+    text-decoration: none;
+    font-family: var(--font-family);
+    font-size: 0.8125rem;
+    font-weight: 500;
+    line-height: 1;
+    border-radius: 999px;
+    transition: color 200ms ease, background 200ms ease;
+}
+
+.section-rail-dot {
+    flex: 0 0 auto;
+    width: 6px;
+    height: 6px;
+    border-radius: 50%;
+    background: var(--border-hover, var(--border-color));
+    transition:
+        background 200ms ease,
+        transform 200ms var(--ease-spring, ease),
+        box-shadow 200ms ease;
+}
+
+.section-rail-label {
+    /* Off-screen by default; slides in on hover/active. Width animation
+       on a `max-width` rather than width so it stays GPU-cheap. */
+    overflow: hidden;
+    max-width: 0;
+    white-space: nowrap;
+    opacity: 0;
+    transform: translateX(-4px);
+    transition:
+        max-width 260ms var(--ease-spring, ease),
+        opacity 200ms ease,
+        transform 200ms ease;
+}
+
+/* Hover (any item) — show all labels at once and lift the hovered dot.
+   Linear/Apple do this; helps the reader scan the full ToC without
+   forcing them to mouse over every dot. */
+.section-rail:hover .section-rail-label,
+.section-rail-list a:focus-visible .section-rail-label,
+.section-rail-list a.is-active .section-rail-label {
+    max-width: 160px;
+    opacity: 1;
+    transform: translateX(0);
+}
+
+.section-rail-list a:hover {
+    color: var(--text-primary);
+    background: var(--bg-secondary);
+    box-shadow: 0 1px 4px rgba(0, 0, 0, 0.05);
+}
+
+.section-rail-list a:hover .section-rail-dot {
+    background: var(--accent);
+    transform: scale(1.25);
+}
+
+.section-rail-list a.is-active {
+    color: var(--accent);
+    font-weight: 600;
+}
+
+.section-rail-list a.is-active .section-rail-dot {
+    background: var(--accent);
+    transform: scale(1.4);
+    box-shadow: 0 0 0 4px var(--accent-bg-subtle);
+}
+
+/* Back-to-top button hangs below the list */
+.section-rail-top {
+    margin-top: 6px;
+    pointer-events: auto;
+    width: 28px;
+    height: 28px;
+    border-radius: 50%;
+    background: var(--bg-secondary);
+    border: 1px solid var(--border-color);
+    color: var(--text-muted);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    cursor: pointer;
+    opacity: 0;
+    transform: translateY(4px);
+    transition: opacity 200ms ease, transform 200ms ease, color 150ms ease, border-color 150ms ease;
+    pointer-events: none;
+}
+
+.section-rail-top.is-shown {
+    opacity: 1;
+    transform: translateY(0);
+    pointer-events: auto;
+}
+
+.section-rail-top:hover {
+    color: var(--accent);
+    border-color: var(--accent);
+}
+
+@media (min-width: 1024px) {
+    .section-rail { display: flex; }
+}
+
+/* Reduced-motion users get instant transitions */
+@media (prefers-reduced-motion: reduce) {
+    .section-rail-label,
+    .section-rail-dot,
+    .section-rail-top { transition: none !important; }
 }
 
 .nav-logo {

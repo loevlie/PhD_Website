@@ -402,30 +402,164 @@ SOCIAL_LINKS = [
     {'name': 'Email', 'url': 'mailto:Loevliedenny@gmail.com', 'icon': 'email'},
 ]
 
+
+# ---------------------------------------------------------------------------
+# Lab notebook / demos archive
+# ---------------------------------------------------------------------------
+# Dated entries, each one a small public-thinking artifact. The Karpathy /
+# Ciechanowski / Rush model — "things I'm currently exploring" rather than
+# "polished portfolio." Newest first; render driver in templates/portfolio/demos.html.
+#
+# Schema:
+#   slug          str  — anchor + element id
+#   title         str
+#   date          ISO date the demo was first published
+#   updated       ISO date the demo last meaningfully changed (optional)
+#   tags          list[str]
+#   summary       short (1-line) blurb shown above the embed
+#   what          markdown — what this demo is + how to use it
+#   why           markdown — why I built it; what I was trying to learn
+#   learned       markdown — what I now know that I didn't before
+#   embed         template-snippet name in `portfolio/demos/embeds/{slug}.html`
+#                 (kept inline rather than each becoming a separate URL).
+
+NOW_PAGE = {
+    # /now/ — Derek Sivers convention. Updated quarterly.
+    # Last update: ALWAYS update this when editing the rest.
+    'updated': '2026-04-19',
+    'location': 'Amsterdam (incoming)',
+    'sections': [
+        {
+            'heading': 'Research',
+            'body': (
+                "Investigating **attention regularization** for transformer MIL, "
+                "aiming to close the instance-level gap that our **centered-Gaussian "
+                "(Gaussian-axial) baseline** opens up in our CHIL 2026 paper. "
+                "Targeting NeurIPS 2026."
+            ),
+        },
+        {
+            'heading': 'PhD direction search',
+            'body': (
+                "Picking the central thread on **tabular foundation models**. "
+                "Top candidates:\n\n"
+                "1. **Tabular world models** — V-JEPA-style SSL on table *dynamics*.\n"
+                "2. **Contrastive table-language alignment** — \"CLIP for tables\" "
+                "for task-driven pretraining-data selection.\n"
+                "3. **Scaling-law theory** for tabular pretraining.\n"
+                "4. **Causal structure** in TFMs — interventional distributions in-context.\n"
+                "5. **Multimodal TFMs** — tables × text × images in one space.\n\n"
+                "Direction 1 or 2 most likely; possibly merged."
+            ),
+        },
+        {
+            'heading': 'Reading',
+            'body': (
+                "<a href=\"https://arxiv.org/abs/2506.09985\">V-JEPA 2</a>, "
+                "<a href=\"https://arxiv.org/abs/2410.18164\">TabDPT</a>, "
+                "<a href=\"https://arxiv.org/abs/2511.09665\">Ma et al.</a>, "
+                "<a href=\"https://arxiv.org/abs/2506.10914\">PFN causal inference</a>, "
+                "Anthropic's "
+                "<a href=\"https://transformer-circuits.pub/2025/attribution-graphs/methods.html\">attribution-graphs</a>, "
+                "and DeCLIP."
+            ),
+        },
+        {
+            'heading': 'Building',
+            'body': (
+                "This site. **Frozen Forecaster** (homepage demo) — real TabICL vs "
+                "XGBoost inference cached from a Modal precompute."
+            ),
+        },
+        {
+            'heading': 'Applying',
+            'body': (
+                "**ELLIS PhD 2026 cohort** — TRL Lab Amsterdam (Hulsebos + van de Meent). "
+                "Open to FAANG / FAIR / DeepMind / Anthropic research internships for "
+                "summer 2026 / 2027. [Get in touch](#contact)."
+            ),
+        },
+        {
+            'heading': 'Life',
+            'body': (
+                "Marrying **Cait Morrow** this year. Looking for **soccer leagues "
+                "in Amsterdam** — recommendations welcome."
+            ),
+        },
+    ],
+    'inspired_by': [
+        ('Derek Sivers', 'https://sivers.org/now'),
+        ('Cal Newport', 'https://calnewport.com/now/'),
+        ('nownownow.com', 'https://nownownow.com/'),
+    ],
+}
+
+
+DEMOS = [
+    {
+        'slug': 'nanoparticle-viewer',
+        'title': 'AuPd Nanoparticle Viewer',
+        'date': '2024-08-12',
+        'updated': '',
+        'tags': ['three.js', 'chemistry', 'visualization'],
+        'summary': '55-atom Mackay icosahedron — the structure studied in '
+                   'Loevlie et al., Acc. Chem. Res. (2023). Drag to rotate, '
+                   'scroll to zoom, toggle Au-core ↔ Pd-core.',
+        'what': "Real-time WebGL viewer of a 55-atom bimetallic Mackay icosahedron "
+                "with a single-button core-swap and live cohesive-energy readout.",
+        'why':  "Wanted a way to *see* the structure that the entire chemical-ordering "
+                "argument in the paper hinges on, without forcing a reader to install "
+                "ASE + NGLView. WebGL via three.js was the cheapest path to a "
+                "frame-rate-locked rotation that doesn't fall over on a phone.",
+        'learned': "Three.js's instanced meshes are fine for a few hundred atoms "
+                   "but the per-atom material updates on core-swap are the real "
+                   "cost — batch them or you drop frames on every toggle.",
+        'embed': 'embed_nanoparticle.html',
+    },
+    {
+        'slug': 'depth-estimation',
+        'title': 'Client-Side Depth Estimation',
+        'date': '2024-07-20',
+        'updated': '',
+        'tags': ['onnx', 'transformers.js', 'ml'],
+        'summary': 'Drop an image, get a monocular depth map computed in your '
+                   'browser via Depth Anything V2 (~27 MB ONNX, loads on first use).',
+        'what': "Single-page upload that runs Depth Anything V2 entirely client-side "
+                "via transformers.js + ONNX Runtime Web. Slide the divider to compare "
+                "input ↔ predicted depth.",
+        'why':  "Curious how far client-side ML had come for non-trivial vision "
+                "models. Goal was zero server cost — the model is fetched from a "
+                "Hugging Face Space and cached in IndexedDB after first run.",
+        'learned': "WebGPU backend speeds inference 4–8× over WASM but adoption is "
+                   "still spotty (Safari 26 in 2025 helped). The model fetch is "
+                   "what users actually feel — service-worker prefetch is the "
+                   "lever, not the inference itself.",
+        'embed': 'embed_depth.html',
+    },
+]
+
+
 NAV_LINKS = [
+    # Trimmed 2026-04 to 4 primary items (Apple/Linear/Vercel pattern: ≤4 in
+    # the top bar so the eye finds the page identity, not the menu). News +
+    # Demos + Blog + Recipes all live under Explore as a single dropdown.
     {'label': 'About', 'href': '#about'},
-    {'label': 'News', 'href': '#news'},
-    {'label': 'Experience', 'href': '#experience'},
-    {
-        'label': 'Publications',
-        'href': '#publications',
-        'children': [
-            {'label': 'Selected', 'href': '#publications'},
-            {'label': 'Full List', 'href': '/publications/'},
-        ],
-    },
-    {
-        'label': 'Explore',
-        'href': '#projects',
-        'children': [
-            {'label': 'Featured Projects', 'href': '#projects'},
-            {'label': 'All Projects', 'href': '/projects/'},
-            {'label': 'Demos', 'href': '#demos'},
-            {'label': 'Older Demos', 'href': '/demos/'},
-            {'label': 'Blog', 'href': '/blog/'},
-            {'label': 'Recipes', 'href': '/recipes/'},
-        ],
-    },
+    {'label': 'Research', 'href': '#publications', 'children': [
+        {'label': 'Selected', 'href': '#publications'},
+        {'label': 'Full List', 'href': '/publications/'},
+        {'label': 'Experience', 'href': '#experience'},
+        {'label': 'News', 'href': '#news'},
+    ]},
+    {'label': 'Writing', 'href': '/blog/', 'children': [
+        {'label': 'Blog', 'href': '/blog/'},
+        {'label': 'Featured Projects', 'href': '#projects'},
+        {'label': 'All Projects', 'href': '/projects/'},
+    ]},
+    {'label': 'Demos', 'href': '/demos/', 'children': [
+        {'label': 'Frozen Forecaster', 'href': '#demos'},
+        {'label': 'Lab Notebook', 'href': '/demos/'},
+        {'label': 'Recipes', 'href': '/recipes/'},
+    ]},
     {'label': 'Contact', 'href': '#contact'},
 ]
 

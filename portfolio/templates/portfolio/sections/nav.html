@@ -20,6 +20,14 @@
             {% endif %}
             {% endfor %}
         </div>
+        <!-- Discoverable ⌘K hint. Most users never try the palette unless
+             they see it advertised. Click also opens it. -->
+        <button class="nav-cmdk" id="nav-cmdk-hint" aria-label="Open command palette" type="button"
+                onclick="document.getElementById('cmdk') && document.getElementById('cmdk').showModal && document.getElementById('cmdk').showModal(); document.getElementById('cmdk-input') && document.getElementById('cmdk-input').focus();">
+            <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
+            <span class="nav-cmdk-text">Search</span>
+            <kbd class="nav-cmdk-kbd"><span class="nav-cmdk-mod">⌘</span>K</kbd>
+        </button>
         <button class="theme-toggle" id="theme-toggle" aria-label="Toggle light/dark mode">
             <svg class="icon-moon" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
                 <path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z"/>

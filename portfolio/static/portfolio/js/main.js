@@ -154,39 +154,13 @@ window.addEventListener('scroll', () => {
 // content they could already see. Eye-tracking shows interaction delays
 // >400ms cause disengagement; typewriter effects are 1-3s.
 
-// ── Magnetic Hover on Social Icons ──
-(function () {
-    if ('ontouchstart' in window) return;
-    document.querySelectorAll('.social-icon').forEach(icon => {
-        icon.addEventListener('mousemove', (e) => {
-            const rect = icon.getBoundingClientRect();
-            const cx = rect.left + rect.width / 2;
-            const cy = rect.top + rect.height / 2;
-            const dx = (e.clientX - cx) * 0.3;
-            const dy = (e.clientY - cy) * 0.3;
-            icon.style.transform = `translate(${dx}px, ${dy}px)`;
-        });
-        icon.addEventListener('mouseleave', () => {
-            icon.style.transform = '';
-        });
-    });
-})();
-
-// ── Card 3D Tilt on Hover ──
-(function () {
-    if ('ontouchstart' in window) return;
-    document.querySelectorAll('.tilt-card').forEach(card => {
-        card.addEventListener('mousemove', (e) => {
-            const rect = card.getBoundingClientRect();
-            const x = (e.clientX - rect.left) / rect.width - 0.5;
-            const y = (e.clientY - rect.top) / rect.height - 0.5;
-            card.style.transform = `perspective(600px) rotateY(${x * 8}deg) rotateX(${-y * 8}deg) translateY(-4px)`;
-        });
-        card.addEventListener('mouseleave', () => {
-            card.style.transform = '';
-        });
-    });
-})();
+// ── Magnetic Hover + 3D Tilt — REMOVED 2026-04 ──
+// The mousemove-driven magnetic translate on social icons and the
+// perspective-rotate on .tilt-card both read as "Webflow template"
+// in 2026. Replaced with CSS-only subtle hover lift (see
+// animations.css `.tilt-card:hover` and components.css `.social-icon:hover`).
+// Native CSS hover reads as more confident; JS mousemove handlers
+// also burn the main thread and conflict with view-transitions.
 
 // ── Animated Timeline ──
 (function () {
