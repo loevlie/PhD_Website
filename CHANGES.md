@@ -328,3 +328,18 @@ Regular blog posts use the existing minimalist header — no change for them.
 
 **Files:** `portfolio/templates/portfolio/base.html`, deleted `portfolio/static/portfolio/js/command-palette.js`, removed `.cmdk-host` rules from `sections.css`
 
+### 23. Section rail — fixed left-edge in-page nav (homepage only)
+
+**What:** New `sections/section_rail.html` injected on the homepage only. Vertical column of small dots fixed to the left edge (centered). Each dot represents one in-page section (About, Currently, News, Experience, Publications, Writing, Projects, Demos, Contact). Behavior:
+- **Idle**: only the dots are visible. Minimal — doesn't compete with the hero.
+- **Hover (any dot)**: all labels slide in from the left with a spring easing. Whole rail acts as one expand-zone — Linear/Apple Vision Pro pattern.
+- **Active**: the section currently centered in the viewport gets a larger dot with an accent ring + persistent label. IntersectionObserver-driven scroll-spy (`rootMargin: '-20% 0px -50% 0px'`) picks the topmost section past the viewport midline.
+- **Click**: smooth-scrolls to anchor, sets active immediately for snappy feedback.
+- **Back-to-top button** appears below the list once you've scrolled past the hero.
+- **Hidden on phones** (`<1024px`) — mobile uses the existing top nav / hamburger.
+- `prefers-reduced-motion: reduce` disables all transitions.
+
+**Why:** The user noted the existing top nav mixes in-page anchors and links to other pages, which is confusing. The rail makes in-page navigation explicit, peripheral, and always-available without competing with content. It's the canonical pattern for long single-page documents (GitHub issue ToC, Linear sidebar, Apple product specs).
+
+**Files:** `portfolio/templates/portfolio/sections/section_rail.html`, `portfolio/templates/portfolio/index.html` (include), `portfolio/static/portfolio/css/layout.css` (rail styles, ≥1024px)
+

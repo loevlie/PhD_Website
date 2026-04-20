@@ -1,0 +1,96 @@
+<!--
+  Section rail — fixed left-edge in-page nav for the homepage only.
+  Each item is a small dot that expands into a label on hover and
+  highlights when its section is visible (scroll-spy via IO in main.js).
+  Hidden on phones (<1024px); use the existing top nav on mobile.
+  Skip-link target precedes the rail for screen-reader users.
+-->
+<aside class="section-rail" aria-label="On this page" id="section-rail">
+    <ul class="section-rail-list">
+        <li><a href="#about"        data-rail-section="about"><span class="section-rail-dot" aria-hidden="true"></span><span class="section-rail-label">About</span></a></li>
+        <li><a href="#thinking"     data-rail-section="thinking"><span class="section-rail-dot" aria-hidden="true"></span><span class="section-rail-label">Currently</span></a></li>
+        <li><a href="#news"         data-rail-section="news"><span class="section-rail-dot" aria-hidden="true"></span><span class="section-rail-label">News</span></a></li>
+        <li><a href="#experience"   data-rail-section="experience"><span class="section-rail-dot" aria-hidden="true"></span><span class="section-rail-label">Experience</span></a></li>
+        <li><a href="#publications" data-rail-section="publications"><span class="section-rail-dot" aria-hidden="true"></span><span class="section-rail-label">Publications</span></a></li>
+        <li><a href="#writing"      data-rail-section="writing"><span class="section-rail-dot" aria-hidden="true"></span><span class="section-rail-label">Writing</span></a></li>
+        <li><a href="#projects"     data-rail-section="projects"><span class="section-rail-dot" aria-hidden="true"></span><span class="section-rail-label">Projects</span></a></li>
+        <li><a href="#demos"        data-rail-section="demos"><span class="section-rail-dot" aria-hidden="true"></span><span class="section-rail-label">Demos</span></a></li>
+        <li><a href="#contact"      data-rail-section="contact"><span class="section-rail-dot" aria-hidden="true"></span><span class="section-rail-label">Contact</span></a></li>
+    </ul>
+    <button type="button" class="section-rail-top" aria-label="Back to top"
+            onclick="window.scrollTo({top: 0, behavior: 'smooth'})">
+        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><polyline points="18 15 12 9 6 15"/></svg>
+    </button>
+</aside>
+
+<script>
+(function() {
+    // Scroll-spy: mark the rail item whose section is currently most-visible.
+    // Cheap IntersectionObserver against all sections that have a rail item.
+    var rail = document.getElementById('section-rail');
+    if (!rail) return;
+    var items = Array.prototype.slice.call(rail.querySelectorAll('[data-rail-section]'));
+    var sections = items
+        .map(function(it) {
+            var el = document.getElementById(it.getAttribute('data-rail-section'));
+            return el ? { el: el, item: it } : null;
+        })
+        .filter(Boolean);
+
+    if (!sections.length) return;
+    if (!('IntersectionObserver' in window)) return;
+
+    function setActive(item) {
+        items.forEach(function(it) { it.classList.toggle('is-active', it === item); });
+    }
+
+    // Track which sections are currently intersecting; pick the topmost one
+    // whose top is above the viewport midline. Standard "scroll-spy" recipe.
+    var visible = new Set();
+    var io = new IntersectionObserver(function(entries) {
+        entries.forEach(function(e) {
+            if (e.isIntersecting) visible.add(e.target);
+            else visible.delete(e.target);
+        });
+        // From the visible set, pick the section whose top is highest above
+        // the viewport center (i.e. furthest scrolled past).
+        var midY = window.innerHeight / 2;
+        var best = null, bestTop = -Infinity;
+        visible.forEach(function(el) {
+            var top = el.getBoundingClientRect().top;
+            if (top <= midY && top > bestTop) { bestTop = top; best = el; }
+        });
+        if (!best) {
+            // fallback: nearest from above
+            var aboveBest = null, aboveTop = -Infinity;
+            sections.forEach(function(s) {
+                var top = s.el.getBoundingClientRect().top;
+                if (top <= midY && top > aboveTop) { aboveTop = top; aboveBest = s.el; }
+            });
+            best = aboveBest;
+        }
+        if (best) {
+            var match = sections.find(function(s) { return s.el === best; });
+            if (match) setActive(match.item);
+        }
+    }, { rootMargin: '-20% 0px -50% 0px', threshold: [0, 0.25, 0.5, 0.75, 1] });
+
+    sections.forEach(function(s) { io.observe(s.el); });
+
+    // Smooth-scroll on click + update active immediately for a snappy feel
+    items.forEach(function(it) {
+        it.addEventListener('click', function() {
+            setTimeout(function() { setActive(it); }, 50);
+        });
+    });
+
+    // Show "back to top" button only after scrolling away from the hero
+    var topBtn = rail.querySelector('.section-rail-top');
+    function syncTopBtn() {
+        if (!topBtn) return;
+        topBtn.classList.toggle('is-shown', window.scrollY > window.innerHeight * 0.6);
+    }
+    window.addEventListener('scroll', syncTopBtn, { passive: true });
+    syncTopBtn();
+})();
+</script>
