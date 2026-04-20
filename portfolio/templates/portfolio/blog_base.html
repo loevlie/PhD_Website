@@ -8,10 +8,10 @@
       x-init="$watch('flavor', val => { localStorage.setItem('ctp-flavor', val) })"
       :class="flavor">
 <head>
-    {# Anti-FOUC: apply the saved Catppuccin flavor BEFORE first paint.
+    {% comment %}Anti-FOUC: apply the saved Catppuccin flavor BEFORE first paint.
        Without this, the page paints with no flavor class for the few
        hundred ms it takes Alpine to load — visible as a quick wrong-
-       theme flash. Mirrors the x-data default exactly. #}
+       theme flash. Mirrors the x-data default exactly.{% endcomment %}
     <script>
     (function () {
         try {
@@ -27,12 +27,16 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <meta name="google-site-verification" content="taeW6FXPdYhqD0YVOOdBfMv2h_lGfn_Ku-x9zMF_vfg">
-    <link rel="icon" type="image/png" href="{% static 'portfolio/images/favicon.png' %}">
+    {% comment %}Blog-specific favicon: inline book SVG so the tab icon visually
+       distinguishes dl.blog from the portfolio. currentColor would not work
+       here (favicons don't inherit page colors), so hardcode the lavender
+       accent — renders cleanly on both light and dark browser chrome.{% endcomment %}
+    <link rel="icon" type="image/svg+xml" href='data:image/svg+xml;utf8,<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="%237287fd" stroke-width="2.25" stroke-linecap="round" stroke-linejoin="round"><path d="M4 19.5A2.5 2.5 0 0 1 6.5 17H20"/><path d="M6.5 2H20v20H6.5A2.5 2.5 0 0 1 4 19.5v-15A2.5 2.5 0 0 1 6.5 2z"/></svg>'>
     <link rel="apple-touch-icon" href="{% static 'portfolio/images/apple-touch-icon.png' %}">
     <title>{% block title %}Blog — Dennis Loevlie{% endblock %}</title>
-    {# Speculation Rules: Chrome 109+ pre-renders same-origin pages on
+    {% comment %}Speculation Rules: Chrome 109+ pre-renders same-origin pages on
        moderate hover/visibility for instant in-site nav. Excludes admin
-       and editor surfaces. Other browsers ignore the script. #}
+       and editor surfaces. Other browsers ignore the script.{% endcomment %}
     <script type="speculationrules">
     {"prerender":[{"where":{"and":[{"href_matches":"/*"},{"not":{"href_matches":"/admin/*"}},{"not":{"href_matches":"/site/insights*"}},{"not":{"href_matches":"/blog/*/edit/*"}},{"not":{"href_matches":"/cv.pdf"}},{"not":{"href_matches":"/a/*"}}]},"eagerness":"moderate"}]}
     </script>
@@ -577,8 +581,8 @@
 
     {% block scripts %}{% endblock %}
     {% if not user.is_staff %}
-    {# First-party analytics; staff visits skipped to keep the dashboard
-       focused on real visitors. Respects DNT/GPC server- and client-side. #}
+    {% comment %}First-party analytics; staff visits skipped to keep the dashboard
+       focused on real visitors. Respects DNT/GPC server- and client-side.{% endcomment %}
     <script src="{% static 'portfolio/js/analytics.js' %}" defer></script>
     {% endif %}
 </body>

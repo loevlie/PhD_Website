@@ -1806,6 +1806,22 @@
     white-space: pre;
 }
 
+/* Mobile: constrain the source block to the viewport so long lines
+   scroll horizontally INSIDE the <pre> instead of blowing out the page.
+   Also shrink the font so more code fits per line on narrow screens. */
+@media (max-width: 640px) {
+    .blog-prose .pyfig-source .highlight {
+        max-width: 100%;
+        width: 100%;
+        border-radius: 6px;
+    }
+    .blog-prose .pyfig-source .highlight pre {
+        font-size: 0.72em;
+        padding: 12px 14px;
+        line-height: 1.5;
+    }
+}
+
 /* Error variant — no rendered image; just a banner + the source toggle */
 .blog-prose .pyfig--error .pyfig-error {
     padding: 14px 18px;
