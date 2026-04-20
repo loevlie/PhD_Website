@@ -94,9 +94,24 @@
     pointer-events: none;
 }
 
-/* Card tilt - override default hover for tilt cards */
+/* Card hover — replaced 3D mouse-tilt (Webflow tell) with a CSS-only
+   subtle lift + softer accent border. The transform uses translate3d
+   so it gets its own compositor layer (cheap, no relayout). */
 .tilt-card {
-    transition: transform var(--transition-base), box-shadow var(--transition-base), border-color var(--transition-base);
+    transition:
+        transform 320ms var(--ease-spring),
+        box-shadow 240ms ease,
+        border-color 240ms ease;
+    will-change: transform;
+}
+@media (hover: hover) and (prefers-reduced-motion: no-preference) {
+    .tilt-card:hover {
+        transform: translate3d(0, -3px, 0);
+        box-shadow:
+            0 1px 2px rgba(10, 37, 64, 0.06),
+            0 12px 28px -12px rgba(10, 37, 64, 0.18),
+            0 0 0 1px var(--accent-bg-subtle);
+    }
 }
 
 /* ─────────────────────────────────────────────────────────────────
@@ -142,10 +157,76 @@
     animation-timing-function: cubic-bezier(0.4, 0, 0.2, 1);
 }
 
+/* Named shared-element transitions. The hero avatar (homepage) and the
+   author headshot in the blog post header both carry
+   view-transition-name: site-avatar; the browser interpolates a single
+   morph between them on cross-page navigation — homepage → blog and
+   back, the avatar smoothly resizes/moves. Browsers without support
+   fall through to the standard root cross-fade. */
+::view-transition-old(site-avatar),
+::view-transition-new(site-avatar) {
+    animation-duration: 360ms;
+    animation-timing-function: var(--ease-spring, cubic-bezier(0.4, 0, 0.2, 1));
+    /* Avoid the default crossfade — prefer a smooth morph */
+    mix-blend-mode: normal;
+}
+
 /* Reduced-motion users opt out of the cross-doc morph */
 @media (prefers-reduced-motion: reduce) {
     ::view-transition-old(root),
-    ::view-transition-new(root) {
+    ::view-transition-new(root),
+    ::view-transition-old(site-avatar),
+    ::view-transition-new(site-avatar) {
         animation: none;
+    }
+}
+
+/* ─────────────────────────────────────────────────────────────────
+   Section reveal — applied broadly via .section-reveal so any
+   .section can opt in. Uses scroll-driven view() timeline on
+   modern browsers; falls back silently elsewhere.
+───────────────────────────────────────────────────────────────── */
+.section-reveal {
+    opacity: 1;
+    transform: none;
+}
+
+@supports (animation-timeline: view()) {
+    @media (prefers-reduced-motion: no-preference) {
+        .section-reveal {
+            opacity: 0;
+            transform: translateY(18px);
+            animation: section-rise linear both;
+            animation-timeline: view();
+            animation-range: entry 8% cover 24%;
+        }
+        @keyframes section-rise {
+            to { opacity: 1; transform: translateY(0); }
+        }
+
+        /* Subtle parallax on hero — image scales + lifts as viewport
+           scrolls past it. Pure compositor-thread, no JS scroll listener. */
+        .hero-image.avatar-wrapper {
+            animation: hero-parallax linear both;
+            animation-timeline: view();
+            animation-range: cover 0% cover 100%;
+        }
+        @keyframes hero-parallax {
+            from { transform: translateY(-8px) scale(1.01); }
+            to   { transform: translateY(8px)  scale(0.99); }
+        }
+    }
+}
+
+/* Global reduced-motion guard — kills any transform/animation that
+   slipped past per-rule guards. Belt-and-braces. */
+@media (prefers-reduced-motion: reduce) {
+    *,
+    *::before,
+    *::after {
+        animation-duration: 0.01ms !important;
+        animation-iteration-count: 1 !important;
+        transition-duration: 0.01ms !important;
+        scroll-behavior: auto !important;
     }
 }
