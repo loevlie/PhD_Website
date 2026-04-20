@@ -554,5 +554,7 @@
     </footer>
 
     {% block scripts %}{% endblock %}
+    {# First-party analytics; respects DNT/GPC server- and client-side. #}
+    <script src="{% static 'portfolio/js/analytics.js' %}" defer></script>
 </body>
 </html>

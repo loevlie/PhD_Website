@@ -139,13 +139,18 @@
         "papers": [
             {%for pub in publications %}{"label": "{{ pub.title|escapejs }}", "venue": "{{ pub.venue|escapejs }} ({{ pub.year }})", "href": "{% if pub.links %}{{ pub.links.0.url|escapejs }}{% else %}/publications/{% endif %}", "kind": "Paper"}{% if not forloop.last %},{% endif %}{% endfor %}
         ],
+        "posts": [
+            {% for p in blog_posts %}{"label": "{{ p.title|escapejs }}", "venue": "{{ p.excerpt|truncatechars:120|escapejs }}", "href": "/blog/{{ p.slug }}/", "kind": "Post"}{% if not forloop.last %},{% endif %}{% endfor %}
+        ],
         "links": [
             {% for link in social_links %}{"label": "{{ link.name|escapejs }}", "href": "{{ link.url|escapejs }}", "kind": "Link", "external": true}{% if not forloop.last %},{% endif %}{% endfor %}
         ],
         "actions": [
             {"label": "Toggle theme", "href": "#theme", "kind": "Action"},
             {"label": "View CV (inline PDF)", "href": "/cv/", "kind": "Page"},
-            {"label": "Download CV (PDF)", "href": "/cv.pdf", "kind": "Action"}
+            {"label": "Download CV (PDF)", "href": "/cv.pdf", "kind": "Action"}{% if user.is_staff %},
+            {"label": "Site insights (admin)", "href": "/site/insights/", "kind": "Action"},
+            {"label": "Edit blog · new post", "href": "/blog/new/", "kind": "Action"}{% endif %}
         ]
     }
     </script>
@@ -155,7 +160,7 @@
         var input = document.getElementById('cmdk-input');
         var results = document.getElementById('cmdk-results');
         var data = JSON.parse(document.getElementById('cmdk-data').textContent);
-        var items = [].concat(data.sections, data.papers, data.actions, data.links);
+        var items = [].concat(data.sections, data.posts || [], data.papers, data.actions, data.links);
         var active = 0;
 
         // Cmd/Ctrl+K opens; / opens too if no input is focused
@@ -350,5 +355,9 @@
     </script>
     <script src="{% static 'portfolio/js/main.js' %}"></script>
     <script src="{% static 'portfolio/js/frozen-forecaster.js' %}" defer></script>
+    {# First-party privacy analytics — loads only on non-admin pages.
+       Respects DNT / GPC / localStorage opt-out at runtime; the server
+       also enforces these. No third-party requests. #}
+    <script src="{% static 'portfolio/js/analytics.js' %}" defer></script>
 </body>
 </html>

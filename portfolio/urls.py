@@ -1,7 +1,7 @@
 from django.contrib.sitemaps.views import sitemap
 from django.urls import path
 
-from . import views
+from . import views, analytics, analytics_dashboard
 from .feeds import BlogFeed
 from .sitemaps import StaticSitemap, BlogSitemap, BlogListSitemap
 
@@ -31,6 +31,13 @@ urlpatterns = [
     path('garden/', views.garden, name='garden'),
     path('cv/', views.cv_page, name='cv_page'),
     path('cv.pdf', views.download_cv, name='download_cv'),
+    # First-party privacy analytics. /a/p posts pageviews, /a/u updates
+    # scroll/dwell on unload. Both are CSRF-exempt and respect DNT.
+    # Dashboard lives under /site/insights/ — staff-only, kept off the
+    # public-looking part of the URL space.
+    path('a/p', analytics.beacon_pageview, name='analytics_beacon_pageview'),
+    path('a/u', analytics.beacon_update, name='analytics_beacon_update'),
+    path('site/insights/', analytics_dashboard.dashboard, name='analytics_dashboard'),
     path('sitemap.xml', sitemap, {'sitemaps': sitemaps}, name='sitemap'),
     path('robots.txt', views.robots_txt, name='robots_txt'),
     path('presentations/<slug:slug>/', views.presentation, name='presentation'),

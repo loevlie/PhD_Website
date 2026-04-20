@@ -1,0 +1,472 @@
+{% extends "portfolio/personal_base.html" %}
+{% load static %}
+
+{% block title %}/analytics — admin · Dennis Loevlie{% endblock %}
+{% block og_meta %}<meta name="robots" content="noindex,nofollow">{% endblock %}
+
+{% block extra_head %}
+<style>
+.an-page { padding: clamp(32px, 4vw, 64px) 0 80px; background: var(--bg-primary, #FCFCFA); min-height: 100vh; }
+.an-inner { max-width: 1240px; margin: 0 auto; padding: 0 24px; }
+.an-head {
+    display: flex; flex-wrap: wrap; align-items: baseline; justify-content: space-between;
+    margin-bottom: 28px; gap: 16px;
+}
+.an-eyebrow {
+    font-family: var(--font-mono);
+    font-size: 0.6875rem;
+    text-transform: uppercase;
+    letter-spacing: 0.16em;
+    color: var(--text-muted, #6B6B6B);
+    margin: 0 0 4px;
+}
+.an-title {
+    font-family: var(--font-serif);
+    font-size: clamp(1.75rem, 3vw, 2.25rem);
+    font-weight: 700;
+    margin: 0;
+    letter-spacing: -0.01em;
+}
+.an-online {
+    font-family: var(--font-mono);
+    font-size: 0.8125rem;
+    color: var(--text-primary, #1A1A1A);
+    background: var(--bg-tertiary, #F1EEE5);
+    border: 1px solid var(--border-color, #E5E2DA);
+    border-radius: 999px;
+    padding: 6px 14px;
+    display: inline-flex; align-items: center; gap: 8px;
+}
+.an-online .dot {
+    width: 8px; height: 8px; border-radius: 50%;
+    background: #10B981;
+    box-shadow: 0 0 0 0 rgba(16, 185, 129, 0.7);
+    animation: pulse 2s infinite;
+}
+@keyframes pulse {
+    0%   { box-shadow: 0 0 0 0 rgba(16, 185, 129, 0.7); }
+    70%  { box-shadow: 0 0 0 10px rgba(16, 185, 129, 0); }
+    100% { box-shadow: 0 0 0 0 rgba(16, 185, 129, 0); }
+}
+
+/* KPI row */
+.an-kpis {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(160px, 1fr));
+    gap: 14px;
+    margin-bottom: 28px;
+}
+.an-kpi {
+    padding: 18px 20px;
+    background: var(--bg-secondary, #fff);
+    border: 1px solid var(--border-color, #E5E2DA);
+    border-radius: 10px;
+}
+.an-kpi-label {
+    font-family: var(--font-mono);
+    font-size: 0.6875rem;
+    text-transform: uppercase;
+    letter-spacing: 0.12em;
+    color: var(--text-muted, #6B6B6B);
+    margin-bottom: 6px;
+}
+.an-kpi-num {
+    font-family: var(--font-serif);
+    font-size: 1.75rem;
+    font-weight: 700;
+    line-height: 1.05;
+    color: var(--text-primary, #1A1A1A);
+}
+.an-kpi-sub {
+    font-family: var(--font-mono);
+    font-size: 0.75rem;
+    color: var(--text-muted, #6B6B6B);
+    margin-top: 4px;
+}
+
+/* Charts */
+.an-grid {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 20px;
+    margin-bottom: 20px;
+}
+@media (max-width: 900px) {
+    .an-grid { grid-template-columns: 1fr; }
+}
+.an-card {
+    padding: 18px 22px;
+    background: var(--bg-secondary, #fff);
+    border: 1px solid var(--border-color, #E5E2DA);
+    border-radius: 12px;
+}
+.an-card.full { grid-column: 1 / -1; }
+.an-card h3 {
+    font-family: var(--font-serif);
+    font-size: 1.0625rem;
+    font-weight: 600;
+    margin: 0 0 14px;
+    display: flex; justify-content: space-between; align-items: baseline;
+}
+.an-card h3 small {
+    font-family: var(--font-mono);
+    font-size: 0.6875rem;
+    color: var(--text-muted, #6B6B6B);
+    font-weight: 400;
+    text-transform: uppercase;
+    letter-spacing: 0.1em;
+}
+
+/* Bar list */
+.an-bars { display: flex; flex-direction: column; gap: 6px; }
+.an-bar {
+    display: grid;
+    grid-template-columns: 1fr auto;
+    gap: 12px;
+    align-items: center;
+    font-size: 0.8125rem;
+}
+.an-bar-label {
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+    color: var(--text-primary, #1A1A1A);
+    position: relative;
+    padding: 6px 8px;
+    border-radius: 4px;
+    z-index: 0;
+}
+.an-bar-fill {
+    position: absolute;
+    inset: 0;
+    background: color-mix(in oklch, var(--accent) 14%, transparent);
+    border-radius: 4px;
+    z-index: -1;
+    transform-origin: left;
+}
+.an-bar-num {
+    font-family: var(--font-mono);
+    font-size: 0.75rem;
+    color: var(--text-muted, #6B6B6B);
+    min-width: 50px;
+    text-align: right;
+}
+
+/* Sparkline */
+.an-sparkline {
+    width: 100%;
+    height: 90px;
+    overflow: visible;
+}
+.an-sparkline path {
+    fill: none;
+    stroke: var(--accent);
+    stroke-width: 1.5;
+}
+.an-sparkline .area {
+    fill: color-mix(in oklch, var(--accent) 14%, transparent);
+    stroke: none;
+}
+.an-sparkline .axis {
+    stroke: var(--border-color, #E5E2DA);
+    stroke-width: 0.5;
+}
+.an-sparkline text {
+    font-family: var(--font-mono);
+    font-size: 9px;
+    fill: var(--text-muted, #6B6B6B);
+}
+
+/* Daily bars */
+.an-daybars {
+    display: grid;
+    grid-template-columns: repeat(30, 1fr);
+    gap: 2px;
+    height: 90px;
+    align-items: end;
+}
+.an-daybars .col {
+    background: color-mix(in oklch, var(--accent) 30%, transparent);
+    border-radius: 2px 2px 0 0;
+    min-height: 2px;
+    transition: background 150ms;
+    position: relative;
+}
+.an-daybars .col:hover {
+    background: var(--accent);
+}
+.an-daybars .col[data-count="0"] {
+    background: var(--border-color, #E5E2DA);
+    opacity: 0.4;
+}
+.an-daybars .col[title]:hover::after {
+    content: attr(title);
+    position: absolute;
+    bottom: 100%; left: 50%;
+    transform: translate(-50%, -4px);
+    background: var(--text-primary, #1A1A1A);
+    color: var(--bg-primary, white);
+    padding: 4px 6px;
+    border-radius: 4px;
+    font-family: var(--font-mono);
+    font-size: 10px;
+    white-space: nowrap;
+    z-index: 5;
+    pointer-events: none;
+}
+
+/* Country flags */
+.an-country {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+}
+.an-country-code {
+    font-family: var(--font-mono);
+    font-size: 0.75rem;
+    color: var(--text-muted, #6B6B6B);
+    background: var(--border-color, #E5E2DA);
+    padding: 1px 5px;
+    border-radius: 3px;
+}
+
+/* Privacy callout */
+.an-privacy {
+    margin-top: 32px;
+    padding: 16px 20px;
+    border: 1px dashed var(--border-color, #E5E2DA);
+    border-radius: 10px;
+    font-family: var(--font-mono);
+    font-size: 0.75rem;
+    line-height: 1.6;
+    color: var(--text-muted, #6B6B6B);
+}
+.an-privacy strong { color: var(--text-primary, #1A1A1A); }
+</style>
+{% endblock %}
+
+{% block content %}
+<section class="section an-page">
+    <div class="an-inner">
+        <div class="an-head">
+            <div>
+                <p class="an-eyebrow">/site/insights</p>
+                <h1 class="an-title">Site insights</h1>
+            </div>
+            <span class="an-online" title="Active sessions in the last 5 minutes">
+                <span class="dot"></span>
+                {{ totals.online }} online now
+            </span>
+        </div>
+
+        <div class="an-kpis">
+            <div class="an-kpi">
+                <div class="an-kpi-label">Today</div>
+                <div class="an-kpi-num">{{ totals.today }}</div>
+                <div class="an-kpi-sub">{{ totals.today_uniques }} unique</div>
+            </div>
+            <div class="an-kpi">
+                <div class="an-kpi-label">Last 7 days</div>
+                <div class="an-kpi-num">{{ totals.week }}</div>
+                <div class="an-kpi-sub">{{ totals.week_uniques }} unique</div>
+            </div>
+            <div class="an-kpi">
+                <div class="an-kpi-label">Last 30 days</div>
+                <div class="an-kpi-num">{{ totals.month }}</div>
+                <div class="an-kpi-sub">pageviews</div>
+            </div>
+            <div class="an-kpi">
+                <div class="an-kpi-label">All time</div>
+                <div class="an-kpi-num">{{ totals.all_time }}</div>
+                <div class="an-kpi-sub">since beacon went live</div>
+            </div>
+        </div>
+
+        <div class="an-card full">
+            <h3>Pageviews <small>last 30 days</small></h3>
+            <div class="an-daybars" id="an-daybars">
+                {% for d in daily %}
+                <div class="col" data-count="{{ d.count }}" title="{{ d.date }} · {{ d.count }}"></div>
+                {% endfor %}
+            </div>
+        </div>
+
+        <div class="an-grid">
+            <div class="an-card">
+                <h3>Top pages <small>last 7 days</small></h3>
+                <div class="an-bars" id="an-paths">
+                    {% for row in top_paths %}
+                    <div class="an-bar">
+                        <div class="an-bar-label">
+                            <div class="an-bar-fill" style="transform: scaleX({{ row.c }});"></div>
+                            <a href="{{ row.path }}" style="color: inherit; text-decoration: none;">{{ row.path }}</a>
+                        </div>
+                        <div class="an-bar-num">{{ row.c }}</div>
+                    </div>
+                    {% empty %}
+                    <p style="color: var(--text-muted, #6B6B6B); font-size: 0.875rem;">No data yet — visit some pages with a real browser.</p>
+                    {% endfor %}
+                </div>
+            </div>
+
+            <div class="an-card">
+                <h3>Top referrers <small>last 7 days</small></h3>
+                <div class="an-bars">
+                    {% for row in top_referrers %}
+                    <div class="an-bar">
+                        <div class="an-bar-label">
+                            <div class="an-bar-fill" style="transform: scaleX({{ row.c }});"></div>
+                            <span>{{ row.referrer|truncatechars:60 }}</span>
+                        </div>
+                        <div class="an-bar-num">{{ row.c }}</div>
+                    </div>
+                    {% empty %}
+                    <p style="color: var(--text-muted, #6B6B6B); font-size: 0.875rem;">No external referrers yet.</p>
+                    {% endfor %}
+                </div>
+            </div>
+
+            <div class="an-card">
+                <h3>Devices <small>last 7 days</small></h3>
+                <div class="an-bars">
+                    {% for row in devices %}
+                    <div class="an-bar">
+                        <div class="an-bar-label">
+                            <div class="an-bar-fill" style="transform: scaleX({{ row.c }});"></div>
+                            <span>{{ row.device|default:"—" }}</span>
+                        </div>
+                        <div class="an-bar-num">{{ row.c }}</div>
+                    </div>
+                    {% endfor %}
+                </div>
+            </div>
+
+            <div class="an-card">
+                <h3>Browsers <small>last 7 days</small></h3>
+                <div class="an-bars">
+                    {% for row in browsers %}
+                    <div class="an-bar">
+                        <div class="an-bar-label">
+                            <div class="an-bar-fill" style="transform: scaleX({{ row.c }});"></div>
+                            <span>{{ row.browser|default:"—" }}</span>
+                        </div>
+                        <div class="an-bar-num">{{ row.c }}</div>
+                    </div>
+                    {% endfor %}
+                </div>
+            </div>
+
+            <div class="an-card">
+                <h3>Top countries <small>last 7 days</small></h3>
+                <div class="an-bars">
+                    {% for row in countries %}
+                    <div class="an-bar">
+                        <div class="an-bar-label">
+                            <div class="an-bar-fill" style="transform: scaleX({{ row.c }});"></div>
+                            <span class="an-country"><span class="an-country-code">{{ row.country }}</span></span>
+                        </div>
+                        <div class="an-bar-num">{{ row.c }}</div>
+                    </div>
+                    {% empty %}
+                    <p style="color: var(--text-muted, #6B6B6B); font-size: 0.875rem;">Country data needs Cloudflare in front; otherwise empty.</p>
+                    {% endfor %}
+                </div>
+            </div>
+
+            <div class="an-card">
+                <h3>Top blog posts · engagement <small>last 30 days</small></h3>
+                <div class="an-bars">
+                    {% for row in post_engagement %}
+                    <div class="an-bar" style="grid-template-columns: 1fr auto auto auto; gap: 8px;">
+                        <div class="an-bar-label">
+                            <div class="an-bar-fill" style="transform: scaleX({{ row.c }});"></div>
+                            <a href="/blog/{{ row.post_slug }}/" style="color: inherit; text-decoration: none;">{{ row.post_slug }}</a>
+                        </div>
+                        <div class="an-bar-num" title="Pageviews">{{ row.c }}</div>
+                        <div class="an-bar-num" title="Avg scroll depth (%)" style="color: var(--accent);">{{ row.avg_scroll }}%</div>
+                        <div class="an-bar-num" title="Median dwell (seconds)">{{ row.median_dwell_s }}s</div>
+                    </div>
+                    {% empty %}
+                    <p style="color: var(--text-muted, #6B6B6B); font-size: 0.875rem;">No blog post views yet.</p>
+                    {% endfor %}
+                </div>
+            </div>
+        </div>
+
+        <div class="an-card full" style="margin-top: 20px;">
+            <h3>Pageviews per hour <small>last 7 days</small></h3>
+            <svg class="an-sparkline" id="an-sparkline" viewBox="0 0 800 90" preserveAspectRatio="none"></svg>
+        </div>
+
+        <div class="an-privacy">
+            <strong>Privacy:</strong> First-party only — no third-party scripts, no ad networks, no fingerprinting.
+            IPs are <strong>hashed with a daily rotating salt</strong> and never stored raw.
+            Sessions are tracked via a 30-min HttpOnly cookie. <strong>DNT and Sec-GPC are honored</strong> server- and client-side.
+            Bot UAs are filtered out (Googlebot, headless browsers, curl, etc).
+            Schema: <code>Pageview(path, referrer, country, device, browser, viewport, session_id, ip_hash, scroll_depth, dwell_ms)</code>.
+        </div>
+    </div>
+</section>
+
+{{ sparkline|json_script:"an-sparkline-data" }}
+<script>
+(function () {
+    var dataEl = document.getElementById('an-sparkline-data');
+    if (!dataEl) return;
+    var raw;
+    try { raw = JSON.parse(dataEl.textContent); } catch (e) { return; }
+    if (!raw || !raw.length) return;
+
+    var svg = document.getElementById('an-sparkline');
+    var W = 800, H = 90, pad = 8;
+    var max = Math.max.apply(null, raw.map(function (r) { return r.count; })) || 1;
+    var n = raw.length;
+    var xStep = (W - pad * 2) / Math.max(1, n - 1);
+
+    function point(i, v) {
+        var x = pad + i * xStep;
+        var y = H - pad - (v / max) * (H - pad * 2);
+        return [x, y];
+    }
+
+    var path = '';
+    var area = '';
+    raw.forEach(function (r, i) {
+        var p = point(i, r.count);
+        path += (i === 0 ? 'M' : 'L') + p[0].toFixed(1) + ',' + p[1].toFixed(1) + ' ';
+        area += (i === 0 ? 'M' + p[0] + ',' + (H - pad) + ' L' : 'L') + p[0].toFixed(1) + ',' + p[1].toFixed(1) + ' ';
+    });
+    area += 'L' + (pad + (n - 1) * xStep) + ',' + (H - pad) + ' Z';
+
+    svg.innerHTML =
+        '<line class="axis" x1="0" y1="' + (H - pad) + '" x2="' + W + '" y2="' + (H - pad) + '"></line>' +
+        '<path class="area" d="' + area + '"></path>' +
+        '<path d="' + path + '"></path>' +
+        '<text x="2" y="' + (pad + 4) + '">' + max + '</text>' +
+        '<text x="2" y="' + (H - 1) + '">0</text>';
+})();
+</script>
+
+<script>
+(function () {
+    // Normalize bar widths so the longest bar fills the row
+    var bars = document.querySelectorAll('.an-bars');
+    bars.forEach(function (group) {
+        var fills = group.querySelectorAll('.an-bar-fill');
+        var nums = group.querySelectorAll('.an-bar-num');
+        var max = 0;
+        nums.forEach(function (n) {
+            var v = parseFloat(n.textContent || '0');
+            if (v > max) max = v;
+        });
+        if (max <= 0) return;
+        fills.forEach(function (f) {
+            // The fill has transform: scaleX(<count>) — replace with normalized
+            var bar = f.closest('.an-bar');
+            var num = parseFloat(bar.querySelector('.an-bar-num').textContent || '0');
+            f.style.transform = 'scaleX(' + (num / max) + ')';
+        });
+    });
+})();
+</script>
+{% endblock %}
