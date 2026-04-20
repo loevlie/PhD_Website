@@ -20,6 +20,45 @@
     <meta name="twitter:description" content="{{ hero.title }} at {{ hero.affiliation }}. Research in tabular foundation models.">
     <meta name="twitter:image" content="{% static 'portfolio/images/og-cover.png' %}">
 
+    {% comment %}
+    Site-wide Person JSON-LD. Lets AI search (Perplexity / Google AI Overviews / ChatGPT Search)
+    cite a canonical entity record. sameAs profile links boost authority and disambiguation —
+    they're how Knowledge Graph picks the right Dennis Loevlie. Schema is intentionally
+    flat so any one social profile can fail without breaking the rest.
+    {% endcomment %}
+    <script type="application/ld+json">
+    {
+        "@context": "https://schema.org",
+        "@type": "Person",
+        "name": "{{ hero.name }}",
+        "alternateName": "Dennis Løvlie",
+        "url": "{{ request.scheme }}://{{ request.get_host }}/",
+        "image": "{{ request.scheme }}://{{ request.get_host }}{% static 'portfolio/images/og-cover.png' %}",
+        "jobTitle": "{{ hero.title }}",
+        "affiliation": [
+            { "@type": "Organization", "name": "Centrum Wiskunde & Informatica (CWI)", "url": "https://www.cwi.nl/" },
+            { "@type": "Organization", "name": "University of Amsterdam (UvA)", "url": "https://www.uva.nl/" },
+            { "@type": "Organization", "name": "ELLIS PhD Program", "url": "https://ellis.eu/phd-postdoc" }
+        ],
+        "alumniOf": { "@type": "CollegeOrUniversity", "name": "Tufts University", "url": "https://www.tufts.edu/" },
+        "knowsAbout": ["Machine Learning", "Tabular Foundation Models", "In-Context Learning", "Multiple Instance Learning", "Probabilistic Deep Learning", "Computational Pathology"],
+        "sameAs": [{% autoescape off %}{% for u in social_sameas_urls %}"{{ u }}"{% if not forloop.last %},{% endif %}{% endfor %}{% endautoescape %}]
+    }
+    </script>
+    <script type="application/ld+json">
+    {
+        "@context": "https://schema.org",
+        "@type": "WebSite",
+        "url": "{{ request.scheme }}://{{ request.get_host }}/",
+        "name": "{{ hero.name }}",
+        "potentialAction": {
+            "@type": "SearchAction",
+            "target": "{{ request.scheme }}://{{ request.get_host }}/blog/?q={search_term_string}",
+            "query-input": "required name=search_term_string"
+        }
+    }
+    </script>
+
     <!-- Three.js import map -->
     <script type="importmap">
     { "imports": {
@@ -105,7 +144,8 @@
         ],
         "actions": [
             {"label": "Toggle theme", "href": "#theme", "kind": "Action"},
-            {"label": "Download CV", "href": "/cv/", "kind": "Action"}
+            {"label": "View CV (inline PDF)", "href": "/cv/", "kind": "Page"},
+            {"label": "Download CV (PDF)", "href": "/cv.pdf", "kind": "Action"}
         ]
     }
     </script>

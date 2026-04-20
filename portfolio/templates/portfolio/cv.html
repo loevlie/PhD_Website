@@ -1,0 +1,193 @@
+{% extends "portfolio/personal_base.html" %}
+{% load static %}
+
+{% block title %}CV — Dennis Loevlie{% endblock %}
+
+{% block og_meta %}
+<meta property="og:title" content="CV — Dennis Loevlie">
+<meta property="og:description" content="Dennis Loevlie's CV — ML PhD student, Tufts → ELLIS Amsterdam. Live PDF auto-rebuilt weekly from a typeset LaTeX source.">
+<meta property="og:type" content="profile">
+<meta name="description" content="Dennis Loevlie's CV — ML PhD student, Tufts → ELLIS Amsterdam. Live PDF auto-rebuilt weekly.">
+{% endblock %}
+
+{% block extra_head %}
+<style>
+.cv-page {
+    padding-block: clamp(40px, 6vw, 72px);
+}
+.cv-inner {
+    max-width: 980px;
+    margin: 0 auto;
+    padding: 0 24px;
+}
+.cv-eyebrow {
+    font-family: var(--font-mono);
+    font-size: 0.75rem;
+    text-transform: uppercase;
+    letter-spacing: 0.14em;
+    color: var(--ink-muted);
+    margin: 0 0 8px;
+}
+.cv-title {
+    font-family: var(--font-serif);
+    font-size: clamp(2rem, 4vw, 2.75rem);
+    font-weight: 700;
+    line-height: 1.05;
+    margin: 0 0 12px;
+    color: var(--ink);
+    letter-spacing: -0.01em;
+}
+.cv-lede {
+    font-size: 1.0625rem;
+    line-height: 1.55;
+    color: var(--ink-muted);
+    max-width: 64ch;
+    margin: 0 0 24px;
+}
+.cv-actions {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 10px;
+    margin: 0 0 28px;
+}
+.cv-actions a {
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
+    padding: 9px 16px;
+    border-radius: 8px;
+    font-family: var(--font-mono);
+    font-size: 0.8125rem;
+    text-decoration: none;
+    border: 1px solid var(--rule);
+    color: var(--ink);
+    transition: all 150ms ease;
+}
+.cv-actions a:hover {
+    border-color: var(--accent);
+    color: var(--accent);
+    transform: translateY(-1px);
+}
+.cv-actions a.primary {
+    background: var(--accent);
+    color: white;
+    border-color: var(--accent);
+}
+.cv-actions a.primary:hover {
+    background: color-mix(in oklch, var(--accent) 88%, black);
+    color: white;
+}
+.cv-actions a .arrow {
+    transition: transform 150ms ease;
+}
+.cv-actions a:hover .arrow {
+    transform: translateX(2px);
+}
+
+.cv-meta {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 18px;
+    font-family: var(--font-mono);
+    font-size: 0.75rem;
+    color: var(--ink-muted);
+    margin-bottom: 18px;
+    padding-bottom: 18px;
+    border-bottom: 1px solid var(--rule);
+}
+.cv-meta b { color: var(--ink); font-weight: 600; }
+
+/* PDF embed — full-width canvas with subtle shadow */
+.cv-pdf-frame {
+    width: 100%;
+    height: min(86vh, 1180px);
+    border: 1px solid var(--rule);
+    border-radius: 10px;
+    background: var(--surface);
+    box-shadow: 0 12px 40px -16px color-mix(in oklch, var(--accent) 20%, transparent);
+    overflow: hidden;
+}
+.cv-pdf-frame object,
+.cv-pdf-frame iframe {
+    display: block;
+    width: 100%;
+    height: 100%;
+    border: 0;
+}
+.cv-pdf-fallback {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    height: 100%;
+    padding: 48px 24px;
+    text-align: center;
+    color: var(--ink-muted);
+    font-size: 0.9375rem;
+    line-height: 1.55;
+}
+.cv-pdf-fallback a {
+    margin-top: 12px;
+    color: var(--accent);
+    font-weight: 600;
+}
+
+.cv-footnote {
+    margin-top: 18px;
+    font-family: var(--font-mono);
+    font-size: 0.75rem;
+    color: var(--ink-muted);
+    line-height: 1.55;
+}
+.cv-footnote a { color: var(--ink); border-bottom: 1px dashed var(--rule); text-decoration: none; }
+.cv-footnote a:hover { color: var(--accent); border-bottom-color: var(--accent); }
+</style>
+{% endblock %}
+
+{% block content %}
+<section class="section cv-page">
+    <div class="cv-inner section-reveal">
+        <p class="cv-eyebrow">/cv</p>
+        <h1 class="cv-title">Curriculum Vitae</h1>
+        <p class="cv-lede">
+            Auto-rebuilt weekly from <code>cv/main.tex</code>. Citation counts pull from
+            Semantic Scholar + Google Scholar via a launchd job. The PDF renders inline
+            below; download or view source from the buttons.
+        </p>
+
+        <div class="cv-actions">
+            <a class="primary" href="{{ download_url }}" download="Dennis-Loevlie-CV.pdf">
+                ↓ Download PDF
+            </a>
+            <a href="{{ upstream_url }}" target="_blank" rel="noopener">
+                Open in new tab <span class="arrow">↗</span>
+            </a>
+            <a href="{{ source_repo }}" target="_blank" rel="noopener">
+                View LaTeX source <span class="arrow">↗</span>
+            </a>
+        </div>
+
+        <div class="cv-meta">
+            <span><b>Stack:</b> LuaLaTeX + biblatex + biblatex-publist + hyperxmp + bookmark</span>
+            <span><b>Type:</b> IBM Plex Serif / Sans / Mono</span>
+            <span><b>Refresh:</b> Mondays 09:17 local</span>
+        </div>
+
+        <div class="cv-pdf-frame">
+            <object data="{{ upstream_url }}#view=FitH&toolbar=1" type="application/pdf">
+                <iframe src="{{ upstream_url }}#view=FitH&toolbar=1" title="Dennis Loevlie CV"></iframe>
+                <div class="cv-pdf-fallback">
+                    <p>Your browser can't display PDFs inline.</p>
+                    <a href="{{ download_url }}" download>Download the PDF →</a>
+                </div>
+            </object>
+        </div>
+
+        <p class="cv-footnote">
+            Trouble loading the PDF? It lives at <a href="{{ upstream_url }}" target="_blank" rel="noopener">loevlie.github.io/cv</a>
+            and rebuilds weekly via launchd job <code>com.loevlie.cv-refresh</code>. The build pipeline is open at
+            <a href="{{ source_repo }}" target="_blank" rel="noopener">github.com/loevlie/cv</a>.
+        </p>
+    </div>
+</section>
+{% endblock %}

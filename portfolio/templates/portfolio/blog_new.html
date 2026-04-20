@@ -1,0 +1,111 @@
+{% extends "portfolio/blog_base.html" %}
+{% load static %}
+
+{% block title %}New post · choose a template | dl.blog{% endblock %}
+{% block og_meta %}<meta name="robots" content="noindex,nofollow">{% endblock %}
+
+{% block extra_head %}
+<style>
+.np-shell {
+    max-width: 960px;
+    margin: 64px auto;
+    padding: 0 24px;
+    font-family: 'Inter', system-ui, sans-serif;
+    color: var(--ctp-text, #cdd6f4);
+}
+.np-eyebrow {
+    font-family: 'JetBrains Mono', ui-monospace, monospace;
+    font-size: 0.75rem;
+    text-transform: uppercase;
+    letter-spacing: 0.12em;
+    color: var(--ctp-overlay1, #7f849c);
+    margin-bottom: 12px;
+}
+.np-title {
+    font-family: 'IBM Plex Serif', Georgia, serif;
+    font-size: 2.25rem;
+    font-weight: 700;
+    line-height: 1.1;
+    margin: 0 0 8px;
+    color: var(--ctp-text, #cdd6f4);
+}
+.np-lede {
+    font-size: 1rem;
+    color: var(--ctp-subtext1, #bac2de);
+    margin: 0 0 32px;
+    max-width: 60ch;
+}
+.np-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
+    gap: 16px;
+}
+.np-card {
+    display: block;
+    padding: 20px 22px;
+    background: var(--ctp-mantle, #181825);
+    border: 1px solid var(--ctp-surface0, #313244);
+    border-radius: 12px;
+    text-decoration: none;
+    color: inherit;
+    transition: border-color 150ms ease, transform 150ms ease, background-color 150ms ease;
+}
+.np-card:hover, .np-card:focus-visible {
+    border-color: var(--ctp-lavender, #7287fd);
+    transform: translateY(-2px);
+    background: color-mix(in oklch, var(--ctp-lavender, #7287fd) 6%, var(--ctp-mantle, #181825));
+    outline: none;
+}
+.np-card-label {
+    font-family: 'IBM Plex Serif', Georgia, serif;
+    font-size: 1.125rem;
+    font-weight: 600;
+    margin: 0 0 8px;
+    color: var(--ctp-text, #cdd6f4);
+}
+.np-card-desc {
+    font-size: 0.875rem;
+    line-height: 1.55;
+    color: var(--ctp-subtext0, #a6adc8);
+    margin: 0;
+}
+.np-card-key {
+    display: inline-block;
+    margin-top: 14px;
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 0.6875rem;
+    color: var(--ctp-overlay1, #7f849c);
+    text-transform: uppercase;
+    letter-spacing: 0.1em;
+}
+.np-back {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    color: var(--ctp-overlay1, #7f849c);
+    text-decoration: none;
+    font-size: 0.8125rem;
+    margin-bottom: 32px;
+    font-family: 'JetBrains Mono', monospace;
+}
+.np-back:hover { color: var(--ctp-lavender, #7287fd); }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="np-shell">
+    <a href="{% url 'blog' %}" class="np-back">← back to blog</a>
+    <div class="np-eyebrow">New post</div>
+    <h1 class="np-title">Choose a template</h1>
+    <p class="np-lede">Each template prefills frontmatter (maturity, is_explainer, is_paper_companion) and a section scaffold matching its register.</p>
+    <div class="np-grid">
+        {% for key, t in templates %}
+        <a class="np-card" href="{% url 'blog_new' %}?template={{ key }}">
+            <h2 class="np-card-label">{{ t.label }}</h2>
+            <p class="np-card-desc">{{ t.desc }}</p>
+            <span class="np-card-key">{{ key }}</span>
+        </a>
+        {% endfor %}
+    </div>
+</div>
+{% endblock %}

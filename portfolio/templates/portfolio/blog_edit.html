@@ -9,7 +9,7 @@
 <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/katex@0.16.9/dist/katex.min.css">
 <style>
 /* Editor chrome — fits inside blog_base layout */
-.editor-shell { display: grid; grid-template-rows: auto 1fr; height: calc(100vh - 64px); }
+.editor-shell { display: grid; grid-template-rows: auto 1fr; height: calc(100vh - 64px); position: relative; }
 .editor-bar {
     display: flex; align-items: center; gap: 12px;
     padding: 10px 16px;
@@ -20,15 +20,15 @@
     font-size: 0.875rem;
     z-index: 10;
 }
-.editor-bar input[type="text"] {
+.editor-bar input[type="text"].title-input {
     flex: 1; min-width: 0;
     background: transparent; border: 0; outline: 0;
     color: var(--ctp-text, #cdd6f4);
     font-size: 1rem; font-weight: 600;
     padding: 4px 0;
 }
-.editor-bar input[type="text"]:focus { box-shadow: inset 0 -1px 0 var(--ctp-lavender, #7287fd); }
-.editor-bar label {
+.editor-bar input[type="text"].title-input:focus { box-shadow: inset 0 -1px 0 var(--ctp-lavender, #7287fd); }
+.editor-bar label.toggle {
     display: inline-flex; align-items: center; gap: 6px;
     color: var(--ctp-subtext1, #bac2de);
     font-size: 0.8125rem; cursor: pointer; user-select: none;
@@ -45,6 +45,10 @@
     background: transparent; color: var(--ctp-subtext1, #bac2de);
     border: 1px solid var(--ctp-surface0, #313244);
 }
+.editor-bar button.secondary:hover, .editor-bar a.secondary:hover {
+    border-color: var(--ctp-lavender, #7287fd);
+    color: var(--ctp-text, #cdd6f4);
+}
 .editor-bar .save-status {
     color: var(--ctp-overlay0, #6c7086); font-size: 0.75rem;
     font-family: 'JetBrains Mono', monospace;
@@ -52,6 +56,7 @@
 }
 .editor-bar .save-status.is-dirty { color: var(--ctp-yellow, #f9e2af); }
 .editor-bar .save-status.is-saved { color: var(--ctp-green, #a6e3a1); }
+.editor-bar .save-status.is-error { color: var(--ctp-red, #f38ba8); }
 
 .editor-panes { display: grid; grid-template-columns: 1fr 1fr; min-height: 0; }
 @media (max-width: 900px) { .editor-panes { grid-template-columns: 1fr; grid-template-rows: 1fr 1fr; } }
@@ -59,6 +64,7 @@
 .editor-source, .editor-preview {
     overflow: auto;
     height: 100%;
+    position: relative;
 }
 .editor-source { border-right: 1px solid var(--ctp-surface0, #313244); }
 .editor-source textarea {
@@ -96,6 +102,146 @@
 .editor-preview .blog-prose blockquote { border-left: 3px solid var(--ctp-lavender, #7287fd); padding-left: 16px; color: var(--ctp-subtext1, #bac2de); margin: 16px 0; }
 .editor-preview .blog-prose a { color: var(--ctp-lavender, #7287fd); }
 .editor-preview .preview-loading { color: var(--ctp-overlay0, #6c7086); font-style: italic; }
+
+/* ── Slash-command floating menu ───────────────────────────────────── */
+.slash-menu {
+    position: absolute;
+    z-index: 20;
+    min-width: 280px;
+    max-height: 320px;
+    overflow-y: auto;
+    background: var(--ctp-crust, #11111b);
+    border: 1px solid var(--ctp-surface1, #45475a);
+    border-radius: 10px;
+    box-shadow: 0 12px 32px rgba(0, 0, 0, 0.45);
+    padding: 6px;
+    font-family: 'Inter', system-ui, sans-serif;
+    font-size: 0.875rem;
+    color: var(--ctp-text, #cdd6f4);
+}
+.slash-menu.hidden { display: none; }
+.slash-menu .si {
+    display: grid;
+    grid-template-columns: 22px 1fr;
+    column-gap: 10px;
+    align-items: baseline;
+    padding: 8px 10px;
+    border-radius: 6px;
+    cursor: pointer;
+}
+.slash-menu .si.active { background: color-mix(in oklch, var(--ctp-lavender, #7287fd) 22%, var(--ctp-crust, #11111b)); }
+.slash-menu .si .si-icon {
+    font-family: 'JetBrains Mono', monospace;
+    color: var(--ctp-lavender, #7287fd);
+    font-size: 0.875rem;
+    text-align: center;
+}
+.slash-menu .si .si-title { font-weight: 600; }
+.slash-menu .si .si-desc {
+    font-size: 0.75rem;
+    color: var(--ctp-subtext0, #a6adc8);
+    grid-column: 2;
+    margin-top: 2px;
+}
+.slash-menu .si-empty {
+    padding: 12px;
+    color: var(--ctp-overlay0, #6c7086);
+    font-style: italic;
+}
+
+/* ── Frontmatter drawer ────────────────────────────────────────────── */
+.fm-drawer {
+    position: absolute;
+    top: 0; right: 0; bottom: 0;
+    width: min(380px, 92vw);
+    background: var(--ctp-crust, #11111b);
+    border-left: 1px solid var(--ctp-surface1, #45475a);
+    box-shadow: -8px 0 24px rgba(0, 0, 0, 0.35);
+    transform: translateX(100%);
+    transition: transform 220ms cubic-bezier(.2,.8,.2,1);
+    z-index: 30;
+    display: flex; flex-direction: column;
+    font-family: 'Inter', system-ui, sans-serif;
+    color: var(--ctp-text, #cdd6f4);
+}
+.fm-drawer.open { transform: translateX(0); }
+.fm-drawer-head {
+    display: flex; align-items: center; justify-content: space-between;
+    padding: 14px 18px;
+    border-bottom: 1px solid var(--ctp-surface0, #313244);
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 0.75rem;
+    text-transform: uppercase;
+    letter-spacing: 0.1em;
+    color: var(--ctp-overlay1, #7f849c);
+}
+.fm-drawer-close {
+    background: transparent; border: 0; color: var(--ctp-subtext1, #bac2de);
+    cursor: pointer; font-size: 1.125rem; padding: 0; line-height: 1;
+}
+.fm-drawer-body {
+    overflow-y: auto;
+    padding: 18px;
+    display: flex; flex-direction: column; gap: 16px;
+}
+.fm-field { display: flex; flex-direction: column; gap: 6px; }
+.fm-field > label {
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 0.6875rem;
+    text-transform: uppercase;
+    letter-spacing: 0.08em;
+    color: var(--ctp-overlay1, #7f849c);
+}
+.fm-field input[type="text"], .fm-field input[type="date"], .fm-field input[type="url"], .fm-field textarea, .fm-field select {
+    background: var(--ctp-base, #1e1e2e);
+    color: var(--ctp-text, #cdd6f4);
+    border: 1px solid var(--ctp-surface0, #313244);
+    border-radius: 6px;
+    padding: 8px 10px;
+    font-size: 0.875rem;
+    font-family: inherit;
+    outline: none;
+}
+.fm-field input:focus, .fm-field textarea:focus, .fm-field select:focus {
+    border-color: var(--ctp-lavender, #7287fd);
+}
+.fm-field textarea { min-height: 70px; resize: vertical; line-height: 1.5; }
+.fm-field .fm-help {
+    font-size: 0.6875rem;
+    color: var(--ctp-overlay0, #6c7086);
+    line-height: 1.4;
+}
+.fm-toggles {
+    display: flex; flex-direction: column; gap: 8px;
+    padding: 12px 14px;
+    background: var(--ctp-mantle, #181825);
+    border-radius: 8px;
+    border: 1px solid var(--ctp-surface0, #313244);
+}
+.fm-toggles label {
+    display: flex; align-items: center; gap: 10px;
+    font-size: 0.8125rem;
+    color: var(--ctp-subtext1, #bac2de);
+    cursor: pointer;
+}
+
+/* ── Backdrop when drawer is open (mobile only) ─────────────────────── */
+.fm-backdrop {
+    position: absolute;
+    inset: 0;
+    background: rgba(0, 0, 0, 0.4);
+    opacity: 0;
+    pointer-events: none;
+    transition: opacity 220ms ease;
+    z-index: 25;
+}
+.fm-backdrop.open {
+    opacity: 1;
+    pointer-events: auto;
+}
+@media (min-width: 1100px) {
+    .fm-backdrop { display: none; }
+}
 </style>
 {% endblock %}
 
@@ -104,25 +250,80 @@
     {% csrf_token %}
     <div class="editor-bar">
         <a href="{% url 'blog_post' post.slug %}" class="secondary" title="View live">←</a>
-        <input type="text" name="title" value="{{ post.title }}" placeholder="Post title">
-        <label><input type="checkbox" name="is_explainer" {% if post.is_explainer %}checked{% endif %}> Explainer</label>
-        <label><input type="checkbox" name="draft" {% if post.draft %}checked{% endif %}> Draft</label>
-        <span class="upload-hint">drop an image · or paste a screenshot</span>
+        <input type="text" name="title" class="title-input" value="{{ post.title }}" placeholder="Post title">
+        <span class="upload-hint">⌘/ for menu · drop image · paste screenshot</span>
         <span class="save-status" id="save-status">unchanged</span>
+        <button type="button" class="secondary" id="open-fm">Details</button>
         <button type="submit" name="action" value="save">Save</button>
         <button type="submit" name="action" value="view" class="secondary">Save &amp; view</button>
     </div>
     <div class="editor-panes">
         <div class="editor-source">
             <textarea name="body" id="editor-body" spellcheck="false">{{ post.body }}</textarea>
+            <div class="slash-menu hidden" id="slash-menu" role="listbox" aria-label="Insert"></div>
         </div>
         <div class="editor-preview">
-            <div class="blog-prose {% if post.is_explainer %}is-explainer{% endif %}" id="editor-preview-content">
+            <div class="blog-prose {% if post.is_explainer %}is-explainer{% endif %}{% if post.is_paper_companion %} is-paper-companion{% endif %}" id="editor-preview-content">
                 <p class="preview-loading">Rendering preview…</p>
             </div>
         </div>
     </div>
-    <input type="hidden" name="excerpt" value="{{ post.excerpt }}">
+
+    <!-- ── Frontmatter drawer ─────────────────────────────────── -->
+    <div class="fm-backdrop" id="fm-backdrop"></div>
+    <aside class="fm-drawer" id="fm-drawer" aria-label="Post details">
+        <div class="fm-drawer-head">
+            <span>Frontmatter</span>
+            <button type="button" class="fm-drawer-close" id="close-fm" aria-label="Close">×</button>
+        </div>
+        <div class="fm-drawer-body">
+            <div class="fm-field">
+                <label for="fm-excerpt">Excerpt</label>
+                <textarea id="fm-excerpt" name="excerpt">{{ post.excerpt }}</textarea>
+                <span class="fm-help">Shown in cards, RSS, OG meta tags.</span>
+            </div>
+            <div class="fm-field">
+                <label for="fm-slug">Slug</label>
+                <input id="fm-slug" name="slug" type="text" value="{{ post.slug }}">
+                <span class="fm-help">URL fragment. Changing this changes the post URL.</span>
+            </div>
+            <div class="fm-field">
+                <label for="fm-date">Date</label>
+                <input id="fm-date" name="date" type="date" value="{{ post.date|date:'Y-m-d' }}">
+            </div>
+            <div class="fm-field">
+                <label for="fm-tags">Tags</label>
+                <input id="fm-tags" name="tags" type="text" value="{{ tag_csv }}" placeholder="ml, tabular, research">
+                <span class="fm-help">Comma-separated.</span>
+            </div>
+            <div class="fm-field">
+                <label for="fm-maturity">Maturity</label>
+                <select id="fm-maturity" name="maturity">
+                    <option value="" {% if not post.maturity %}selected{% endif %}>Unmarked</option>
+                    <option value="seedling" {% if post.maturity == 'seedling' %}selected{% endif %}>Seedling — half-formed</option>
+                    <option value="budding" {% if post.maturity == 'budding' %}selected{% endif %}>Budding — being developed</option>
+                    <option value="evergreen" {% if post.maturity == 'evergreen' %}selected{% endif %}>Evergreen — settled</option>
+                </select>
+            </div>
+            <div class="fm-field">
+                <label for="fm-series">Series</label>
+                <input id="fm-series" name="series" type="text" value="{{ post.series }}" placeholder="e.g. Deep Dive: MIL">
+            </div>
+            <div class="fm-field">
+                <label for="fm-image">Cover image</label>
+                <input id="fm-image" name="image" type="text" value="{{ post.image }}" placeholder="portfolio/images/blog/cover.jpg">
+            </div>
+            <div class="fm-field">
+                <label for="fm-medium">Canonical URL</label>
+                <input id="fm-medium" name="medium_url" type="url" value="{{ post.medium_url }}" placeholder="https://...">
+            </div>
+            <div class="fm-toggles">
+                <label><input type="checkbox" name="is_explainer" {% if post.is_explainer %}checked{% endif %}> Explainer (sidenotes + hover citations)</label>
+                <label><input type="checkbox" name="is_paper_companion" {% if post.is_paper_companion %}checked{% endif %}> Paper companion (single-col, drop cap)</label>
+                <label><input type="checkbox" name="draft" {% if post.draft %}checked{% endif %}> Draft (hidden from listings)</label>
+            </div>
+        </div>
+    </aside>
 </form>
 
 <script defer src="https://cdn.jsdelivr.net/npm/katex@0.16.9/dist/katex.min.js"></script>
@@ -134,11 +335,14 @@
     const preview = document.getElementById('editor-preview-content');
     const status = document.getElementById('save-status');
     const csrf = form.querySelector('[name=csrfmiddlewaretoken]').value;
+    const slug = '{{ post.slug }}';
     const explainerToggle = form.querySelector('[name=is_explainer]');
+    const paperToggle = form.querySelector('[name=is_paper_companion]');
 
     let renderTimer = null;
     let lastRendered = '';
 
+    // ── Live preview ────────────────────────────────────────────────
     async function render() {
         const text = body.value;
         const isExp = explainerToggle.checked ? 'true' : 'false';
@@ -158,8 +362,7 @@
             const data = await r.json();
             preview.innerHTML = data.html || '<p class="preview-loading">empty</p>';
             preview.classList.toggle('is-explainer', isExp === 'true');
-            // KaTeX re-render. Auto-render attaches at load; for re-renders
-            // call directly when the lib is loaded.
+            preview.classList.toggle('is-paper-companion', paperToggle.checked);
             if (window.renderMathInElement) {
                 window.renderMathInElement(preview, {
                     delimiters: [
@@ -173,22 +376,97 @@
             preview.innerHTML = '<p class="preview-loading">preview error: ' + e.message + '</p>';
         }
     }
-
     function scheduleRender(delay) {
         clearTimeout(renderTimer);
         renderTimer = setTimeout(render, delay || 350);
     }
 
+    // ── Dirty / save status tracking ────────────────────────────────
+    let dirty = false;
+    function markDirty() {
+        dirty = true;
+        status.textContent = 'unsaved';
+        status.classList.remove('is-saved', 'is-error');
+        status.classList.add('is-dirty');
+        scheduleAutosave();
+    }
+    function markSaved(when) {
+        dirty = false;
+        const t = when ? new Date(when) : new Date();
+        const hh = String(t.getHours()).padStart(2, '0');
+        const mm = String(t.getMinutes()).padStart(2, '0');
+        const ss = String(t.getSeconds()).padStart(2, '0');
+        status.textContent = 'saved ' + hh + ':' + mm + ':' + ss;
+        status.classList.remove('is-dirty', 'is-error');
+        status.classList.add('is-saved');
+    }
+    function markError(msg) {
+        status.textContent = 'save failed: ' + msg;
+        status.classList.remove('is-dirty', 'is-saved');
+        status.classList.add('is-error');
+    }
+
+    // ── Autosave (debounced) ────────────────────────────────────────
+    let autosaveTimer = null;
+    let autosaveInflight = false;
+    const AUTOSAVE_DEBOUNCE_MS = 1500;
+
+    function scheduleAutosave() {
+        clearTimeout(autosaveTimer);
+        autosaveTimer = setTimeout(autosaveNow, AUTOSAVE_DEBOUNCE_MS);
+        // Local backup (instant): never lose a keystroke
+        try {
+            localStorage.setItem('editor-draft:' + slug, JSON.stringify({
+                body: body.value,
+                title: form.querySelector('[name=title]').value,
+                ts: Date.now(),
+            }));
+        } catch (e) { /* quota or private mode — ignore */ }
+    }
+
+    async function autosaveNow() {
+        if (autosaveInflight) {
+            // Coalesce: re-schedule once the in-flight save returns.
+            scheduleAutosave();
+            return;
+        }
+        autosaveInflight = true;
+        const fd = new FormData(form);
+        fd.set('csrfmiddlewaretoken', csrf);
+        try {
+            const r = await fetch('{% url "blog_autosave" post.slug %}', {
+                method: 'POST', body: fd, credentials: 'same-origin',
+            });
+            const data = await r.json();
+            if (data.ok) {
+                markSaved(data.saved_at);
+                try { localStorage.removeItem('editor-draft:' + slug); } catch (e) {}
+            } else {
+                markError(data.error || 'unknown');
+            }
+        } catch (e) {
+            markError(e.message || 'network');
+        } finally {
+            autosaveInflight = false;
+        }
+    }
+
+    // Save before unload if dirty (synchronous beacon)
+    window.addEventListener('beforeunload', (e) => {
+        if (!dirty) return;
+        const fd = new FormData(form);
+        fd.set('csrfmiddlewaretoken', csrf);
+        // sendBeacon is best-effort and async-safe during unload
+        navigator.sendBeacon('{% url "blog_autosave" post.slug %}', fd);
+    });
+
     body.addEventListener('input', () => { markDirty(); scheduleRender(); });
     explainerToggle.addEventListener('change', () => { markDirty(); render(); });
-    form.querySelectorAll('input[name=title], input[name=draft]').forEach(el =>
-        el.addEventListener('input', markDirty));
-
-    function markDirty() {
-        status.textContent = 'unsaved';
-        status.classList.remove('is-saved');
-        status.classList.add('is-dirty');
-    }
+    paperToggle.addEventListener('change', () => { markDirty(); render(); });
+    // All other form controls trigger dirty
+    form.querySelectorAll('input:not(.title-input):not([type=hidden]), textarea:not(#editor-body), select')
+        .forEach(el => el.addEventListener('change', markDirty));
+    form.querySelector('.title-input').addEventListener('input', markDirty);
 
     // ⌘S / Ctrl+S submits the form
     document.addEventListener('keydown', (e) => {
@@ -198,21 +476,267 @@
         }
     });
 
-    // ── Image upload: drag-drop, paste from clipboard, or click "Upload" ──
-    // POST multipart to /blog/upload-image/, insert returned ![alt](url)
-    // at cursor on success. Visual feedback: source pane background tints
-    // accent-blue while drop-target; status text shows "uploading…".
-    const sourcePane = document.querySelector('.editor-source');
+    // ── Frontmatter drawer ──────────────────────────────────────────
+    const drawer = document.getElementById('fm-drawer');
+    const backdrop = document.getElementById('fm-backdrop');
+    document.getElementById('open-fm').addEventListener('click', () => {
+        drawer.classList.add('open');
+        backdrop.classList.add('open');
+    });
+    function closeDrawer() {
+        drawer.classList.remove('open');
+        backdrop.classList.remove('open');
+    }
+    document.getElementById('close-fm').addEventListener('click', closeDrawer);
+    backdrop.addEventListener('click', closeDrawer);
+    document.addEventListener('keydown', (e) => {
+        if (e.key === 'Escape' && drawer.classList.contains('open')) closeDrawer();
+    });
 
-    function insertAtCursor(text) {
+    // ── Slash-command menu ──────────────────────────────────────────
+    // Insert scaffolds for common patterns. Trigger by typing "/" at
+    // start-of-line or after whitespace, OR by pressing ⌘/.
+    const COMMANDS = [
+        { id: 'sidenote', label: 'Sidenote', icon: '⌭', desc: 'Tufte-style margin note',
+          insert: () => sidenoteInsert() },
+        { id: 'cite',     label: 'Citation', icon: '¹', desc: 'Hover-revealing citation pill',
+          insert: () => '<cite class="ref" data-key="key2024">[1]</cite>' },
+        { id: 'math',     label: 'Math block', icon: 'Σ', desc: 'KaTeX display math',
+          insert: () => '\n$$\n  \\\\\n$$\n', cursor: 4 },
+        { id: 'imath',    label: 'Inline math', icon: 'σ', desc: 'KaTeX inline math',
+          insert: () => '$\\,$', cursor: 1 },
+        { id: 'figure',   label: 'Figure', icon: '▢', desc: 'Image with caption',
+          insert: () => '\n![caption](url)\n' },
+        { id: 'quote',    label: 'Blockquote', icon: '❝', desc: 'Standard blockquote',
+          insert: () => '\n> A quote\n>\n> — Author\n' },
+        { id: 'pullquote', label: 'Pull-quote', icon: '«', desc: 'Magazine-style pull quote',
+          insert: () => '\n<blockquote class="pullquote">A line worth pulling out.</blockquote>\n' },
+        { id: 'codeblock', label: 'Code block', icon: '⌘', desc: 'Fenced code with language',
+          insert: () => '\n```python\n\n```\n', cursor: 11 },
+        { id: 'callout',  label: 'Callout', icon: '◉', desc: 'Aside / note callout',
+          insert: () => '\n<aside class="callout"><strong>Note:</strong> </aside>\n', cursor: 36 },
+        { id: 'glossary', label: 'Notation', icon: 'ℰ', desc: 'Hoverable math symbol',
+          insert: () => '<span class="g" data-g="θ">θ</span>' },
+        { id: 'h2',       label: 'Heading 2', icon: 'H₂', desc: 'Section heading',
+          insert: () => '\n## Heading\n\n' },
+        { id: 'h3',       label: 'Heading 3', icon: 'H₃', desc: 'Subsection heading',
+          insert: () => '\n### Subheading\n\n' },
+        { id: 'demo',     label: 'Demo embed', icon: '◫', desc: 'Embed a homepage demo',
+          insert: () => '<div class="demo-embed" data-slug="frozen-forecaster"></div>' },
+        { id: 'table',    label: 'Table', icon: '⊞', desc: '3×3 markdown table',
+          insert: () => '\n| col1 | col2 | col3 |\n|------|------|------|\n| a    | b    | c    |\n| d    | e    | f    |\n' },
+    ];
+
+    function sidenoteInsert() {
+        // Inserts [^slugN] at cursor and appends [^slugN]: ... at the end.
+        const used = new Set();
+        const re = /\[\^([a-z0-9-]+)\]/g;
+        let m;
+        while ((m = re.exec(body.value)) !== null) used.add(m[1]);
+        let n = 1;
+        while (used.has('note-' + n)) n++;
+        const slug = 'note-' + n;
+        // Append definition at end (avoid double newline if already ends with one)
+        const sep = body.value.endsWith('\n') ? '\n' : '\n\n';
+        body.value = body.value + sep + '[^' + slug + ']: A sidenote.\n';
+        return '[^' + slug + ']';
+    }
+
+    const menu = document.getElementById('slash-menu');
+    let menuActive = -1;
+    let menuTriggerStart = -1; // index of "/" in textarea
+    let menuFiltered = [];
+
+    function getCaretCoords(textarea, position) {
+        // Mirror-div trick: copy textarea styles into a hidden div, place
+        // a marker at `position`, read its coords. Works for any monospace.
+        const mirror = document.createElement('div');
+        const cs = window.getComputedStyle(textarea);
+        const props = ['boxSizing','width','height','overflowX','overflowY','borderTopWidth','borderRightWidth','borderBottomWidth','borderLeftWidth','paddingTop','paddingRight','paddingBottom','paddingLeft','fontStyle','fontVariant','fontWeight','fontStretch','fontSize','fontSizeAdjust','lineHeight','fontFamily','textAlign','textTransform','textIndent','textDecoration','letterSpacing','wordSpacing','tabSize','MozTabSize','whiteSpace','wordWrap'];
+        props.forEach(p => mirror.style[p] = cs[p]);
+        mirror.style.position = 'absolute';
+        mirror.style.visibility = 'hidden';
+        mirror.style.whiteSpace = 'pre-wrap';
+        mirror.style.wordWrap = 'break-word';
+        mirror.style.top = '0';
+        mirror.style.left = '0';
+        mirror.textContent = textarea.value.substring(0, position);
+        const span = document.createElement('span');
+        span.textContent = textarea.value.substring(position) || '.';
+        mirror.appendChild(span);
+        document.body.appendChild(mirror);
+        const taRect = textarea.getBoundingClientRect();
+        const spanRect = span.getBoundingClientRect();
+        const mirrorRect = mirror.getBoundingClientRect();
+        const result = {
+            top: taRect.top + (spanRect.top - mirrorRect.top) - textarea.scrollTop,
+            left: taRect.left + (spanRect.left - mirrorRect.left) - textarea.scrollLeft,
+            lineHeight: parseFloat(cs.lineHeight) || 20,
+        };
+        document.body.removeChild(mirror);
+        return result;
+    }
+
+    function openMenu(triggerStart) {
+        menuTriggerStart = triggerStart;
+        menuActive = 0;
+        renderMenu('');
+        positionMenu();
+        menu.classList.remove('hidden');
+    }
+
+    function closeMenu() {
+        menu.classList.add('hidden');
+        menuTriggerStart = -1;
+        menuActive = -1;
+    }
+
+    function positionMenu() {
+        if (menuTriggerStart < 0) return;
+        const coords = getCaretCoords(body, menuTriggerStart);
+        const sourcePane = document.querySelector('.editor-source');
+        const paneRect = sourcePane.getBoundingClientRect();
+        // Position relative to source pane (which is positioned)
+        let top = coords.top - paneRect.top + coords.lineHeight + 4;
+        let left = coords.left - paneRect.left;
+        // Clamp to pane bounds
+        const menuW = 280;
+        if (left + menuW > paneRect.width - 16) left = paneRect.width - menuW - 16;
+        if (left < 8) left = 8;
+        menu.style.top = top + 'px';
+        menu.style.left = left + 'px';
+    }
+
+    function filterCommands(query) {
+        const q = query.toLowerCase();
+        if (!q) return COMMANDS.slice();
+        return COMMANDS.filter(c =>
+            c.id.includes(q) || c.label.toLowerCase().includes(q) || c.desc.toLowerCase().includes(q)
+        );
+    }
+
+    function renderMenu(query) {
+        menuFiltered = filterCommands(query);
+        if (menuFiltered.length === 0) {
+            menu.innerHTML = '<div class="si-empty">no matches</div>';
+            menuActive = -1;
+            return;
+        }
+        if (menuActive >= menuFiltered.length) menuActive = 0;
+        if (menuActive < 0) menuActive = 0;
+        menu.innerHTML = menuFiltered.map((c, i) =>
+            '<div class="si ' + (i === menuActive ? 'active' : '') + '" data-i="' + i + '">' +
+                '<span class="si-icon">' + c.icon + '</span>' +
+                '<div>' +
+                    '<div class="si-title">' + c.label + '</div>' +
+                    '<div class="si-desc">' + c.desc + '</div>' +
+                '</div>' +
+            '</div>'
+        ).join('');
+        Array.from(menu.querySelectorAll('.si')).forEach(el => {
+            el.addEventListener('mousedown', (e) => {
+                e.preventDefault();
+                menuActive = parseInt(el.dataset.i, 10);
+                executeActive();
+            });
+            el.addEventListener('mouseenter', () => {
+                menuActive = parseInt(el.dataset.i, 10);
+                renderMenu(getQuery());
+            });
+        });
+    }
+
+    function getQuery() {
+        if (menuTriggerStart < 0) return '';
+        return body.value.substring(menuTriggerStart + 1, body.selectionStart);
+    }
+
+    function executeActive() {
+        if (menuActive < 0 || !menuFiltered[menuActive]) { closeMenu(); return; }
+        const cmd = menuFiltered[menuActive];
+        const start = menuTriggerStart;
+        const end = body.selectionStart;
+        // Strip the "/query" trigger
+        body.value = body.value.substring(0, start) + body.value.substring(end);
+        body.selectionStart = body.selectionEnd = start;
+        // Insert the snippet at the now-cleaned cursor
+        const snippet = cmd.insert();
+        insertAtCursor(snippet, cmd.cursor);
+        closeMenu();
+        body.focus();
+    }
+
+    function insertAtCursor(text, cursorOffset) {
         const start = body.selectionStart;
         const end = body.selectionEnd;
         const before = body.value.slice(0, start);
         const after = body.value.slice(end);
         body.value = before + text + after;
-        body.selectionStart = body.selectionEnd = start + text.length;
+        const newPos = (cursorOffset != null) ? (start + cursorOffset) : (start + text.length);
+        body.selectionStart = body.selectionEnd = newPos;
         body.dispatchEvent(new Event('input', { bubbles: true }));
     }
+
+    // Trigger on "/" at start-of-line OR after whitespace
+    body.addEventListener('keyup', (e) => {
+        if (e.isComposing) return;
+        // Update menu query if open
+        if (menuTriggerStart >= 0) {
+            // Closed if cursor moved before trigger
+            if (body.selectionStart < menuTriggerStart + 1) { closeMenu(); return; }
+            // Closed if a space or newline appears in the query
+            const q = getQuery();
+            if (/[\s\n]/.test(q)) { closeMenu(); return; }
+            renderMenu(q);
+            return;
+        }
+        // Open menu when "/" was just typed in valid position
+        if (e.key === '/' && body.selectionStart === body.selectionEnd) {
+            const pos = body.selectionStart - 1;
+            const prev = pos > 0 ? body.value[pos - 1] : '\n';
+            if (pos === 0 || /[\s\n]/.test(prev)) {
+                openMenu(pos);
+            }
+        }
+        // ⌘/ also opens at cursor (regardless of preceding char)
+        if ((e.metaKey || e.ctrlKey) && e.key === '/') {
+            const pos = body.selectionStart;
+            // Insert a virtual "/" at cursor position so the rest of the
+            // logic works uniformly, then open.
+            insertAtCursor('/');
+            openMenu(pos);
+        }
+    });
+
+    body.addEventListener('keydown', (e) => {
+        if (menuTriggerStart < 0) return;
+        if (e.key === 'ArrowDown') {
+            e.preventDefault();
+            if (menuFiltered.length) menuActive = (menuActive + 1) % menuFiltered.length;
+            renderMenu(getQuery());
+        } else if (e.key === 'ArrowUp') {
+            e.preventDefault();
+            if (menuFiltered.length) menuActive = (menuActive - 1 + menuFiltered.length) % menuFiltered.length;
+            renderMenu(getQuery());
+        } else if (e.key === 'Enter' || e.key === 'Tab') {
+            e.preventDefault();
+            executeActive();
+        } else if (e.key === 'Escape') {
+            e.preventDefault();
+            closeMenu();
+        }
+    });
+
+    body.addEventListener('blur', () => {
+        // Small delay so mousedown on menu items still fires
+        setTimeout(closeMenu, 100);
+    });
+
+    body.addEventListener('scroll', positionMenu);
+    window.addEventListener('resize', positionMenu);
+
+    // ── Image upload (drag-drop, paste, click) ──────────────────────
+    const sourcePane = document.querySelector('.editor-source');
 
     async function uploadFile(file) {
         if (!file || !file.type.startsWith('image/')) return false;
@@ -239,7 +763,6 @@
         return true;
     }
 
-    // Drag-and-drop onto the source pane
     ['dragenter', 'dragover'].forEach(ev =>
         sourcePane.addEventListener(ev, (e) => {
             if (e.dataTransfer && Array.from(e.dataTransfer.items || []).some(i => i.kind === 'file')) {
@@ -256,8 +779,6 @@
         e.preventDefault();
         for (const f of e.dataTransfer.files) await uploadFile(f);
     });
-
-    // Paste image from clipboard (screenshots, etc.)
     body.addEventListener('paste', async (e) => {
         const items = e.clipboardData && e.clipboardData.items;
         if (!items) return;
@@ -270,7 +791,25 @@
         }
     });
 
-    // Initial render — wait for KaTeX to load if it's deferred.
+    // ── Local-draft restore ─────────────────────────────────────────
+    try {
+        const saved = localStorage.getItem('editor-draft:' + slug);
+        if (saved) {
+            const data = JSON.parse(saved);
+            // Only offer restore if local copy is newer than 30s after page load
+            // and differs from current body — this handles the "I crashed mid-edit" case.
+            if (data && data.body && data.body !== body.value) {
+                const ageMin = Math.round((Date.now() - data.ts) / 60000);
+                if (confirm('Unsaved local draft from ' + ageMin + ' min ago. Restore?')) {
+                    body.value = data.body;
+                    if (data.title) form.querySelector('[name=title]').value = data.title;
+                    markDirty();
+                }
+            }
+        }
+    } catch (e) {}
+
+    // Initial render
     function initRender() {
         if (window.renderMathInElement || document.readyState === 'complete') {
             render();

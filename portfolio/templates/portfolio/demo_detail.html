@@ -1,0 +1,229 @@
+{% extends "portfolio/personal_base.html" %}
+{% load static %}
+
+{% block title %}{{ demo.title }} — Demo · Dennis Loevlie{% endblock %}
+
+{% block og_meta %}
+<meta property="og:title" content="{{ demo.title }} — Interactive demo by Dennis Loevlie">
+<meta property="og:description" content="{{ demo.summary }}">
+<meta property="og:type" content="article">
+<meta property="og:url" content="{{ request.scheme }}://{{ request.get_host }}{{ request.path }}">
+<meta name="twitter:card" content="summary_large_image">
+<meta name="twitter:title" content="{{ demo.title }}">
+<meta name="twitter:description" content="{{ demo.summary }}">
+<meta name="description" content="{{ demo.summary }}">
+{% endblock %}
+
+{% block extra_head %}
+{# Some demos use module imports (three.js); the importmap is harmless if unused. #}
+<script type="importmap">
+{
+    "imports": {
+        "three": "https://unpkg.com/three@0.160.0/build/three.module.js",
+        "three/addons/": "https://unpkg.com/three@0.160.0/examples/jsm/"
+    }
+}
+</script>
+<style>
+.demo-detail {
+    padding-block: clamp(36px, 5vw, 64px);
+}
+.demo-detail-inner {
+    max-width: 1100px;
+    margin: 0 auto;
+    padding: 0 24px;
+}
+.dd-back {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    color: var(--ink-muted);
+    text-decoration: none;
+    font-family: var(--font-mono);
+    font-size: 0.75rem;
+    margin-bottom: 28px;
+    text-transform: uppercase;
+    letter-spacing: 0.1em;
+}
+.dd-back:hover { color: var(--accent); }
+.dd-eyebrow {
+    font-family: var(--font-mono);
+    font-size: 0.75rem;
+    text-transform: uppercase;
+    letter-spacing: 0.14em;
+    color: var(--ink-muted);
+    margin: 0 0 8px;
+}
+.dd-title {
+    font-family: var(--font-serif);
+    font-size: clamp(2rem, 4vw, 2.75rem);
+    font-weight: 700;
+    line-height: 1.05;
+    margin: 0 0 12px;
+    letter-spacing: -0.01em;
+}
+.dd-summary {
+    font-size: 1.0625rem;
+    line-height: 1.55;
+    color: var(--ink-muted);
+    max-width: 64ch;
+    margin: 0 0 16px;
+}
+.dd-meta {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 16px;
+    align-items: baseline;
+    margin: 0 0 32px;
+    padding-bottom: 18px;
+    border-bottom: 1px solid var(--rule);
+    font-family: var(--font-mono);
+    font-size: 0.75rem;
+    color: var(--ink-muted);
+}
+.dd-tags { display: flex; gap: 6px; flex-wrap: wrap; }
+.dd-tag {
+    padding: 2px 8px;
+    border-radius: 999px;
+    border: 1px solid var(--rule);
+    color: var(--ink);
+    font-size: 0.6875rem;
+}
+.dd-embed {
+    margin: 0 0 40px;
+}
+.dd-notes {
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    gap: 24px;
+    margin: 0 0 40px;
+}
+@media (max-width: 760px) {
+    .dd-notes { grid-template-columns: 1fr; }
+}
+.dd-note {
+    padding: 18px 20px;
+    background: var(--surface, #f9f7f2);
+    border: 1px solid var(--rule);
+    border-radius: 10px;
+}
+.dd-note-label {
+    display: block;
+    font-family: var(--font-mono);
+    font-size: 0.6875rem;
+    text-transform: uppercase;
+    letter-spacing: 0.1em;
+    color: var(--accent);
+    margin: 0 0 8px;
+}
+.dd-note p {
+    margin: 0;
+    font-size: 0.9375rem;
+    line-height: 1.55;
+    color: var(--ink);
+}
+.dd-companion {
+    margin: 32px 0 0;
+    padding: 18px 22px;
+    background: color-mix(in oklch, var(--accent) 6%, var(--surface, #f9f7f2));
+    border: 1px solid color-mix(in oklch, var(--accent) 20%, var(--rule));
+    border-radius: 10px;
+    display: flex;
+    flex-wrap: wrap;
+    gap: 16px;
+    align-items: center;
+    justify-content: space-between;
+}
+.dd-companion-text {
+    flex: 1 1 280px;
+}
+.dd-companion-label {
+    font-family: var(--font-mono);
+    font-size: 0.6875rem;
+    text-transform: uppercase;
+    letter-spacing: 0.1em;
+    color: var(--accent);
+    display: block;
+    margin: 0 0 4px;
+}
+.dd-companion h3 {
+    margin: 0;
+    font-size: 1.0625rem;
+    font-family: var(--font-serif);
+    font-weight: 600;
+}
+.dd-companion-link {
+    background: var(--accent);
+    color: white;
+    padding: 8px 14px;
+    border-radius: 6px;
+    text-decoration: none;
+    font-family: var(--font-mono);
+    font-size: 0.8125rem;
+    transition: background 150ms ease;
+}
+.dd-companion-link:hover {
+    background: color-mix(in oklch, var(--accent) 88%, black);
+    color: white;
+}
+</style>
+{% endblock %}
+
+{% block content %}
+<section class="section demo-detail">
+    <div class="demo-detail-inner section-reveal">
+        <a href="/demos/" class="dd-back">← Lab notebook</a>
+        <p class="dd-eyebrow">Demo</p>
+        <h1 class="dd-title">{{ demo.title }}</h1>
+        <p class="dd-summary">{{ demo.summary }}</p>
+
+        <div class="dd-meta">
+            <time datetime="{{ demo.date }}">{{ demo.date }}</time>
+            {% if demo.updated %}<span>· updated {{ demo.updated }}</span>{% endif %}
+            <div class="dd-tags">
+                {% for tag in demo.tags %}<span class="dd-tag">{{ tag }}</span>{% endfor %}
+            </div>
+        </div>
+
+        <div class="dd-embed">
+            {% include "portfolio/demos/"|add:demo.embed %}
+        </div>
+
+        <div class="dd-notes">
+            <div class="dd-note">
+                <span class="dd-note-label">What</span>
+                <p>{{ demo.what }}</p>
+            </div>
+            <div class="dd-note">
+                <span class="dd-note-label">Why</span>
+                <p>{{ demo.why }}</p>
+            </div>
+            <div class="dd-note">
+                <span class="dd-note-label">What I learned</span>
+                <p>{{ demo.learned }}</p>
+            </div>
+        </div>
+
+        {% if companion %}
+        <div class="dd-companion">
+            <div class="dd-companion-text">
+                <span class="dd-companion-label">Companion essay</span>
+                <h3>{{ companion.title }}</h3>
+            </div>
+            <a class="dd-companion-link" href="{% url 'blog_post' companion.slug %}">Read post →</a>
+        </div>
+        {% endif %}
+    </div>
+</section>
+
+{% comment %}
+Per-demo JS modules. Loaded only when their target ID exists on the page —
+each module guards itself with `if (!root) return;`.
+{% endcomment %}
+{% if demo.slug == 'nanoparticle-viewer' %}
+<script type="module" src="{% static 'portfolio/js/nanoparticle.js' %}"></script>
+{% elif demo.slug == 'depth-estimation' %}
+<script type="module" src="{% static 'portfolio/js/depth-demo.js' %}"></script>
+{% endif %}
+{# frozen-forecaster.js is already loaded site-wide from base.html #}
+{% endblock %}

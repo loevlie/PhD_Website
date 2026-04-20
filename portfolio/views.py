@@ -63,30 +63,178 @@ def blog_edit(request, slug):
         raise Http404("Post not found")
 
     if request.method == 'POST':
-        for field in ('title', 'excerpt', 'body'):
-            v = request.POST.get(field)
-            if v is not None:
-                setattr(post, field, v)
-        post.is_explainer = request.POST.get('is_explainer') == 'on'
-        post.draft = request.POST.get('draft') == 'on'
+        _apply_post_fields(post, request.POST)
         post.save()
+        if request.POST.get('tags') is not None:
+            tag_str = request.POST.get('tags', '').strip()
+            tag_list = [t.strip() for t in tag_str.split(',') if t.strip()] if tag_str else []
+            post.tags.set(tag_list)
         if request.POST.get('action') == 'view':
             return redirect('blog_post', slug=post.slug)
         return redirect('blog_edit', slug=post.slug)
 
-    return render(request, 'portfolio/blog_edit.html', {'post': post, 'is_new': False})
+    return render(request, 'portfolio/blog_edit.html', {
+        'post': post,
+        'is_new': False,
+        'tag_csv': ', '.join(t.name for t in post.tags.all()),
+    })
+
+
+def _apply_post_fields(post, data):
+    """Apply editor POST fields onto a Post instance. Shared by full-save
+    and autosave so behavior stays identical."""
+    for field in ('title', 'excerpt', 'body', 'slug', 'series', 'image', 'medium_url'):
+        v = data.get(field)
+        if v is not None:
+            setattr(post, field, v)
+    if 'maturity' in data:
+        m = data.get('maturity', '')
+        post.maturity = m if m in {'', 'seedling', 'budding', 'evergreen'} else ''
+    for bool_field in ('is_explainer', 'is_paper_companion', 'draft'):
+        if bool_field in data:
+            post.__dict__[bool_field] = data.get(bool_field) in ('on', 'true', '1')
+    if 'date' in data and data.get('date'):
+        try:
+            from datetime import date as _date
+            post.date = _date.fromisoformat(data['date'])
+        except (ValueError, TypeError):
+            pass
+
+
+def blog_autosave(request, slug):
+    """Background autosave for the editor. Same field handling as
+    blog_edit POST but returns JSON, doesn't redirect, and never fails
+    loud (always 200 with {ok, saved_at})."""
+    from django.http import JsonResponse
+    from django.utils import timezone
+    if not _can_edit(request):
+        return JsonResponse({'ok': False, 'error': 'unauthorized'}, status=403)
+    if request.method != 'POST':
+        return JsonResponse({'ok': False, 'error': 'POST required'}, status=405)
+    from portfolio.models import Post
+    try:
+        post = Post.objects.get(slug=slug)
+    except Post.DoesNotExist:
+        return JsonResponse({'ok': False, 'error': 'not found'}, status=404)
+    try:
+        _apply_post_fields(post, request.POST)
+        post.save()
+        if request.POST.get('tags') is not None:
+            tag_str = request.POST.get('tags', '').strip()
+            tag_list = [t.strip() for t in tag_str.split(',') if t.strip()] if tag_str else []
+            post.tags.set(tag_list)
+        return JsonResponse({'ok': True, 'saved_at': timezone.now().isoformat()})
+    except Exception as e:
+        return JsonResponse({'ok': False, 'error': str(e)}, status=500)
+
+
+_POST_TEMPLATES = {
+    'blank': {
+        'label': 'Blank',
+        'desc': 'Empty draft. Start from scratch.',
+        'title': 'Untitled draft',
+        'body': '# Untitled\n\nStart writing…\n',
+        'maturity': 'seedling',
+        'is_explainer': False,
+        'is_paper_companion': False,
+    },
+    'explainer': {
+        'label': 'Explainer',
+        'desc': 'Tufte sidenotes + hover citations + drop cap. For technical posts that lean on a margin column.',
+        'title': 'New explainer',
+        'body': (
+            '# New explainer\n\n'
+            'A one-sentence framing of what this post explains and who it\'s for.\n\n'
+            '## The setup\n\n'
+            'Lay the ground[^groundnote]. Two or three sentences max.\n\n'
+            '[^groundnote]: A sidenote — appears in the right margin on wide screens, inline on mobile.\n\n'
+            '## The argument\n\n'
+            'Make the case. Cite where you build on others <cite class="ref" data-key="key2024">[1]</cite>.\n\n'
+            '## What this means\n\n'
+            'Consequences. End with one concrete next step or open question.\n'
+        ),
+        'maturity': 'budding',
+        'is_explainer': True,
+        'is_paper_companion': False,
+    },
+    'paper': {
+        'label': 'Paper companion',
+        'desc': 'Magazine-grade single-column with drop cap, real footnotes, pull-quotes. For essays accompanying a paper.',
+        'title': 'Paper companion: <title>',
+        'body': (
+            '# Paper companion: <title>\n\n'
+            'A two-sentence pitch. What the paper does in one sentence; why it matters in another.\n\n'
+            '## The problem\n\n'
+            'Set up the gap. Cite the prior art[^cite1].\n\n'
+            '[^cite1]: Smith et al., 2024. Full citation here.\n\n'
+            '> "A pull-quote that captures the contribution."\n\n'
+            '## What we did\n\n'
+            'The technical setup in plain English. One figure if it helps.\n\n'
+            '## What we found\n\n'
+            'The result. Honest about the caveats.\n\n'
+            '## Where this goes\n\n'
+            'Next steps. Open questions.\n'
+        ),
+        'maturity': 'evergreen',
+        'is_explainer': False,
+        'is_paper_companion': True,
+    },
+    'note': {
+        'label': 'Quick note',
+        'desc': 'A short Andy-Matuschak-style atomic note. One idea, one screen.',
+        'title': 'A short note',
+        'body': (
+            '# A short note\n\n'
+            'The idea in one paragraph. Make it self-contained — link out to longer pieces if needed.\n\n'
+            'A second paragraph if the first didn\'t finish the thought.\n'
+        ),
+        'maturity': 'seedling',
+        'is_explainer': False,
+        'is_paper_companion': False,
+    },
+    'demo': {
+        'label': 'Demo writeup',
+        'desc': 'Embed an interactive demo + writeup explaining what it shows.',
+        'title': 'Demo: <name>',
+        'body': (
+            '# Demo: <name>\n\n'
+            'One sentence on what the demo shows.\n\n'
+            '<aside class="callout"><strong>Try it →</strong> Move the slider and watch the boundary change.</aside>\n\n'
+            '## What you\'re seeing\n\n'
+            'Plain-English explanation of the underlying mechanism.\n\n'
+            '## What surprised me\n\n'
+            'The non-obvious thing the demo made clear.\n\n'
+            '## Caveats\n\n'
+            'What the demo *isn\'t* showing.\n'
+        ),
+        'maturity': 'budding',
+        'is_explainer': True,
+        'is_paper_companion': False,
+    },
+}
 
 
 def blog_new(request):
-    """Create a new draft post and redirect to its editor."""
+    """Create a new draft post and redirect to its editor.
+    GET without ?template=: show the template-picker page.
+    GET with ?template=<key>: create a draft from that template.
+    """
     from django.shortcuts import redirect
     from django.utils.text import slugify
     from datetime import date as date_cls
     if not _can_edit(request):
         return redirect('/admin/login/?next=/blog/new/')
 
+    template_key = request.GET.get('template')
+    if template_key not in _POST_TEMPLATES:
+        return render(request, 'portfolio/blog_new.html', {
+            'templates': [(k, v) for k, v in _POST_TEMPLATES.items()],
+        })
+
+    tmpl = _POST_TEMPLATES[template_key]
     from portfolio.models import Post
-    base_slug = slugify(request.GET.get('title', 'untitled-draft'))
+    base_title = request.GET.get('title') or tmpl['title']
+    base_slug = slugify(base_title) or 'untitled-draft'
     slug = base_slug
     n = 1
     while Post.objects.filter(slug=slug).exists():
@@ -94,10 +242,13 @@ def blog_new(request):
         slug = f'{base_slug}-{n}'
     p = Post.objects.create(
         slug=slug,
-        title='Untitled draft',
-        body='# Untitled\n\nStart writing…',
+        title=base_title,
+        body=tmpl['body'],
         date=date_cls.today(),
         draft=True,
+        maturity=tmpl['maturity'],
+        is_explainer=tmpl['is_explainer'],
+        is_paper_companion=tmpl['is_paper_companion'],
     )
     return redirect('blog_edit', slug=p.slug)
 
@@ -273,6 +424,22 @@ def demos(request):
     return render(request, 'portfolio/demos.html', {'demos': demos_sorted})
 
 
+def demo_detail(request, slug):
+    """Standalone permalink page for a single demo. Includes the same
+    `embed_<slug>.html` partial used on /demos/ but in a richer page
+    chrome (own OG meta, reading-time chrome, related-post link)."""
+    demo = next((d for d in DEMOS if d['slug'] == slug), None)
+    if demo is None:
+        raise Http404("Demo not found")
+    # Find a related blog post (companion essay) by matching slug
+    from portfolio.blog import get_post
+    companion = get_post(slug)
+    return render(request, 'portfolio/demo_detail.html', {
+        'demo': demo,
+        'companion': companion,
+    })
+
+
 def garden(request):
     """/garden/ — posts filtered by maturity badge. Digital-garden
     convention: Seedlings (half-formed) and Budding (being developed)
@@ -297,6 +464,20 @@ def now(request):
     without touching templates."""
     from portfolio.data import NOW_PAGE
     return render(request, 'portfolio/now.html', {'now': NOW_PAGE})
+
+
+def cv_page(request):
+    """/cv/ — HTML page embedding the live PDF inline plus download
+    + view-source links. The PDF lives at loevlie.github.io/cv/ and
+    is rebuilt weekly by a launchd job. We render it via <object>
+    with a download fallback so it works even if the upstream is
+    momentarily unreachable."""
+    upstream = 'https://loevlie.github.io/cv/loevlie-cv-latest.pdf'
+    return render(request, 'portfolio/cv.html', {
+        'upstream_url': upstream,
+        'download_url': '/cv.pdf',
+        'source_repo': 'https://github.com/loevlie/cv',
+    })
 
 
 def download_cv(request):

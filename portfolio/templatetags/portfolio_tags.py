@@ -40,6 +40,21 @@ def highlight_author(name):
     return name
 
 
+@register.simple_tag
+def og_image_url(post_slug):
+    """Return the per-post OG card path if it exists, otherwise the
+    site-wide cover. Both use the static URL prefix; the file existence
+    check is done against the source-tree static path because Django's
+    staticfiles abstraction can't reliably do existence at template-time."""
+    import os
+    from django.conf import settings as dj_settings
+    rel = f'portfolio/images/og/{post_slug}.png'
+    candidate = os.path.join(dj_settings.BASE_DIR, 'portfolio', 'static', rel)
+    if os.path.exists(candidate):
+        return f'{dj_settings.STATIC_URL}{rel}'
+    return f'{dj_settings.STATIC_URL}portfolio/images/og-cover.png'
+
+
 @register.filter
 def unique_attr(items, attr):
     """De-duplicate a sequence of dicts (or objects) by one attribute,

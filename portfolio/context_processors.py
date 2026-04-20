@@ -17,4 +17,5 @@ def portfolio_data(request):
         'nav_links': NAV_LINKS,
         'recipes': RECIPES,
         'blog_posts': get_all_posts(),
+        'social_sameas_urls': [s['url'] for s in SOCIAL_LINKS if s['url'].startswith('http')],
     }
