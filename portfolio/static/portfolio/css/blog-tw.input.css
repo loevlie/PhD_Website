@@ -1,0 +1,41 @@
+/* Tailwind v4 input — compiled to blog-tw.css.
+ *
+ * Build:  npm run build:tw
+ *         (or: npx tailwindcss -i .../blog-tw.input.css -o .../blog-tw.css --minify)
+ *
+ * Why a CSS-side @theme: Tailwind v4 reads design tokens directly from
+ * the input CSS instead of a JS config. Each --color-* token here turns
+ * into matching utility classes (bg-accent, text-content, etc.).
+ *
+ * Token values point at Catppuccin variables defined in blog_base.html
+ * for each flavor (latte/frappe/macchiato/mocha), so the SAME utility
+ * classes produce the right colors in every theme automatically.
+ */
+@import "tailwindcss";
+
+/* @source paths are relative to THIS file. Tailwind walks them and
+ * keeps only the utility classes that actually appear. */
+@source "../../../templates/portfolio/blog.html";
+@source "../../../templates/portfolio/blog_base.html";
+@source "../../../templates/portfolio/blog_post.html";
+@source "../../../templates/portfolio/blog_post_wip.html";
+@source "../../../templates/portfolio/blog_edit.html";
+
+@theme {
+    --color-accent: var(--ctp-lavender);
+    --color-accent-hover: var(--ctp-mauve);
+    --color-accent-subtle: var(--ctp-lavender-subtle);
+    --color-base: var(--ctp-base);
+    --color-border: var(--ctp-surface0);
+    --color-content: var(--ctp-text);
+    --color-content-muted: var(--ctp-subtext0);
+    --color-content-secondary: var(--ctp-subtext1);
+    --color-crust: var(--ctp-crust);
+    --color-mantle: var(--ctp-mantle);
+    --color-surface-0: var(--ctp-mantle);
+    --color-surface-1: var(--ctp-crust);
+    --color-surface-2: var(--ctp-surface0);
+    --color-text: var(--ctp-text);
+
+    --max-width-blog: 1080px;
+}

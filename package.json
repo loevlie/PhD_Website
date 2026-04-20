@@ -3,6 +3,8 @@
   "version": "1.0.0",
   "main": "index.js",
   "scripts": {
+    "build:tw": "tailwindcss -i portfolio/static/portfolio/css/blog-tw.input.css -o portfolio/static/portfolio/css/blog-tw.css --minify",
+    "watch:tw": "tailwindcss -i portfolio/static/portfolio/css/blog-tw.input.css -o portfolio/static/portfolio/css/blog-tw.css --watch",
     "test": "echo \"Error: no test specified\" && exit 1"
   },
   "repository": {
