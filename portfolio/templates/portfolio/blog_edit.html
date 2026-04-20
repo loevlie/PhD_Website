@@ -49,10 +49,15 @@
     border-color: var(--ctp-lavender, #7287fd);
     color: var(--ctp-text, #cdd6f4);
 }
-.editor-bar .save-status {
+.editor-bar .save-status,
+.editor-bar .word-count {
     color: var(--ctp-overlay0, #6c7086); font-size: 0.75rem;
     font-family: 'JetBrains Mono', monospace;
     margin-right: 4px;
+}
+.editor-bar .word-count {
+    border-right: 1px solid var(--ctp-surface0, #313244);
+    padding-right: 12px;
 }
 .editor-bar .save-status.is-dirty { color: var(--ctp-yellow, #f9e2af); }
 .editor-bar .save-status.is-saved { color: var(--ctp-green, #a6e3a1); }
@@ -242,6 +247,97 @@
 @media (min-width: 1100px) {
     .fm-backdrop { display: none; }
 }
+
+/* ── Help overlay ───────────────────────────────────────────────── */
+.help-overlay {
+    position: fixed;
+    inset: 0;
+    background: rgba(0, 0, 0, 0.55);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    z-index: 100;
+    opacity: 0;
+    pointer-events: none;
+    transition: opacity 180ms ease;
+}
+.help-overlay.open { opacity: 1; pointer-events: auto; }
+.help-card {
+    width: min(560px, 92vw);
+    max-height: 80vh;
+    overflow-y: auto;
+    padding: 28px 32px;
+    background: var(--ctp-crust, #11111b);
+    color: var(--ctp-text, #cdd6f4);
+    border: 1px solid var(--ctp-surface1, #45475a);
+    border-radius: 14px;
+    box-shadow: 0 24px 64px rgba(0, 0, 0, 0.4);
+    font-family: 'Inter', system-ui, sans-serif;
+    transform: translateY(8px);
+    transition: transform 220ms cubic-bezier(.2,.8,.2,1);
+}
+.help-overlay.open .help-card { transform: translateY(0); }
+.help-card h2 {
+    margin: 0 0 4px;
+    font-family: 'IBM Plex Serif', Georgia, serif;
+    font-size: 1.25rem;
+    font-weight: 700;
+}
+.help-card .help-sub {
+    color: var(--ctp-subtext0, #a6adc8);
+    font-size: 0.8125rem;
+    margin: 0 0 20px;
+    font-family: 'JetBrains Mono', monospace;
+}
+.help-card section { margin-bottom: 20px; }
+.help-card section:last-child { margin-bottom: 0; }
+.help-card section h3 {
+    font-size: 0.6875rem;
+    text-transform: uppercase;
+    letter-spacing: 0.12em;
+    color: var(--ctp-overlay1, #7f849c);
+    font-family: 'JetBrains Mono', monospace;
+    margin: 0 0 10px;
+    font-weight: 600;
+}
+.help-card dl {
+    margin: 0;
+    display: grid;
+    grid-template-columns: max-content 1fr;
+    column-gap: 16px;
+    row-gap: 6px;
+    align-items: baseline;
+}
+.help-card dt {
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 0.8125rem;
+    color: var(--ctp-lavender, #7287fd);
+    white-space: nowrap;
+}
+.help-card dt kbd {
+    background: var(--ctp-surface0, #313244);
+    border: 1px solid var(--ctp-surface1, #45475a);
+    border-radius: 4px;
+    padding: 1px 5px;
+    font-size: 0.75rem;
+}
+.help-card dd {
+    margin: 0;
+    font-size: 0.875rem;
+    color: var(--ctp-subtext1, #bac2de);
+}
+.help-card .help-close {
+    margin-top: 24px;
+    padding: 8px 14px;
+    background: var(--ctp-lavender, #7287fd);
+    color: var(--ctp-base, #1e1e2e);
+    border: 0;
+    border-radius: 6px;
+    font-family: inherit;
+    font-size: 0.8125rem;
+    font-weight: 600;
+    cursor: pointer;
+}
 </style>
 {% endblock %}
 
@@ -251,7 +347,8 @@
     <div class="editor-bar">
         <a href="{% url 'blog_post' post.slug %}" class="secondary" title="View live">←</a>
         <input type="text" name="title" class="title-input" value="{{ post.title }}" placeholder="Post title">
-        <span class="upload-hint">⌘/ for menu · drop image · paste screenshot</span>
+        <span class="upload-hint">⌘/ menu · drop/paste image · ? help</span>
+        <span class="word-count" id="word-count" title="Words · estimated reading time">0 words</span>
         <span class="save-status" id="save-status">unchanged</span>
         <button type="button" class="secondary" id="open-fm">Details</button>
         <button type="submit" name="action" value="save">Save</button>
@@ -266,6 +363,50 @@
             <div class="blog-prose {% if post.is_explainer %}is-explainer{% endif %}{% if post.is_paper_companion %} is-paper-companion{% endif %}" id="editor-preview-content">
                 <p class="preview-loading">Rendering preview…</p>
             </div>
+        </div>
+    </div>
+
+    <!-- ── Help overlay (toggled with `?`) ─────────────────────── -->
+    <div class="help-overlay" id="help-overlay" aria-hidden="true">
+        <div class="help-card" role="dialog" aria-label="Editor keyboard shortcuts">
+            <h2>Keyboard shortcuts</h2>
+            <p class="help-sub">press <kbd>?</kbd> to toggle · <kbd>esc</kbd> to close</p>
+            <section>
+                <h3>Saving</h3>
+                <dl>
+                    <dt><kbd>⌘</kbd>/<kbd>ctrl</kbd>+<kbd>S</kbd></dt><dd>Save now (also reloads preview)</dd>
+                    <dt>autosave</dt><dd>1.5s after the last keystroke; localStorage backup is instant</dd>
+                </dl>
+            </section>
+            <section>
+                <h3>Inserting</h3>
+                <dl>
+                    <dt><kbd>/</kbd></dt><dd>Open the slash-command menu (start of line or after whitespace)</dd>
+                    <dt><kbd>⌘</kbd>+<kbd>/</kbd></dt><dd>Open menu at cursor regardless of position</dd>
+                    <dt>↑ ↓ ⏎</dt><dd>Navigate / pick from menu</dd>
+                    <dt>drag · paste</dt><dd>Drop or paste an image to upload + insert</dd>
+                </dl>
+            </section>
+            <section>
+                <h3>Frontmatter</h3>
+                <dl>
+                    <dt>Details button</dt><dd>Slide-out drawer for tags, maturity, slug, dates, etc.</dd>
+                    <dt><kbd>esc</kbd></dt><dd>Close drawer or this overlay</dd>
+                </dl>
+            </section>
+            <section>
+                <h3>Slash commands you'll use most</h3>
+                <dl>
+                    <dt>/sidenote</dt><dd>Tufte-style margin note (auto-numbered)</dd>
+                    <dt>/cite</dt><dd>Hover-revealing citation pill</dd>
+                    <dt>/figure</dt><dd>Open file picker → upload + insert image</dd>
+                    <dt>/pyfig</dt><dd>matplotlib code block — server-rendered to PNG (cached by hash)</dd>
+                    <dt>/math · /imath</dt><dd>KaTeX block / inline</dd>
+                    <dt>/callout</dt><dd>Aside for notes</dd>
+                    <dt>/quote · /pullquote</dt><dd>Standard / magazine-style quotes</dd>
+                </dl>
+            </section>
+            <button type="button" class="help-close" id="help-close">Got it</button>
         </div>
     </div>
 
@@ -460,7 +601,17 @@
         navigator.sendBeacon('{% url "blog_autosave" post.slug %}', fd);
     });
 
-    body.addEventListener('input', () => { markDirty(); scheduleRender(); });
+    // Word/char count + reading-time estimate in toolbar
+    const wordCountEl = document.getElementById('word-count');
+    function updateWordCount() {
+        const txt = body.value || '';
+        const words = (txt.trim().match(/\S+/g) || []).length;
+        const minutes = Math.max(1, Math.ceil(words / 200));
+        wordCountEl.textContent = words.toLocaleString() + ' word' + (words === 1 ? '' : 's') + ' · ' + minutes + ' min read';
+    }
+    updateWordCount();
+
+    body.addEventListener('input', () => { markDirty(); scheduleRender(); updateWordCount(); });
     explainerToggle.addEventListener('change', () => { markDirty(); render(); });
     paperToggle.addEventListener('change', () => { markDirty(); render(); });
     // All other form controls trigger dirty
@@ -491,6 +642,27 @@
     backdrop.addEventListener('click', closeDrawer);
     document.addEventListener('keydown', (e) => {
         if (e.key === 'Escape' && drawer.classList.contains('open')) closeDrawer();
+    });
+
+    // ── Help overlay (?) ────────────────────────────────────────────
+    const helpOverlay = document.getElementById('help-overlay');
+    function openHelp() { helpOverlay.classList.add('open'); helpOverlay.setAttribute('aria-hidden', 'false'); }
+    function closeHelp() { helpOverlay.classList.remove('open'); helpOverlay.setAttribute('aria-hidden', 'true'); }
+    document.getElementById('help-close').addEventListener('click', closeHelp);
+    helpOverlay.addEventListener('click', (e) => {
+        if (e.target === helpOverlay) closeHelp();
+    });
+    document.addEventListener('keydown', (e) => {
+        // ? toggles, Esc closes; only when the user isn't typing in the body or a form input
+        if (e.key === '?' && !e.metaKey && !e.ctrlKey) {
+            const tag = document.activeElement && document.activeElement.tagName;
+            // Allow ? to open from anywhere except the body textarea (where ? is content)
+            if (tag === 'TEXTAREA' || tag === 'INPUT') return;
+            e.preventDefault();
+            if (helpOverlay.classList.contains('open')) closeHelp(); else openHelp();
+        } else if (e.key === 'Escape' && helpOverlay.classList.contains('open')) {
+            closeHelp();
+        }
     });
 
     // ── Slash-command menu ──────────────────────────────────────────

@@ -1,6 +1,7 @@
 from django.contrib import admin
+from django.utils.html import format_html
 
-from portfolio.models import Post
+from portfolio.models import Post, Pageview, DailySalt
 
 
 @admin.register(Post)
@@ -43,3 +44,59 @@ class PostAdmin(admin.ModelAdmin):
 
     def get_queryset(self, request):
         return super().get_queryset(request).prefetch_related('tags')
+
+
+@admin.register(Pageview)
+class PageviewAdmin(admin.ModelAdmin):
+    """Browse raw analytics rows. Read-only — beacons are the only writers."""
+    list_display = ['created_at', 'path_display', 'device', 'browser', 'country',
+                    'scroll_depth', 'dwell_seconds', 'referrer_short', 'is_bot']
+    list_filter = ['device', 'browser', 'country', 'is_bot', 'created_at', 'post_slug']
+    search_fields = ['path', 'referrer', 'session_id', 'post_slug']
+    readonly_fields = [f.name for f in Pageview._meta.fields]
+    date_hierarchy = 'created_at'
+    list_per_page = 50
+    actions = ['mark_as_bot']
+
+    def path_display(self, obj):
+        return obj.path[:60] + ('…' if len(obj.path) > 60 else '')
+    path_display.short_description = 'Path'
+
+    def referrer_short(self, obj):
+        if not obj.referrer:
+            return '—'
+        r = obj.referrer
+        # Strip protocol for compact display
+        for p in ('https://', 'http://'):
+            if r.startswith(p):
+                r = r[len(p):]
+        return r[:50]
+    referrer_short.short_description = 'Referrer'
+
+    def dwell_seconds(self, obj):
+        return f'{obj.dwell_ms / 1000:.1f}s' if obj.dwell_ms else '—'
+    dwell_seconds.short_description = 'Dwell'
+
+    def has_add_permission(self, request):
+        return False
+
+    def mark_as_bot(self, request, queryset):
+        n = queryset.update(is_bot=True)
+        self.message_user(request, f'Marked {n} pageview(s) as bot.')
+    mark_as_bot.short_description = 'Mark selected as bot (excluded from dashboard)'
+
+
+@admin.register(DailySalt)
+class DailySaltAdmin(admin.ModelAdmin):
+    list_display = ['date', 'salt_preview']
+    readonly_fields = ['date', 'salt']
+    ordering = ['-date']
+
+    def salt_preview(self, obj):
+        return obj.salt[:8] + '…'
+    salt_preview.short_description = 'Salt (preview)'
+
+    def has_add_permission(self, request):
+        return False
+    def has_delete_permission(self, request, obj=None):
+        return False
