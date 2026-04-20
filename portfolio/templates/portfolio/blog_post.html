@@ -34,7 +34,7 @@
 <!-- Reading progress -->
 <div id="blog-progress" class="fixed top-0 left-0 h-0.5 bg-gradient-to-r from-accent to-indigo-400 z-[60] pointer-events-none transition-[width] duration-75" style="width:0%"></div>
 
-<article class="max-w-article {% if post.is_explainer %}lg:max-w-[1200px]{% else %}lg:max-w-[940px]{% endif %} mx-auto px-6 pt-12 pb-16{% if post.is_explainer %} is-explainer{% endif %}">
+<article class="max-w-article {% if post.is_explainer %}lg:max-w-[1200px]{% elif post.is_paper_companion %}lg:max-w-[760px]{% else %}lg:max-w-[940px]{% endif %} mx-auto px-6 pt-12 pb-16{% if post.is_explainer %} is-explainer{% endif %}{% if post.is_paper_companion %} is-paper-companion{% endif %}">
     <!-- Back link + edit (staff only) -->
     <div class="flex items-center justify-between mb-10">
         <a href="{% url 'blog' %}" class="inline-flex items-center gap-1.5 text-sm text-content-muted hover:text-accent transition-colors">
@@ -70,7 +70,25 @@
     <div class="mb-6 text-[0.6875rem] font-semibold text-accent uppercase tracking-wider">{{ post.series }} — Part {{ post.series_order }}</div>
     {% endif %}
 
-    {% if post.is_explainer %}
+    {% if post.is_paper_companion %}
+    <!-- Paper-companion header — magazine register (Asterisk / Works in
+         Progress). Issue/section style: ALL-CAPS section label up top,
+         left-aligned serif title, byline + dateline below in small caps. -->
+    <header class="paper-header mb-14 animate-fade-up">
+        <p class="paper-section-label">Companion essay · {{ post.date|date:'F Y' }}</p>
+        <h1 class="paper-title">{{ post.title }}</h1>
+        {% if post.excerpt %}
+        <p class="paper-deck">{{ post.excerpt }}</p>
+        {% endif %}
+        <p class="paper-byline">
+            By <a href="/">{{ post.author }}</a>
+            {% if post.updated %}<span class="paper-byline-sep">·</span>Updated {{ post.updated|date:'F j, Y' }}{% endif %}
+            <span class="paper-byline-sep">·</span>{{ post.reading_time }} min · {{ post.word_count }} words
+        </p>
+        {% if post.maturity %}<p class="paper-maturity"><span class="maturity-badge maturity-{{ post.maturity }}">{{ post.maturity|title }}</span></p>{% endif %}
+    </header>
+    <hr class="paper-rule">
+    {% elif post.is_explainer %}
     <!-- Explainer header — editorial / Distill register: ALL-CAPS eyebrow,
          very large serif title centered, lede paragraph at large size,
          meta row at bottom. Visually distinct from regular blog post header. -->

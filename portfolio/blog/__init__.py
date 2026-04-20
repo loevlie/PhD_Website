@@ -174,6 +174,7 @@ def estimate_reading_time(content):
 def _post_to_dict(post_obj):
     """Convert a Post model instance to the standard post dict."""
     is_explainer = bool(getattr(post_obj, 'is_explainer', False))
+    is_paper_companion = bool(getattr(post_obj, 'is_paper_companion', False))
     content_html, toc_html = render_markdown(post_obj.body, is_explainer=is_explainer)
     return {
         'slug': post_obj.slug,
@@ -189,6 +190,7 @@ def _post_to_dict(post_obj):
         'series_order': post_obj.series_order,
         'medium_url': post_obj.medium_url,
         'is_explainer': is_explainer,
+        'is_paper_companion': is_paper_companion,
         'maturity': getattr(post_obj, 'maturity', ''),
         'body': post_obj.body,
         'reading_time': estimate_reading_time(post_obj.body),
@@ -205,6 +207,7 @@ def _parse_file_post(filepath):
 
     raw_content = post.content
     is_explainer = bool(post.get('is_explainer', False))
+    is_paper_companion = bool(post.get('is_paper_companion', False))
     content_html, toc_html = render_markdown(raw_content, is_explainer=is_explainer)
     reading_time = estimate_reading_time(raw_content)
 
@@ -226,6 +229,7 @@ def _parse_file_post(filepath):
         'series_order': post.get('series_order', 0),
         'medium_url': post.get('medium_url', ''),
         'is_explainer': is_explainer,
+        'is_paper_companion': is_paper_companion,
         'maturity': post.get('maturity', ''),
         'body': raw_content,
         'reading_time': reading_time,

@@ -9,6 +9,24 @@
     <link rel="apple-touch-icon" href="{% static 'portfolio/images/apple-touch-icon.png' %}">
     <title>{% block title %}Dennis Loevlie{% endblock %}</title>
 
+    <!-- Webmention receiving — webmention.io is the free relay; replies on
+         Mastodon/Bluesky/Twitter/personal sites POST here, and Bridgy Fed
+         (https://fed.brid.gy) bridges fediverse + AT Proto traffic in.
+         Setup: register the domain at https://webmention.io/, then enable
+         Bridgy Fed for Mastodon/Bluesky. The link tag below is enough on
+         the receiving side; rendering surfaces in /backlinks/ to do later. -->
+    <link rel="webmention" href="https://webmention.io/dennisloevlie.com/webmention">
+    <link rel="pingback"   href="https://webmention.io/dennisloevlie.com/xmlrpc">
+    <link rel="alternate" type="application/atom+xml" title="ActivityPub (via Bridgy Fed)" href="https://fed.brid.gy/r/https://www.dennisloevlie.com/">
+
+    <!-- Microformats2 author hint — what Bridgy Fed and other indie-web
+         tools look at to figure out who owns this domain. The visible
+         markup elsewhere (footer h-card, etc.) is the canonical version;
+         this is a fallback marker. -->
+    <link rel="me" href="mailto:Loevliedenny@gmail.com">
+    <link rel="me" href="https://github.com/loevlie">
+    <link rel="me" href="https://bsky.app/profile/dennisloevlie.bsky.social">
+
     <!-- Open Graph / social sharing -->
     {% block og_meta %}
     <meta property="og:title" content="Dennis Loevlie">

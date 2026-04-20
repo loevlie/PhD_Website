@@ -5,9 +5,9 @@ from portfolio.models import Post
 
 @admin.register(Post)
 class PostAdmin(admin.ModelAdmin):
-    list_display = ['title', 'date', 'draft', 'is_explainer', 'maturity', 'tag_list']
-    list_filter = ['draft', 'is_explainer', 'maturity', 'date', 'tags']
-    list_editable = ['draft', 'is_explainer', 'maturity']
+    list_display = ['title', 'date', 'draft', 'is_explainer', 'is_paper_companion', 'maturity', 'tag_list']
+    list_filter = ['draft', 'is_explainer', 'is_paper_companion', 'maturity', 'date', 'tags']
+    list_editable = ['draft', 'is_explainer', 'is_paper_companion', 'maturity']
     search_fields = ['title', 'body', 'excerpt']
     prepopulated_fields = {'slug': ('title',)}
     date_hierarchy = 'date'
@@ -28,7 +28,8 @@ class PostAdmin(admin.ModelAdmin):
             ),
         }),
         ('Display', {
-            'fields': ('image', 'tags', 'is_explainer', 'maturity', 'draft'),
+            'fields': ('image', 'tags', 'is_explainer', 'is_paper_companion', 'maturity', 'draft'),
+            'description': 'is_explainer = Distill register (sidenotes + citations + wide canvas). is_paper_companion = Asterisk/Works in Progress register (single column, drop cap, real footnotes, pull-quotes). Mutually exclusive in practice.',
         }),
         ('Series + external', {
             'fields': ('series', 'series_order', 'medium_url'),

@@ -858,6 +858,139 @@
     font-family: 'JetBrains Mono', monospace;
 }
 
+/* ============================================================
+   PAPER-COMPANION TEMPLATE — magazine register (Asterisk Mag /
+   Works in Progress). Single column, serif body, drop cap, real
+   footnotes at bottom, generous margins, restrained color, pull-
+   quotes via blockquote. Use for a paper companion essay where
+   the prose IS the artifact.
+   ============================================================ */
+.is-paper-companion .blog-prose {
+    max-width: 64ch;
+    font-family: 'IBM Plex Serif', Georgia, serif;
+    font-size: 1.0625rem;
+    line-height: 1.7;
+    color: var(--color-content, var(--ctp-text, #cdd6f4));
+}
+.is-paper-companion .blog-prose p {
+    margin: 0 0 1.1em;
+}
+.is-paper-companion .blog-prose h2 {
+    font-family: 'IBM Plex Serif', Georgia, serif;
+    font-size: 1.5rem;
+    font-weight: 600;
+    line-height: 1.2;
+    margin: 2.2em 0 0.6em;
+    letter-spacing: -0.005em;
+}
+.is-paper-companion .blog-prose h3 {
+    font-family: 'IBM Plex Serif', Georgia, serif;
+    font-size: 1.1875rem;
+    font-weight: 600;
+    line-height: 1.25;
+    margin: 1.8em 0 0.5em;
+    color: var(--color-content-secondary, var(--ctp-subtext1, #bac2de));
+    font-style: italic;
+}
+/* Pull-quote treatment for blockquotes */
+.is-paper-companion .blog-prose blockquote {
+    font-family: 'IBM Plex Serif', Georgia, serif;
+    font-size: 1.375rem;
+    line-height: 1.4;
+    font-style: italic;
+    color: var(--color-content, var(--ctp-text, #cdd6f4));
+    margin: 2em 0 2em -1.5em;
+    padding: 0 0 0 1.5em;
+    border-left: 3px solid var(--color-accent, var(--ctp-lavender, #7287fd));
+    text-wrap: pretty;
+}
+.is-paper-companion .blog-prose blockquote p { margin-bottom: 0.5em; }
+/* Drop cap on the first paragraph */
+.is-paper-companion .blog-prose > p:first-of-type::first-letter {
+    font-family: 'IBM Plex Serif', Georgia, serif;
+    font-size: 4.4em;
+    line-height: 0.85;
+    float: left;
+    margin: 0.05em 0.12em 0 0;
+    color: var(--color-accent, var(--ctp-lavender, #7287fd));
+    font-weight: 700;
+}
+/* Real footnotes at bottom — already produced by python-markdown
+   `footnotes` extension. Override its default styling for the
+   paper register: a thin top rule, tabular numerals, smaller. */
+.is-paper-companion .blog-prose .footnote {
+    margin-top: 4em;
+    padding-top: 1.5em;
+    border-top: 1px solid var(--color-border, var(--ctp-surface0, #313244));
+    font-size: 0.9375rem;
+    color: var(--color-content-secondary, var(--ctp-subtext1, #bac2de));
+}
+.is-paper-companion .blog-prose .footnote ol {
+    padding-left: 1.5em;
+    list-style: decimal;
+    font-variant-numeric: tabular-nums;
+}
+.is-paper-companion .blog-prose .footnote li {
+    margin-bottom: 0.5em;
+    line-height: 1.55;
+}
+
+/* ---------- Paper header chrome ---------- */
+.paper-header {
+    border-bottom: 1px solid transparent;
+    padding-bottom: 0;
+}
+.paper-section-label {
+    font-family: 'JetBrains Mono', ui-monospace, monospace;
+    font-size: 0.6875rem;
+    text-transform: uppercase;
+    letter-spacing: 0.16em;
+    color: var(--color-accent, var(--ctp-lavender, #7287fd));
+    margin: 0 0 18px;
+}
+.paper-title {
+    font-family: 'IBM Plex Serif', Georgia, serif;
+    font-size: clamp(2.125rem, 1.6rem + 2.4vw, 3.5rem);
+    line-height: 1.05;
+    letter-spacing: -0.018em;
+    font-weight: 600;
+    color: var(--color-content, var(--ctp-text, #cdd6f4));
+    margin: 0 0 18px;
+    text-wrap: balance;
+}
+.paper-deck {
+    font-family: 'IBM Plex Serif', Georgia, serif;
+    font-size: clamp(1.125rem, 1rem + 0.4vw, 1.375rem);
+    line-height: 1.45;
+    color: var(--color-content-secondary, var(--ctp-subtext1, #bac2de));
+    font-style: italic;
+    margin: 0 0 20px;
+    max-width: 52ch;
+    text-wrap: pretty;
+}
+.paper-byline {
+    font-family: 'JetBrains Mono', ui-monospace, monospace;
+    font-size: 0.75rem;
+    text-transform: uppercase;
+    letter-spacing: 0.08em;
+    color: var(--color-content-muted, var(--ctp-subtext0, #a6adc8));
+    margin: 0;
+}
+.paper-byline a {
+    color: var(--color-content, var(--ctp-text, #cdd6f4));
+    text-decoration: none;
+    border-bottom: 1px dotted color-mix(in oklch, var(--color-accent, #7287fd) 50%, transparent);
+}
+.paper-byline a:hover { color: var(--color-accent, var(--ctp-lavender, #7287fd)); }
+.paper-byline-sep { margin: 0 8px; opacity: 0.4; }
+.paper-maturity { margin: 18px 0 0; }
+.paper-rule {
+    margin: 0 0 36px;
+    border: 0;
+    height: 1px;
+    background: linear-gradient(90deg, var(--color-border, #313244) 0%, transparent 60%);
+}
+
 /* Drop-cap on the first paragraph of explainer posts — a tiny
    editorial flourish that signals "this is long-form, sit down."
    Only fires on the first paragraph that's a direct child of

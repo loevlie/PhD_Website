@@ -21,6 +21,10 @@ class Post(models.Model):
         default=False,
         help_text="Render with explainer chrome: Tufte sidenotes, hover citations, BibTeX export, wider figure canvas.",
     )
+    is_paper_companion = models.BooleanField(
+        default=False,
+        help_text="Render as a magazine-grade companion essay (Asterisk / Works in Progress register): single column, large serif body, drop cap, real footnotes at bottom, pull-quotes. Use for paper-companion essays where the prose is the artifact.",
+    )
     MATURITY_CHOICES = [
         ('', 'Unmarked'),
         ('seedling', 'Seedling — half-formed'),

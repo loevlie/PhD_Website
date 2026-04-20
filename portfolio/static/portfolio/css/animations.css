@@ -166,6 +166,36 @@
     }
 }
 
+/* ---------- Variable-font heading hover (subtle craft signal) ----------
+   Animates font-weight on hover for headings inside specific contexts
+   (cards, links, listing entries). IBM Plex Sans loads weights 400/500/
+   600/700, so we transition between adjacent loaded weights — the change
+   is subtle but unmistakable on hover, and on browsers/fonts that
+   support the variable wght axis the transition becomes truly smooth.
+   Skipped on prefers-reduced-motion. */
+@media (hover: hover) and (prefers-reduced-motion: no-preference) {
+    .blog-card-link h2,
+    .lab-entry-title a,
+    .lab-entry-title,
+    .pub-compact-title,
+    .news-item h3,
+    .related-post-card h3 {
+        transition: font-weight 280ms var(--ease-spring, cubic-bezier(0.4, 0, 0.2, 1)),
+                    letter-spacing 280ms ease,
+                    color 200ms ease;
+        font-variation-settings: 'wght' 600;
+    }
+    .blog-card-link:hover h2,
+    .lab-entry-title a:hover,
+    a:hover .lab-entry-title,
+    a:hover .pub-compact-title,
+    a:hover .news-item h3 {
+        font-weight: 700;
+        font-variation-settings: 'wght' 740;
+        letter-spacing: -0.005em;
+    }
+}
+
 /* Cross-document View Transitions — gives Django MPA a free SPA-feel
    morph between pages. Browsers without support fall through cleanly. */
 @view-transition {
