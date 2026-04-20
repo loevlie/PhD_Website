@@ -427,119 +427,64 @@ NOW_PAGE = {
     # /now/ — Derek Sivers convention. Updated quarterly.
     # Last update: ALWAYS update this when editing the rest.
     'updated': '2026-04-19',
-    'location': 'Boston, MA',
+    'location': 'Amsterdam (incoming)',
     'sections': [
         {
-            'heading': 'Research — current direction',
+            'heading': 'Research',
             'body': (
-                "Wrapping the camera-ready for our **CHIL 2026** benchmark "
-                "(equal-contribution second author with Ethan Harvey, Hughes Lab) — "
-                "two headline results from that paper:"
-                "\n\n"
-                "1. A simple **mean-pooling MIL baseline** matches attention-MIL on "
-                "4 of 6 moderate-sized neuroimage tasks while training **25× faster**.\n"
-                "2. A **centered-Gaussian (Gaussian-axial) baseline** beats "
-                "transformer-based MIL methods on **instance-level** metrics."
-                "\n\n"
-                "The second one is the thread I'm pulling on now. Instance-level "
-                "localization is what drives the clinical interpretation of these "
-                "models — if a transformer can't find the right *instances* but a "
-                "fixed Gaussian prior on instance positions can, that's a sign the "
-                "attention is poorly regularized. I'm investigating "
-                "**attention-regularization techniques** "
-                "(entropy penalties, sparsity priors, contrastive instance objectives, "
-                "TopK attention with a learned k) to close the instance-level gap "
-                "*without* hurting bag-level accuracy. Targeting a NeurIPS 2026 "
-                "submission."
+                "Investigating **attention-regularization** for transformer MIL — "
+                "entropy penalties, sparsity priors, learned-k TopK — aiming to "
+                "close the instance-level gap that our **centered-Gaussian "
+                "(Gaussian-axial) baseline** opens up in our CHIL 2026 paper. "
+                "Targeting NeurIPS 2026."
             ),
         },
         {
-            'heading': 'PhD direction search — Tabular Foundation Models',
+            'heading': 'PhD direction search',
             'body': (
-                "Picking the central thread for the PhD. Five candidate directions, "
-                "loosely ranked. Goal: NeurIPS / ICML / ICLR papers that compound."
-                "\n\n"
-                "**1. Tabular world models.** Apply V-JEPA 2-style self-supervised "
-                "objectives to *table dynamics* — model how joint distributions shift "
-                "after interventions in representation space, not raw cell values. "
-                "Train on real corpora (GitTables, SchemaPile). TabDPT showed scaling "
-                "laws on real data; Ma et al. showed a single wide table can transfer; "
-                "neither models dynamics. New architecture + objective + generalization "
-                "analysis."
-                "\n\n"
-                "**2. Contrastive table-language alignment** (the \"CLIP for tables\" "
-                "moment). TabICL's column-then-row encoder paired with a frozen text "
-                "encoder via contrastive loss, plus a JEPA-style in-modality objective "
-                "(mask columns, predict their reps in latent space). Paired data is "
-                "tractable: ArXiv tables + captions (~200K via LaTeX), WikiTableT, SEC "
-                "filings, GitTables (1.4M) at the metadata level. DeCLIP showed 50–100K "
-                "pairs are enough when contrastive + SSL combine. The application is "
-                "*task-driven pretraining-data selection* — embed your task description, "
-                "retrieve the nearest tables. TabDPT showed data selection matters but "
-                "offered no principled way to do it."
-                "\n\n"
-                "**3. Scaling laws for tabular pretraining.** Information-theoretic "
-                "bounds explaining *why* real-data pretraining outperforms synthetic "
-                "priors and *what* structural properties of a table drive transfer. "
-                "TabDPT's power-law and Ma et al.'s feature-vs-instance result are "
-                "phenomenology with no theory."
-                "\n\n"
-                "**4. Causal structure in TFMs.** TFMs use SCMs to *generate* synthetic "
-                "training data but never *discover* causal structure at inference time. "
-                "Goal: a TFM that learns interventional distributions in-context and "
-                "can distinguish correlation from causation without explicit graph "
-                "specification."
-                "\n\n"
-                "**5. Multimodal tabular foundation models.** Shared representation "
-                "space for tables, text, and images. MultiModalPFN and TIME are "
-                "pairwise and application-specific — no unified framework yet."
-                "\n\n"
-                "Talking to potential advisors about which to make load-bearing. "
-                "Direction 1 or 2 most likely, possibly merged."
+                "Picking the central thread on **tabular foundation models**. "
+                "Top candidates:\n\n"
+                "1. **Tabular world models** — V-JEPA-style SSL on table *dynamics*.\n"
+                "2. **Contrastive table-language alignment** — \"CLIP for tables\" "
+                "for task-driven pretraining-data selection.\n"
+                "3. **Scaling-law theory** for tabular pretraining.\n"
+                "4. **Causal structure** in TFMs — interventional distributions in-context.\n"
+                "5. **Multimodal TFMs** — tables × text × images in one space.\n\n"
+                "Direction 1 or 2 most likely; possibly merged."
             ),
         },
         {
             'heading': 'Reading',
             'body': (
-                "<a href=\"https://arxiv.org/abs/2506.09985\">V-JEPA 2</a> "
-                "(Bardes et al., 2025) — the architecture I want to lift into "
-                "tabular. <a href=\"https://arxiv.org/abs/2410.18164\">TabDPT</a> "
-                "(2024) and <a href=\"https://arxiv.org/abs/2511.09665\">Ma et al.</a> "
-                "(2025) for tabular scaling-law phenomenology. "
-                "<a href=\"https://arxiv.org/abs/2506.10914\">PFN-based causal "
-                "inference</a> (2025) for direction 4. Anthropic's "
-                "<a href=\"https://transformer-circuits.pub/2025/attribution-graphs/methods.html\">attribution-graphs</a> "
-                "for interpretability methods I think transfer to MIL "
-                "instance-level attribution. Re-reading **DeCLIP** for the "
-                "low-pair-count regime."
+                "<a href=\"https://arxiv.org/abs/2506.09985\">V-JEPA 2</a>, "
+                "<a href=\"https://arxiv.org/abs/2410.18164\">TabDPT</a>, "
+                "<a href=\"https://arxiv.org/abs/2511.09665\">Ma et al.</a>, "
+                "<a href=\"https://arxiv.org/abs/2506.10914\">PFN causal inference</a>, "
+                "Anthropic's "
+                "<a href=\"https://transformer-circuits.pub/2025/attribution-graphs/methods.html\">attribution-graphs</a>, "
+                "and DeCLIP."
             ),
         },
         {
             'heading': 'Building',
             'body': (
-                "This site (the design pass is landing this week). Frozen Forecaster — "
-                "the TabICL vs XGBoost slider on the homepage — runs against real cached "
-                "inference from a Modal precompute (2,000 scenes). The Lab Notebook is "
-                "the place where new things land first; longer pieces graduate to the "
-                "blog as Explainers."
+                "This site. **Frozen Forecaster** (homepage demo) — real TabICL vs "
+                "XGBoost inference cached from a Modal precompute."
             ),
         },
         {
             'heading': 'Applying',
             'body': (
-                "**ELLIS PhD program 2026 cohort** — primary advisor track at TRL Lab "
-                "(Hulsebos + van de Meent). Open to FAANG / FAIR / DeepMind / "
-                "Anthropic research-internship conversations for summer 2026 / 2027 "
-                "on tabular foundation models or MIL interpretability. "
-                "[Contact me](#contact)."
+                "**ELLIS PhD 2026 cohort** — TRL Lab Amsterdam (Hulsebos + van de Meent). "
+                "Open to FAANG / FAIR / DeepMind / Anthropic research internships for "
+                "summer 2026 / 2027. [Get in touch](#contact)."
             ),
         },
         {
             'heading': 'Life',
             'body': (
-                "Planning a wedding with Brittany. Cooking through *Salt Fat Acid "
-                "Heat* one chapter at a time. Trail-running in the Middlesex Fells. "
-                "Reading: *Brideshead Revisited*, currently."
+                "Marrying **Cait Morrow** this year. Looking for **soccer leagues "
+                "in Amsterdam** — recommendations welcome."
             ),
         },
     ],
