@@ -168,3 +168,21 @@ Added two `<link rel="preload" as="font" type="font/woff2" crossorigin>` tags fo
 
 **Files:** `portfolio/templates/portfolio/personal_base.html`
 
+### 14. New homepage section: "What I'm thinking about"
+
+**What:** New `sections/thinking.html` injected between Hero and News on the homepage. Three short paragraphs in serif editorial register, with a dated "Last updated" line linking to social. Currently seeded with: CHIL benchmark insight (mean-pooling vs attention MIL), the "predict the regime before training" follow-up question, and the tabular-foundation-models thread (TabPFN/TabICL).
+
+**Why:** Per the design research synthesis, this is the single cheapest credibility signal for FAANG/ELLIS reviewers — the Lilian Weng / Sasha Rush / Cal Newport pattern. Almost no one does it well, and it can't be faked. Recruiters explicitly look for "evidence of taste and curiosity in public."
+
+**Maintenance:** Update ~quarterly. Stale dates kill the signal. Edit `sections/thinking.html` directly.
+
+**Files:** `portfolio/templates/portfolio/sections/thinking.html`, `portfolio/templates/portfolio/index.html`, `portfolio/static/portfolio/css/sections.css`
+
+### 15. Fluid hero typography
+
+**What:** Replaced fixed `--h2-size` on `.hero-name` with `clamp(1.75rem, 1.4rem + 1.8vw, 3.5rem)` — fluid scaling between 28 px on phones and 56 px on widescreens with no breakpoint jumps. Tightened line-height to 1.05 for the bigger sizes.
+
+**Why:** Modern type-scaling pattern; removes need for per-breakpoint font-size overrides; reads more confident at large sizes (Apple/Linear/Vercel pattern).
+
+**Files:** `portfolio/static/portfolio/css/sections.css`
+
