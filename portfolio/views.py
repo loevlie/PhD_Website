@@ -41,6 +41,80 @@ def blog(request):
     })
 
 
+def _can_edit(request):
+    """True if the request is authenticated as a staff/superuser. Used to
+    gate the in-browser editor at /blog/<slug>/edit/ and /blog/new/."""
+    return request.user.is_authenticated and request.user.is_staff
+
+
+def blog_edit(request, slug):
+    """In-browser WYSIWYG-ish editor for a single Post.
+    Two-column layout: markdown source on the left, live server-rendered
+    preview on the right. Auth: staff only."""
+    from django.shortcuts import redirect
+    from django.contrib.auth.decorators import login_required
+    if not _can_edit(request):
+        return redirect(f'/admin/login/?next=/blog/{slug}/edit/')
+
+    from portfolio.models import Post
+    try:
+        post = Post.objects.get(slug=slug)
+    except Post.DoesNotExist:
+        raise Http404("Post not found")
+
+    if request.method == 'POST':
+        for field in ('title', 'excerpt', 'body'):
+            v = request.POST.get(field)
+            if v is not None:
+                setattr(post, field, v)
+        post.is_explainer = request.POST.get('is_explainer') == 'on'
+        post.draft = request.POST.get('draft') == 'on'
+        post.save()
+        if request.POST.get('action') == 'view':
+            return redirect('blog_post', slug=post.slug)
+        return redirect('blog_edit', slug=post.slug)
+
+    return render(request, 'portfolio/blog_edit.html', {'post': post, 'is_new': False})
+
+
+def blog_new(request):
+    """Create a new draft post and redirect to its editor."""
+    from django.shortcuts import redirect
+    from django.utils.text import slugify
+    from datetime import date as date_cls
+    if not _can_edit(request):
+        return redirect('/admin/login/?next=/blog/new/')
+
+    from portfolio.models import Post
+    base_slug = slugify(request.GET.get('title', 'untitled-draft'))
+    slug = base_slug
+    n = 1
+    while Post.objects.filter(slug=slug).exists():
+        n += 1
+        slug = f'{base_slug}-{n}'
+    p = Post.objects.create(
+        slug=slug,
+        title='Untitled draft',
+        body='# Untitled\n\nStart writing…',
+        date=date_cls.today(),
+        draft=True,
+    )
+    return redirect('blog_edit', slug=p.slug)
+
+
+def blog_preview(request):
+    """Server-renders a markdown payload to HTML for the live-preview
+    pane in the editor. POST {body, is_explainer} -> {html, toc}."""
+    from django.http import JsonResponse
+    if not _can_edit(request):
+        return JsonResponse({'error': 'unauthorized'}, status=403)
+    from portfolio.blog import render_markdown
+    body = request.POST.get('body', '')
+    is_explainer = request.POST.get('is_explainer') == 'true'
+    html, toc = render_markdown(body, is_explainer=is_explainer)
+    return JsonResponse({'html': html, 'toc': toc})
+
+
 def blog_post(request, slug):
     post = get_post(slug)
     if post is None:
@@ -53,10 +127,30 @@ def blog_post(request, slug):
         series_posts.sort(key=lambda p: p.get('series_order', 0))
     # Get related posts (others not in the series, max 3)
     related = [p for p in all_posts if p['slug'] != slug and p.get('series') != post.get('series')][:3]
+
+    # Backlinks — "what links here". Other posts whose body contains a link
+    # to this post's slug or absolute URL. Cheap O(N) substring scan over
+    # body text; for a personal blog this is fine. Falls back to empty if
+    # no body field is available.
+    needles = (
+        f'/blog/{slug}/',
+        f'/blog/{slug}',
+        f'](blog/{slug}',
+        f'](/blog/{slug}',
+    )
+    backlinks = []
+    for p in all_posts:
+        if p['slug'] == slug:
+            continue
+        body = p.get('body') or ''
+        if any(n in body for n in needles):
+            backlinks.append({'slug': p['slug'], 'title': p['title'], 'date': p.get('date')})
+
     return render(request, 'portfolio/blog_post.html', {
         'post': post,
         'series_posts': series_posts,
         'related_posts': related,
+        'backlinks': backlinks,
     })
 
 

@@ -1,0 +1,200 @@
+{% extends "portfolio/blog_base.html" %}
+{% load static %}
+
+{% block title %}Editing — {{ post.title }} | dl.blog{% endblock %}
+{% block og_meta %}<meta name="robots" content="noindex,nofollow">{% endblock %}
+
+{% block extra_head %}
+<link rel="stylesheet" href="{% static 'portfolio/css/pygments.css' %}">
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/katex@0.16.9/dist/katex.min.css">
+<style>
+/* Editor chrome — fits inside blog_base layout */
+.editor-shell { display: grid; grid-template-rows: auto 1fr; height: calc(100vh - 64px); }
+.editor-bar {
+    display: flex; align-items: center; gap: 12px;
+    padding: 10px 16px;
+    background: var(--ctp-mantle, #181825);
+    border-bottom: 1px solid var(--ctp-surface0, #313244);
+    color: var(--ctp-text, #cdd6f4);
+    font-family: 'Inter', system-ui, sans-serif;
+    font-size: 0.875rem;
+    z-index: 10;
+}
+.editor-bar input[type="text"] {
+    flex: 1; min-width: 0;
+    background: transparent; border: 0; outline: 0;
+    color: var(--ctp-text, #cdd6f4);
+    font-size: 1rem; font-weight: 600;
+    padding: 4px 0;
+}
+.editor-bar input[type="text"]:focus { box-shadow: inset 0 -1px 0 var(--ctp-lavender, #7287fd); }
+.editor-bar label {
+    display: inline-flex; align-items: center; gap: 6px;
+    color: var(--ctp-subtext1, #bac2de);
+    font-size: 0.8125rem; cursor: pointer; user-select: none;
+}
+.editor-bar input[type="checkbox"] { accent-color: var(--ctp-lavender, #7287fd); }
+.editor-bar button, .editor-bar a {
+    background: var(--ctp-lavender, #7287fd); color: var(--ctp-base, #1e1e2e);
+    border: 0; border-radius: 6px; padding: 6px 12px;
+    font-size: 0.8125rem; font-weight: 600; cursor: pointer;
+    text-decoration: none; line-height: 1.2;
+    font-family: inherit;
+}
+.editor-bar button.secondary, .editor-bar a.secondary {
+    background: transparent; color: var(--ctp-subtext1, #bac2de);
+    border: 1px solid var(--ctp-surface0, #313244);
+}
+.editor-bar .save-status {
+    color: var(--ctp-overlay0, #6c7086); font-size: 0.75rem;
+    font-family: 'JetBrains Mono', monospace;
+    margin-right: 4px;
+}
+.editor-bar .save-status.is-dirty { color: var(--ctp-yellow, #f9e2af); }
+.editor-bar .save-status.is-saved { color: var(--ctp-green, #a6e3a1); }
+
+.editor-panes { display: grid; grid-template-columns: 1fr 1fr; min-height: 0; }
+@media (max-width: 900px) { .editor-panes { grid-template-columns: 1fr; grid-template-rows: 1fr 1fr; } }
+
+.editor-source, .editor-preview {
+    overflow: auto;
+    height: 100%;
+}
+.editor-source { border-right: 1px solid var(--ctp-surface0, #313244); }
+.editor-source textarea {
+    display: block; width: 100%; min-height: 100%;
+    background: var(--ctp-base, #1e1e2e);
+    color: var(--ctp-text, #cdd6f4);
+    border: 0; outline: 0; resize: none;
+    padding: 24px 28px;
+    font-family: 'JetBrains Mono', ui-monospace, monospace;
+    font-size: 0.875rem; line-height: 1.6;
+    tab-size: 2;
+}
+.editor-preview {
+    background: var(--ctp-mantle, #181825);
+    padding: 24px 32px 64px;
+}
+.editor-preview .blog-prose { max-width: 60ch; margin: 0 auto; color: var(--ctp-text, #cdd6f4); font-family: 'IBM Plex Serif', Georgia, serif; line-height: 1.7; }
+.editor-preview .blog-prose h1 { font-size: 2rem; line-height: 1.1; margin: 0 0 16px; color: var(--ctp-text, #cdd6f4); font-weight: 700; }
+.editor-preview .blog-prose h2 { font-size: 1.5rem; margin: 32px 0 12px; color: var(--ctp-text, #cdd6f4); font-weight: 600; }
+.editor-preview .blog-prose h3 { font-size: 1.25rem; margin: 24px 0 10px; color: var(--ctp-text, #cdd6f4); font-weight: 600; }
+.editor-preview .blog-prose p { margin: 0 0 1em; }
+.editor-preview .blog-prose code { background: var(--ctp-surface0, #313244); padding: 2px 6px; border-radius: 4px; font-family: 'JetBrains Mono', monospace; font-size: 0.875em; }
+.editor-preview .blog-prose pre { background: var(--ctp-crust, #11111b); padding: 16px; border-radius: 8px; overflow-x: auto; }
+.editor-preview .blog-prose blockquote { border-left: 3px solid var(--ctp-lavender, #7287fd); padding-left: 16px; color: var(--ctp-subtext1, #bac2de); margin: 16px 0; }
+.editor-preview .blog-prose a { color: var(--ctp-lavender, #7287fd); }
+.editor-preview .preview-loading { color: var(--ctp-overlay0, #6c7086); font-style: italic; }
+</style>
+{% endblock %}
+
+{% block content %}
+<form class="editor-shell" id="editor-form" method="post" action="{% url 'blog_edit' post.slug %}">
+    {% csrf_token %}
+    <div class="editor-bar">
+        <a href="{% url 'blog_post' post.slug %}" class="secondary" title="View live">←</a>
+        <input type="text" name="title" value="{{ post.title }}" placeholder="Post title">
+        <label><input type="checkbox" name="is_explainer" {% if post.is_explainer %}checked{% endif %}> Explainer</label>
+        <label><input type="checkbox" name="draft" {% if post.draft %}checked{% endif %}> Draft</label>
+        <span class="save-status" id="save-status">unchanged</span>
+        <button type="submit" name="action" value="save">Save</button>
+        <button type="submit" name="action" value="view" class="secondary">Save &amp; view</button>
+    </div>
+    <div class="editor-panes">
+        <div class="editor-source">
+            <textarea name="body" id="editor-body" spellcheck="false">{{ post.body }}</textarea>
+        </div>
+        <div class="editor-preview">
+            <div class="blog-prose {% if post.is_explainer %}is-explainer{% endif %}" id="editor-preview-content">
+                <p class="preview-loading">Rendering preview…</p>
+            </div>
+        </div>
+    </div>
+    <input type="hidden" name="excerpt" value="{{ post.excerpt }}">
+</form>
+
+<script defer src="https://cdn.jsdelivr.net/npm/katex@0.16.9/dist/katex.min.js"></script>
+<script defer src="https://cdn.jsdelivr.net/npm/katex@0.16.9/dist/contrib/auto-render.min.js"></script>
+<script>
+(function() {
+    const form = document.getElementById('editor-form');
+    const body = document.getElementById('editor-body');
+    const preview = document.getElementById('editor-preview-content');
+    const status = document.getElementById('save-status');
+    const csrf = form.querySelector('[name=csrfmiddlewaretoken]').value;
+    const explainerToggle = form.querySelector('[name=is_explainer]');
+
+    let renderTimer = null;
+    let lastRendered = '';
+
+    async function render() {
+        const text = body.value;
+        const isExp = explainerToggle.checked ? 'true' : 'false';
+        const key = isExp + '\u0000' + text;
+        if (key === lastRendered) return;
+        lastRendered = key;
+
+        const fd = new FormData();
+        fd.append('body', text);
+        fd.append('is_explainer', isExp);
+        fd.append('csrfmiddlewaretoken', csrf);
+        try {
+            const r = await fetch('{% url "blog_preview" %}', {
+                method: 'POST', body: fd, credentials: 'same-origin',
+            });
+            if (!r.ok) throw new Error(r.statusText);
+            const data = await r.json();
+            preview.innerHTML = data.html || '<p class="preview-loading">empty</p>';
+            preview.classList.toggle('is-explainer', isExp === 'true');
+            // KaTeX re-render. Auto-render attaches at load; for re-renders
+            // call directly when the lib is loaded.
+            if (window.renderMathInElement) {
+                window.renderMathInElement(preview, {
+                    delimiters: [
+                        {left: '$$', right: '$$', display: true},
+                        {left: '$',  right: '$',  display: false},
+                    ],
+                    throwOnError: false,
+                });
+            }
+        } catch (e) {
+            preview.innerHTML = '<p class="preview-loading">preview error: ' + e.message + '</p>';
+        }
+    }
+
+    function scheduleRender(delay) {
+        clearTimeout(renderTimer);
+        renderTimer = setTimeout(render, delay || 350);
+    }
+
+    body.addEventListener('input', () => { markDirty(); scheduleRender(); });
+    explainerToggle.addEventListener('change', () => { markDirty(); render(); });
+    form.querySelectorAll('input[name=title], input[name=draft]').forEach(el =>
+        el.addEventListener('input', markDirty));
+
+    function markDirty() {
+        status.textContent = 'unsaved';
+        status.classList.remove('is-saved');
+        status.classList.add('is-dirty');
+    }
+
+    // ⌘S / Ctrl+S submits the form
+    document.addEventListener('keydown', (e) => {
+        if ((e.metaKey || e.ctrlKey) && e.key === 's') {
+            e.preventDefault();
+            form.querySelector('button[name=action][value=save]').click();
+        }
+    });
+
+    // Initial render — wait for KaTeX to load if it's deferred.
+    function initRender() {
+        if (window.renderMathInElement || document.readyState === 'complete') {
+            render();
+        } else {
+            setTimeout(initRender, 50);
+        }
+    }
+    initRender();
+})();
+</script>
+{% endblock %}

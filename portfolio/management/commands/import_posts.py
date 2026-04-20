@@ -34,6 +34,7 @@ class Command(BaseCommand):
                     'medium_url': fm.get('medium_url', ''),
                     'draft': fm.get('draft', False),
                     'is_explainer': fm.get('is_explainer', False),
+                    'maturity': fm.get('maturity', ''),
                 },
             )
             # Set tags

@@ -1055,6 +1055,37 @@
     transform: translateY(0);
     pointer-events: auto;
 }
+
+/* Native popover variant — driven by browser Popover API + interestfor.
+   Browsers with `popover` support automatically render as `inset: 0;
+   margin: auto` by default; we override to position via CSS anchor
+   positioning where supported (Chrome 125+ — paired with the same
+   browser tier as interestfor in 139+, so safe). */
+.cite-popover--native {
+    position: fixed;
+    inset: auto;
+    margin: 0;
+    border: 1px solid var(--color-border, var(--ctp-surface0, #313244));
+    background: var(--color-surface-1, var(--ctp-crust, #11111b));
+    /* Anchor-positioning: lay out below the implicit anchor (the
+       popovertarget button), centered, 8 px offset. */
+    top: anchor(bottom);
+    left: anchor(center);
+    translate: -50% 8px;
+    /* Browser-painted backdrop is too dim for our compact popover */
+    opacity: 0;
+    transition: opacity 120ms ease;
+}
+.cite-popover--native:popover-open {
+    opacity: 1;
+}
+/* Fallback for browsers that have Popover API but not anchor positioning
+   (Firefox 145+ has popover; anchor positioning still stable in Chromium). */
+@supports not (top: anchor(bottom)) {
+    .cite-popover--native {
+        top: 50%; left: 50%; translate: -50% -50%;
+    }
+}
 .cite-popover .cite-title {
     font-weight: 600;
     color: var(--color-content, var(--ctp-text, #cdd6f4));
@@ -1098,6 +1129,63 @@
 .cite-popover .cite-actions a:hover {
     color: var(--color-accent, var(--ctp-lavender, #7287fd));
     border-color: var(--color-accent, var(--ctp-lavender, #7287fd));
+}
+
+/* ============================================================
+   Maturity badges — Seedling / Budding / Evergreen.
+   Digital-garden convention (Maggie Appleton). Sets reader
+   expectations: a Seedling is half-formed thinking the author
+   wants feedback on, not a finished essay. Pill component.
+   ============================================================ */
+.maturity-badge {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.4em;
+    padding: 0.25em 0.625em;
+    border-radius: 999px;
+    font-size: 0.6875rem;
+    font-weight: 600;
+    font-family: 'JetBrains Mono', ui-monospace, monospace;
+    text-transform: uppercase;
+    letter-spacing: 0.06em;
+    line-height: 1;
+    border: 1px solid;
+}
+.maturity-badge::before {
+    content: "";
+    width: 6px;
+    height: 6px;
+    border-radius: 50%;
+    background: currentColor;
+}
+.maturity-seedling {
+    color: #b48a00;
+    background: color-mix(in oklch, #b48a00 12%, transparent);
+    border-color: color-mix(in oklch, #b48a00 30%, transparent);
+}
+.maturity-budding {
+    color: #2e7d32;
+    background: color-mix(in oklch, #2e7d32 12%, transparent);
+    border-color: color-mix(in oklch, #2e7d32 30%, transparent);
+}
+.maturity-evergreen {
+    color: #1f6feb;
+    background: color-mix(in oklch, #1f6feb 12%, transparent);
+    border-color: color-mix(in oklch, #1f6feb 30%, transparent);
+}
+
+/* Better dark-mode contrast */
+:root.dark-mode .maturity-seedling,
+.mocha .maturity-seedling, .frappe .maturity-seedling, .macchiato .maturity-seedling {
+    color: #f9e2af; background: color-mix(in oklch, #f9e2af 14%, transparent); border-color: color-mix(in oklch, #f9e2af 30%, transparent);
+}
+:root.dark-mode .maturity-budding,
+.mocha .maturity-budding, .frappe .maturity-budding, .macchiato .maturity-budding {
+    color: #a6e3a1; background: color-mix(in oklch, #a6e3a1 14%, transparent); border-color: color-mix(in oklch, #a6e3a1 30%, transparent);
+}
+:root.dark-mode .maturity-evergreen,
+.mocha .maturity-evergreen, .frappe .maturity-evergreen, .macchiato .maturity-evergreen {
+    color: #89b4fa; background: color-mix(in oklch, #89b4fa 14%, transparent); border-color: color-mix(in oklch, #89b4fa 30%, transparent);
 }
 
 /* Explainer-only header badge */

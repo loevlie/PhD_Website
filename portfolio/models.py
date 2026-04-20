@@ -21,6 +21,16 @@ class Post(models.Model):
         default=False,
         help_text="Render with explainer chrome: Tufte sidenotes, hover citations, BibTeX export, wider figure canvas.",
     )
+    MATURITY_CHOICES = [
+        ('', 'Unmarked'),
+        ('seedling', 'Seedling — half-formed'),
+        ('budding', 'Budding — being developed'),
+        ('evergreen', 'Evergreen — settled'),
+    ]
+    maturity = models.CharField(
+        max_length=12, choices=MATURITY_CHOICES, blank=True, default='',
+        help_text="Optional digital-garden maturity badge. Sets reader expectations and lets unfinished thinking ship without 'blog-post-as-final-statement' cost.",
+    )
     created_at = models.DateTimeField(auto_now_add=True)
     modified_at = models.DateTimeField(auto_now=True)
 

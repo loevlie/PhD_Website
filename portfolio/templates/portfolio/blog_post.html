@@ -35,11 +35,19 @@
 <div id="blog-progress" class="fixed top-0 left-0 h-0.5 bg-gradient-to-r from-accent to-indigo-400 z-[60] pointer-events-none transition-[width] duration-75" style="width:0%"></div>
 
 <article class="max-w-article {% if post.is_explainer %}lg:max-w-[1200px]{% else %}lg:max-w-[940px]{% endif %} mx-auto px-6 pt-12 pb-16{% if post.is_explainer %} is-explainer{% endif %}">
-    <!-- Back link -->
-    <a href="{% url 'blog' %}" class="inline-flex items-center gap-1.5 text-sm text-content-muted hover:text-accent transition-colors mb-10">
-        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="19" y1="12" x2="5" y2="12"/><polyline points="12 19 5 12 12 5"/></svg>
-        All posts
-    </a>
+    <!-- Back link + edit (staff only) -->
+    <div class="flex items-center justify-between mb-10">
+        <a href="{% url 'blog' %}" class="inline-flex items-center gap-1.5 text-sm text-content-muted hover:text-accent transition-colors">
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="19" y1="12" x2="5" y2="12"/><polyline points="12 19 5 12 12 5"/></svg>
+            All posts
+        </a>
+        {% if user.is_staff %}
+        <a href="{% url 'blog_edit' post.slug %}" class="inline-flex items-center gap-1.5 text-xs text-content-muted hover:text-accent transition-colors border border-border rounded px-2 py-1 font-mono">
+            <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 20h9"/><path d="M16.5 3.5a2.121 2.121 0 0 1 3 3L7 19l-4 1 1-4L16.5 3.5z"/></svg>
+            edit
+        </a>
+        {% endif %}
+    </div>
 
     <!-- Series banner -->
     {% if series_posts|length > 1 %}
@@ -91,6 +99,11 @@
                 {% if post.updated %}<div><dt>Updated</dt><dd>{{ post.updated|date:'M j, Y' }}</dd></div>{% endif %}
             </dl>
         </div>
+        {% if post.maturity %}
+        <div class="explainer-meta-stats" style="justify-content: center; margin-top: 14px;">
+            <span class="maturity-badge maturity-{{ post.maturity }}">{{ post.maturity|title }}</span>
+        </div>
+        {% endif %}
         {% if post.tags %}
         <div class="explainer-tags">
             {% for tag in post.tags %}<span class="explainer-tag">{{ tag }}</span>{% endfor %}
@@ -113,7 +126,8 @@
         {% if post.excerpt %}
         <p class="text-lg md:text-xl text-content-secondary leading-relaxed">{{ post.excerpt }}</p>
         {% endif %}
-        <div class="flex gap-2 flex-wrap mt-5">
+        <div class="flex gap-2 flex-wrap mt-5 items-center">
+            {% if post.maturity %}<span class="maturity-badge maturity-{{ post.maturity }}">{{ post.maturity|title }}</span>{% endif %}
             {% for tag in post.tags %}
             <span class="text-xs px-2.5 py-1 rounded-md bg-surface-2 text-content-muted border border-border">{{ tag }}</span>
             {% endfor %}
@@ -223,6 +237,29 @@
             <button type="submit" class="px-6 py-2.5 bg-accent hover:bg-accent-hover text-white rounded-lg text-sm font-medium transition-colors whitespace-nowrap">Subscribe</button>
         </form>
     </div>
+
+    <!-- Backlinks: "what links here" — other posts that reference this one.
+         Garden-style affordance; reader-rewarding because it surfaces the
+         shape of the writing without manual cross-linking. Hidden when
+         empty so it doesn't add visual noise on standalone posts. -->
+    {% if backlinks %}
+    <aside class="backlinks-block mt-16 pt-8 border-t border-border">
+        <div class="flex items-center gap-2 mb-4 text-content-muted">
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M10 13a5 5 0 0 0 7.54.54l3-3a5 5 0 0 0-7.07-7.07l-1.72 1.71"/><path d="M14 11a5 5 0 0 0-7.54-.54l-3 3a5 5 0 0 0 7.07 7.07l1.71-1.71"/></svg>
+            <span class="text-[0.6875rem] font-mono uppercase tracking-wider">Linked from</span>
+        </div>
+        <ul class="grid gap-2">
+            {% for bl in backlinks %}
+            <li>
+                <a href="{% url 'blog_post' bl.slug %}" class="group flex items-baseline gap-3 text-sm text-content-secondary hover:text-accent transition-colors">
+                    <span class="font-mono text-xs text-content-muted tabular-nums w-20 flex-shrink-0">{{ bl.date|date:'Y-m-d' }}</span>
+                    <span class="group-hover:underline">{{ bl.title }}</span>
+                </a>
+            </li>
+            {% endfor %}
+        </ul>
+    </aside>
+    {% endif %}
 
     <!-- Related posts -->
     {% if related_posts %}

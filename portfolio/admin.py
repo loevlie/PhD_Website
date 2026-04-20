@@ -5,9 +5,9 @@ from portfolio.models import Post
 
 @admin.register(Post)
 class PostAdmin(admin.ModelAdmin):
-    list_display = ['title', 'date', 'draft', 'is_explainer', 'tag_list']
-    list_filter = ['draft', 'is_explainer', 'date', 'tags']
-    list_editable = ['draft', 'is_explainer']
+    list_display = ['title', 'date', 'draft', 'is_explainer', 'maturity', 'tag_list']
+    list_filter = ['draft', 'is_explainer', 'maturity', 'date', 'tags']
+    list_editable = ['draft', 'is_explainer', 'maturity']
     search_fields = ['title', 'body', 'excerpt']
     prepopulated_fields = {'slug': ('title',)}
     date_hierarchy = 'date'
@@ -28,7 +28,7 @@ class PostAdmin(admin.ModelAdmin):
             ),
         }),
         ('Display', {
-            'fields': ('image', 'tags', 'is_explainer', 'draft'),
+            'fields': ('image', 'tags', 'is_explainer', 'maturity', 'draft'),
         }),
         ('Series + external', {
             'fields': ('series', 'series_order', 'medium_url'),

@@ -25,6 +25,19 @@ body {
     transition: background-color var(--transition-base), color var(--transition-base);
 }
 
+/* text-wrap: pretty — kills last-line orphans on body copy without
+   making earlier lines look ragged. Chrome 117+/Safari 26+; Firefox
+   ignores it (graceful fallback to default line-breaking). Single
+   biggest typographic quality-of-life upgrade since web fonts.
+   text-wrap: balance — evens out heading line lengths so an H1/H2
+   doesn't end with one orphaned word on a line by itself. */
+p, li, dd, blockquote {
+    text-wrap: pretty;
+}
+h1, h2, h3, h4, h5, h6 {
+    text-wrap: balance;
+}
+
 /* --- Prose serif treatment for academic register --------------------- */
 /* Use Plex Serif for prose-heavy regions: hero subtitle/bio, news entries,
    publication titles + authors. Sans stays for nav, buttons, dates, code.
