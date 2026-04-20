@@ -22,15 +22,16 @@
                     4 of 6 moderate-sized neuroimage tasks while training
                     <strong>25× faster</strong>. Second &mdash; the more interesting one &mdash;
                     a <strong>centered-Gaussian (Gaussian-axial) baseline</strong> beats
-                    transformer-based MIL methods on <em>instance-level</em> metrics,
-                    even though the transformers still win on bag-level metrics.
+                    transformer-based MIL methods on <em>instance-level</em> metrics.
                 </p>
                 <p>
-                    That second gap matters for clinical interpretation. I'm investigating
-                    <strong>attention-regularization techniques</strong>
-                    (entropy penalties, sparsity priors, learned-k TopK attention) to
-                    drastically improve transformer instance-level metrics
-                    <em>without</em> sacrificing bag-level accuracy. Targeting NeurIPS 2026.
+                    That gap matters for clinical interpretation: if a transformer
+                    can't find the right <em>instances</em> but a fixed Gaussian prior on
+                    instance positions can, the attention is poorly regularized. I'm
+                    investigating <strong>attention-regularization techniques</strong>
+                    (entropy penalties, sparsity priors, learned-k TopK) to close the
+                    instance-level gap <em>without</em> hurting bag-level accuracy.
+                    Targeting NeurIPS 2026.
                 </p>
                 <p>
                     Looking ahead &mdash; picking the central PhD thread on
