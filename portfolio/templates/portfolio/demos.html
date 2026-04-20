@@ -49,7 +49,12 @@
                 </div>
 
                 <div class="lab-entry-body">
-                    <h2 class="lab-entry-title"><a href="#{{ demo.slug }}">{{ demo.title }}</a></h2>
+                    <h2 class="lab-entry-title">
+                        <a href="#{{ demo.slug }}">{{ demo.title }}</a>
+                        {% if demo.draft and is_staff %}
+                        <span style="display: inline-block; margin-left: 10px; padding: 2px 8px; border-radius: 4px; font-family: var(--font-mono, monospace); font-size: 0.6875rem; text-transform: uppercase; letter-spacing: 0.08em; background: color-mix(in oklch, #f9c846 18%, transparent); color: #B8860B; border: 1px solid color-mix(in oklch, #f9c846 38%, transparent); vertical-align: middle;">Draft</span>
+                        {% endif %}
+                    </h2>
                     <p class="lab-entry-summary">{{ demo.summary }}</p>
 
                     <div class="lab-entry-embed">

@@ -535,6 +535,7 @@ DEMOS = [
         'title': 'The Frozen Forecaster',
         'date': '2026-04-18',
         'updated': '',
+        'draft': True,  # standalone /demos/frozen-forecaster/ hidden from public; homepage embed stays visible
         'tags': ['tabular', 'in-context-learning', 'tabicl', 'xgboost'],
         'summary': 'TabICL vs XGBoost on the same 2D scene — drag the divider to '
                    'sweep the boundary. Click to drop points, drag the probe to '

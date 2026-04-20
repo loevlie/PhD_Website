@@ -437,24 +437,38 @@ def projects(request):
 
 
 def demos(request):
-    # Newest first; date is an ISO string so a lexicographic sort is fine.
-    demos_sorted = sorted(DEMOS, key=lambda d: d['date'], reverse=True)
-    return render(request, 'portfolio/demos.html', {'demos': demos_sorted})
+    """/demos/ listing. Public sees published demos; staff also see
+    drafts (with a Draft pill on the card)."""
+    is_staff = request.user.is_authenticated and request.user.is_staff
+    visible = [d for d in DEMOS if is_staff or not d.get('draft')]
+    demos_sorted = sorted(visible, key=lambda d: d['date'], reverse=True)
+    return render(request, 'portfolio/demos.html', {
+        'demos': demos_sorted,
+        'is_staff': is_staff,
+    })
 
 
 def demo_detail(request, slug):
     """Standalone permalink page for a single demo. Includes the same
     `embed_<slug>.html` partial used on /demos/ but in a richer page
-    chrome (own OG meta, reading-time chrome, related-post link)."""
+    chrome (own OG meta, reading-time chrome, related-post link).
+
+    Drafts: anon visitors see a "Working on it" stub (same chrome as
+    the blog WIP stub) so the URL stays alive; staff see the full
+    interactive demo for preview."""
     demo = next((d for d in DEMOS if d['slug'] == slug), None)
     if demo is None:
         raise Http404("Demo not found")
+    is_staff = request.user.is_authenticated and request.user.is_staff
+    if demo.get('draft') and not is_staff:
+        return render(request, 'portfolio/demo_detail_wip.html', {'demo': demo})
     # Find a related blog post (companion essay) by matching slug
     from portfolio.blog import get_post
-    companion = get_post(slug)
+    companion = get_post(slug, include_drafts=is_staff)
     return render(request, 'portfolio/demo_detail.html', {
         'demo': demo,
         'companion': companion,
+        'is_staff': is_staff,
     })
 
 

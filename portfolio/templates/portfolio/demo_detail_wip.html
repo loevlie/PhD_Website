@@ -1,0 +1,111 @@
+{% extends "portfolio/personal_base.html" %}
+{% load static %}
+
+{% block title %}{{ demo.title }} — working on it · Dennis Loevlie{% endblock %}
+
+{% block og_meta %}
+<meta name="robots" content="noindex,nofollow">
+<meta property="og:title" content="{{ demo.title }} — working on it">
+<meta property="og:description" content="A demo by Dennis Loevlie. Not ready for sharing yet.">
+{% endblock %}
+
+{% block extra_head %}
+<style>
+.wip-page { padding-block: clamp(48px, 8vw, 96px); min-height: 64vh; }
+.wip-inner { max-width: 640px; margin: 0 auto; padding: 0 24px; text-align: center; }
+.wip-eyebrow {
+    font-family: var(--font-mono, 'IBM Plex Mono', monospace);
+    font-size: 0.75rem;
+    text-transform: uppercase;
+    letter-spacing: 0.16em;
+    color: var(--text-muted, #6B6B6B);
+    margin: 0 0 18px;
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
+}
+.wip-eyebrow .dot {
+    width: 8px; height: 8px; border-radius: 50%;
+    background: var(--ctp-yellow, #f9c846);
+    box-shadow: 0 0 0 0 rgba(249, 200, 70, 0.7);
+    animation: wip-pulse 2.4s infinite;
+}
+@keyframes wip-pulse {
+    0%   { box-shadow: 0 0 0 0 rgba(249, 200, 70, 0.6); }
+    70%  { box-shadow: 0 0 0 10px rgba(249, 200, 70, 0); }
+    100% { box-shadow: 0 0 0 0 rgba(249, 200, 70, 0); }
+}
+.wip-title {
+    font-family: var(--font-serif, 'IBM Plex Serif', Georgia, serif);
+    font-size: clamp(1.75rem, 3.6vw, 2.5rem);
+    font-weight: 700;
+    line-height: 1.1;
+    margin: 0 0 16px;
+    color: var(--text-primary, #1A1A1A);
+    letter-spacing: -0.01em;
+}
+.wip-blurb {
+    font-size: 1.0625rem;
+    line-height: 1.55;
+    color: var(--text-secondary, #334155);
+    margin: 0 0 24px;
+}
+.wip-meta {
+    font-family: var(--font-mono, 'IBM Plex Mono', monospace);
+    font-size: 0.75rem;
+    color: var(--text-muted, #6B6B6B);
+    margin-bottom: 36px;
+    padding-bottom: 24px;
+    border-bottom: 1px solid var(--border-color, #E5E2DA);
+}
+.wip-actions { display: flex; flex-wrap: wrap; gap: 10px; justify-content: center; }
+.wip-actions a {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    padding: 9px 16px;
+    border-radius: 8px;
+    font-family: var(--font-mono, 'IBM Plex Mono', monospace);
+    font-size: 0.8125rem;
+    text-decoration: none;
+    border: 1px solid var(--border-color, #E5E2DA);
+    color: var(--text-primary, #1A1A1A);
+    transition: all 150ms ease;
+}
+.wip-actions a:hover {
+    border-color: var(--accent, #0A2540);
+    color: var(--accent, #0A2540);
+    transform: translateY(-1px);
+}
+.wip-actions a.primary {
+    background: var(--accent, #0A2540);
+    color: white;
+    border-color: var(--accent, #0A2540);
+}
+.wip-actions a.primary:hover {
+    color: white;
+    background: color-mix(in oklch, var(--accent, #0A2540) 88%, black);
+}
+</style>
+{% endblock %}
+
+{% block content %}
+<section class="section wip-page">
+    <div class="wip-inner">
+        <p class="wip-eyebrow"><span class="dot"></span>Working on it</p>
+        <h1 class="wip-title">{{ demo.title }}</h1>
+        <p class="wip-blurb">
+            This demo's standalone page is still in progress. The interactive
+            version is live on the homepage if you want to play with it.
+        </p>
+        <p class="wip-meta">
+            Started {{ demo.date }}{% if demo.updated %} · last touched {{ demo.updated }}{% endif %}
+        </p>
+        <div class="wip-actions">
+            <a class="primary" href="/#demos">Try it on the homepage →</a>
+            <a href="{% url 'demos' %}">All demos</a>
+            <a href="/#contact">Get in touch</a>
+        </div>
+    </div>
+</section>
+{% endblock %}

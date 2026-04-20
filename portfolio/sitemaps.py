@@ -48,12 +48,12 @@ class BlogListSitemap(Sitemap):
 
 
 class DemoDetailSitemap(Sitemap):
-    """Each demo's standalone permalink page."""
+    """Each demo's standalone permalink page. Drafts excluded."""
     changefreq = 'monthly'
     priority = 0.6
 
     def items(self):
-        return DEMOS
+        return [d for d in DEMOS if not d.get('draft')]
 
     def location(self, item):
         return reverse('demo_detail', args=[item['slug']])

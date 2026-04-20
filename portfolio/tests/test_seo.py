@@ -37,10 +37,13 @@ class SitemapTests(TestCase):
         r = self.client.get('/sitemap.xml')
         self.assertIn('/blog/hello/', r.content.decode())
 
-    def test_sitemap_contains_demo_detail(self):
+    def test_sitemap_contains_published_demo_detail(self):
+        from portfolio.data import DEMOS
+        published = next((d for d in DEMOS if not d.get('draft')), None)
+        if published is None:
+            self.skipTest('No published demos to assert against')
         r = self.client.get('/sitemap.xml')
-        # Frozen Forecaster ships in DEMOS
-        self.assertIn('/demos/frozen-forecaster/', r.content.decode())
+        self.assertIn(f'/demos/{published["slug"]}/', r.content.decode())
 
     def test_sitemap_contains_tag_detail(self):
         r = self.client.get('/sitemap.xml')

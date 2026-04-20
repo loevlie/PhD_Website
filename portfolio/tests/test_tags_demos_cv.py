@@ -3,7 +3,7 @@ from django.test import TestCase
 
 from portfolio.data import DEMOS
 
-from ._helpers import make_post
+from ._helpers import StaffClientMixin, make_post
 
 
 class TagPagesTests(TestCase):
@@ -45,35 +45,69 @@ class TagPagesTests(TestCase):
         self.assertContains(r, 'href="/tags/ml/"')
 
 
-class DemoDetailTests(TestCase):
-    def test_every_demo_has_a_detail_page(self):
+class DemoDetailTests(StaffClientMixin, TestCase):
+    def test_every_demo_has_a_detail_page_for_staff(self):
+        # Staff sees full content for every demo regardless of draft state
         for d in DEMOS:
             with self.subTest(slug=d['slug']):
-                r = self.client.get(f'/demos/{d["slug"]}/')
+                r = self.staff_client.get(f'/demos/{d["slug"]}/')
                 self.assertEqual(r.status_code, 200,
                                  msg=f'demo {d["slug"]} returned {r.status_code}')
                 self.assertContains(r, d['title'])
+
+    def test_published_demos_open_to_anon(self):
+        # Published demos render fully for anon
+        for d in [x for x in DEMOS if not x.get('draft')]:
+            with self.subTest(slug=d['slug']):
+                r = self.anon_client.get(f'/demos/{d["slug"]}/')
+                self.assertEqual(r.status_code, 200)
                 self.assertContains(r, d['summary'])
 
+    def test_draft_demo_shows_wip_stub_for_anon(self):
+        # Find a draft demo to test against (Frozen Forecaster currently)
+        draft = next((d for d in DEMOS if d.get('draft')), None)
+        if draft is None:
+            self.skipTest('No draft demos to test')
+        r = self.anon_client.get(f'/demos/{draft["slug"]}/')
+        self.assertEqual(r.status_code, 200)
+        self.assertContains(r, 'Working on it')
+        # Should not leak the demo's "what/why/learned" content
+        self.assertNotContains(r, draft['what'])
+
+    def test_draft_demo_excluded_from_listing_for_anon(self):
+        draft = next((d for d in DEMOS if d.get('draft')), None)
+        if draft is None:
+            self.skipTest('No draft demos')
+        r = self.anon_client.get('/demos/')
+        self.assertNotContains(r, draft['title'])
+
+    def test_draft_demo_visible_in_listing_for_staff(self):
+        draft = next((d for d in DEMOS if d.get('draft')), None)
+        if draft is None:
+            self.skipTest('No draft demos')
+        r = self.staff_client.get('/demos/')
+        self.assertContains(r, draft['title'])
+        self.assertContains(r, 'Draft')
+
     def test_unknown_demo_404s(self):
-        r = self.client.get('/demos/nonexistent-demo-xyz/')
+        r = self.anon_client.get('/demos/nonexistent-demo-xyz/')
         self.assertEqual(r.status_code, 404)
 
-    def test_demo_detail_has_back_link(self):
-        r = self.client.get('/demos/frozen-forecaster/')
-        self.assertContains(r, '/demos/')
-
-    def test_demo_detail_includes_what_why_learned(self):
-        r = self.client.get('/demos/frozen-forecaster/')
-        self.assertContains(r, 'What')
-        self.assertContains(r, 'Why')
-        self.assertContains(r, 'What I learned')
-
     def test_demo_detail_links_to_companion_post_if_exists(self):
-        # Make a companion post matching the demo slug
-        make_post(slug='frozen-forecaster', title='Frozen Forecaster post')
-        r = self.client.get('/demos/frozen-forecaster/')
+        # Use a non-draft demo for this — companion link only matters for published demos
+        published = next((d for d in DEMOS if not d.get('draft')), None)
+        if published is None:
+            self.skipTest('No published demos')
+        make_post(slug=published['slug'], title=f"{published['title']} post")
+        r = self.anon_client.get(f'/demos/{published["slug"]}/')
         self.assertContains(r, 'Companion essay')
+
+    def test_sitemap_excludes_draft_demos(self):
+        r = self.anon_client.get('/sitemap.xml')
+        for d in DEMOS:
+            if d.get('draft'):
+                self.assertNotIn(f'/demos/{d["slug"]}/', r.content.decode(),
+                                 msg=f'draft demo {d["slug"]} leaked into sitemap')
 
 
 class CvPageTests(TestCase):
