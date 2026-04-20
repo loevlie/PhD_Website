@@ -501,14 +501,16 @@ NOW_PAGE = {
                 "XGBoost inference cached from a Modal precompute."
             ),
         },
-        {
-            'heading': 'Applying',
-            'body': (
-                "**ELLIS PhD 2026 cohort** — TRL Lab Amsterdam (Hulsebos + van de Meent). "
-                "Open to FAANG / FAIR / DeepMind / Anthropic research internships for "
-                "summer 2026 / 2027. [Get in touch](#contact)."
-            ),
-        },
+        # ─────────────────────────────────────────────────────────────
+        # ORIGINAL — Applying section (removed 2026-04-20 per request;
+        # commented for one-edit restore):
+        # 'heading': 'Applying',
+        # 'body': (
+        #     "**ELLIS PhD 2026 cohort** — TRL Lab Amsterdam (Hulsebos + van de Meent). "
+        #     "Open to FAANG / FAIR / DeepMind / Anthropic research internships for "
+        #     "summer 2026 / 2027. [Get in touch](#contact)."
+        # ),
+        # ─────────────────────────────────────────────────────────────
         {
             'heading': 'Life',
             'body': (
