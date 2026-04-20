@@ -129,6 +129,11 @@
     <link rel="stylesheet" href="{% static 'portfolio/css/sections.css' %}">
     <link rel="stylesheet" href="{% static 'portfolio/css/animations.css' %}">
     <link rel="stylesheet" href="{% static 'portfolio/css/responsive.css' %}">
+
+    {% comment %}Per-page <style> / <link> additions. Used for behaviours
+       scoped to a single template (e.g. scroll-snap on the homepage)
+       so they don't leak into every portfolio page.{% endcomment %}
+    {% block extra_head %}{% endblock %}
 </head>
 <body>
     <div class="scroll-progress" id="scroll-progress"></div>
