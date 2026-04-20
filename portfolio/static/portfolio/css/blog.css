@@ -1705,79 +1705,122 @@
 }
 
 /* ─────────────────────────────────────────────────────────────────────
-   Python figure (<figure class="pyfig">) — rendered image + collapsible
-   "view source" details under the caption. Default state shows just the
-   image and the caption; clicking "view source" reveals the code that
-   produced it.
+   Python figure (<figure class="pyfig">) — rendered image + optional
+   italic-serif caption + a tiny inline "source" toggle that reveals
+   pygments-highlighted code (matches every other code block on the
+   site). Default state: image + caption only. No pill chrome.
 ───────────────────────────────────────────────────────────────────── */
 .blog-prose .pyfig {
-    margin: 1.5em auto;
+    margin: 2em auto;
     display: flex;
     flex-direction: column;
     align-items: center;
     text-align: center;
+    max-width: 100%;
 }
 .blog-prose .pyfig img {
     display: block;
     max-width: 100%;
     height: auto;
-    border-radius: 6px;
     margin: 0;
+    border-radius: 4px;
 }
 .blog-prose .pyfig-caption {
-    margin-top: 10px;
-    font-family: var(--font-mono, 'IBM Plex Mono', monospace);
-    font-size: 0.8125em;
+    margin-top: 12px;
+    font-size: 0.875em;
+    line-height: 1.55;
     color: var(--color-text-muted, var(--ctp-subtext0, #a6adc8));
-    line-height: 1.5;
-    max-width: 60ch;
+    max-width: 56ch;
 }
-.blog-prose .pyfig-caption-text {
+.blog-prose .pyfig-cap-text {
     display: block;
     margin-bottom: 6px;
     font-family: var(--font-serif, 'IBM Plex Serif', Georgia, serif);
     font-style: italic;
-    font-size: 0.9375em;
+    font-size: 1.0625em;
     color: var(--color-text, var(--ctp-text, #cdd6f4));
 }
+
+/* The toggle: tiny inline text link, never a pill */
 .blog-prose .pyfig-source {
-    display: inline-block;
-    text-align: left;
+    display: block;
     margin-top: 4px;
 }
 .blog-prose .pyfig-source > summary {
     cursor: pointer;
     list-style: none;
-    color: var(--color-accent, var(--ctp-lavender, #7287fd));
+    display: inline-flex;
+    align-items: center;
+    gap: 4px;
+    color: var(--color-text-muted, var(--ctp-overlay1, #7f849c));
+    font-family: var(--font-mono, 'JetBrains Mono', monospace);
     font-size: 0.75em;
-    text-transform: uppercase;
-    letter-spacing: 0.08em;
-    padding: 2px 8px;
-    border-radius: 4px;
-    border: 1px solid color-mix(in oklch, var(--color-accent, #7287fd) 30%, transparent);
-    transition: background 150ms ease;
     user-select: none;
+    transition: color 150ms ease;
 }
 .blog-prose .pyfig-source > summary::-webkit-details-marker { display: none; }
+.blog-prose .pyfig-source > summary::before {
+    content: '▸';
+    display: inline-block;
+    font-size: 0.85em;
+    transition: transform 150ms ease;
+}
+.blog-prose .pyfig-source[open] > summary::before {
+    transform: rotate(90deg);
+}
 .blog-prose .pyfig-source > summary:hover {
-    background: color-mix(in oklch, var(--color-accent, #7287fd) 14%, transparent);
+    color: var(--color-accent, var(--ctp-lavender, #7287fd));
 }
-.blog-prose .pyfig-source[open] > summary::after { content: ' ✕'; }
-.blog-prose .pyfig-source pre {
-    margin-top: 8px;
+
+/* The revealed code block — match the site's regular code-block look,
+   not the inline `code` pill style. Override .blog-prose code defaults. */
+.blog-prose .pyfig-source .highlight {
+    margin: 12px auto 0;
     text-align: left;
-    background: var(--color-bg-alt, var(--ctp-mantle, #181825));
-    padding: 12px 14px;
-    border-radius: 6px;
-    font-size: 0.8125em;
-    line-height: 1.5;
-    overflow-x: auto;
     max-width: 720px;
+    border-radius: 8px;
+    overflow: hidden;
 }
-.blog-prose .pyfig-source code {
-    background: transparent;
-    padding: 0;
-    color: var(--color-text, var(--ctp-text, #cdd6f4));
+.blog-prose .pyfig-source .highlight pre {
+    margin: 0;
+    padding: 16px 18px;
+    background: var(--color-bg-alt, var(--ctp-crust, #11111b));
     font-family: var(--font-mono, 'JetBrains Mono', monospace);
+    font-size: 0.8125em;
+    line-height: 1.55;
+    overflow-x: auto;
+    text-align: left;
+    color: var(--color-text, var(--ctp-text, #cdd6f4));
+}
+/* Kill the inline-code pill styling for code INSIDE pyfig pre blocks —
+   no padding, no background, no border. Pygments handles the colors. */
+.blog-prose .pyfig-source .highlight pre code,
+.blog-prose .pyfig-source .highlight pre span,
+.blog-prose .pyfig-source code {
+    background: transparent !important;
+    padding: 0 !important;
+    border: 0 !important;
+    border-radius: 0 !important;
+    font-family: inherit;
+    color: inherit;
     white-space: pre;
+}
+
+/* Error variant — no rendered image; just a banner + the source toggle */
+.blog-prose .pyfig--error .pyfig-error {
+    padding: 14px 18px;
+    background: color-mix(in oklch, var(--ctp-red, #f38ba8) 8%, transparent);
+    border: 1px solid color-mix(in oklch, var(--ctp-red, #f38ba8) 30%, transparent);
+    border-radius: 8px;
+    color: var(--color-text, var(--ctp-text, #cdd6f4));
+    font-size: 0.9375em;
+    text-align: center;
+    max-width: 560px;
+}
+.blog-prose .pyfig--error .pyfig-error small {
+    display: block;
+    margin-top: 4px;
+    font-family: var(--font-mono, monospace);
+    font-size: 0.8125em;
+    color: var(--ctp-red, #f38ba8);
 }

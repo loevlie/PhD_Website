@@ -128,19 +128,31 @@ def _render_pyfig(code, timeout_s=15, post_slug=None):
     return rel_url, None
 
 
+def _highlight_python(code):
+    """Pygments-render the code so the source view matches the site's
+    other code blocks (same theme, same font, real syntax colors)."""
+    from pygments import highlight
+    from pygments.lexers import PythonLexer
+    from pygments.formatters import HtmlFormatter
+    return highlight(
+        code,
+        PythonLexer(),
+        HtmlFormatter(cssclass='highlight', wrapcode=False, nowrap=False),
+    )
+
+
 def _process_pyfig_blocks(content, post_slug=None):
-    """Replace ```python pyfig blocks with a <figure> wrapping the
-    rendered image plus a collapsible <details> for the source.
+    """Replace ```python pyfig blocks with a clean <figure>:
+        - just the image
+        - optional italic-serif caption underneath
+        - tiny, unobtrusive "source" toggle that reveals
+          the code highlighted by Pygments (same look as other code blocks).
 
-    Authors can opt into a caption with a leading `# caption: ...` line:
-        ```python pyfig
-        # caption: A figure caption.
-        plt.plot(...)
-        ```
-
-    On error, leave the source visible inside an error callout so the
-    author can fix it."""
+    Optional caption via a leading `# caption: ...` line.
+    On error, render an inline banner with a collapsed source toggle —
+    same chrome as success, so nothing leaks visibly."""
     import html as _html
+
     def sub(m):
         code = m.group(1)
         # Pull an optional caption off the first comment line
@@ -150,24 +162,38 @@ def _process_pyfig_blocks(content, post_slug=None):
             caption = lines[0].split('# caption:', 1)[1].strip()
             code = '\n'.join(lines[1:]) + ('\n' if not code.endswith('\n') else '')
         url, err = _render_pyfig(code, post_slug=post_slug)
+        # Render the source through Pygments so it matches the theme
+        # of every other code block on the site (no per-line bubbles,
+        # no pill styling — proper syntax highlighting in a single block).
+        source_html = _highlight_python(code.rstrip())
+
         if err:
+            # Error path: same chrome (no orphaned visible source).
             return (
-                '<aside class="callout callout--error"><strong>Python figure error:</strong> '
-                f'{err}</aside>\n\n```python\n{code}```'
+                '\n<figure class="pyfig pyfig--error">'
+                f'<div class="pyfig-error">Figure failed to render. <small>{_html.escape(err)}</small></div>'
+                '<figcaption class="pyfig-caption">'
+                '<details class="pyfig-source"><summary>source</summary>'
+                f'{source_html}'
+                '</details>'
+                '</figcaption>'
+                '</figure>\n'
             )
-        # <figure> with image + <details> source. Escape code for safe HTML.
-        escaped = _html.escape(code).rstrip()
+
         cap_html = (
-            f'<span class="pyfig-caption-text">{_html.escape(caption)}</span>'
+            f'<span class="pyfig-cap-text">{_html.escape(caption)}</span>'
             if caption else ''
         )
+        # alt = caption if provided, else empty (decorative)
+        alt = _html.escape(caption) if caption else ''
         return (
             '\n<figure class="pyfig">'
-            f'<img loading="lazy" src="{url}" alt="{_html.escape(caption) or "Python-rendered figure"}">'
+            # `loading="lazy"` is added later by render_markdown's lazy-load injector
+            f'<img src="{url}" alt="{alt}">'
             '<figcaption class="pyfig-caption">'
             f'{cap_html}'
-            '<details class="pyfig-source"><summary>view source</summary>'
-            f'<pre><code class="language-python">{escaped}</code></pre>'
+            '<details class="pyfig-source"><summary>source</summary>'
+            f'{source_html}'
             '</details>'
             '</figcaption>'
             '</figure>\n'

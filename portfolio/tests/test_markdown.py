@@ -91,8 +91,10 @@ class PyFigTests(TestCase):
             m.assert_called_once()
             self.assertIn('<figure class="pyfig">', out)
             self.assertIn('/media/blog-images/python/abc.png', out)
-            self.assertIn('view source', out)
+            self.assertIn('<summary>source</summary>', out)
             self.assertIn('<details', out)
+            # Pygments-highlighted, not raw <code>
+            self.assertIn('<div class="highlight">', out)
 
     def test_pyfig_caption_extracted_from_first_line(self):
         src = '```python pyfig\n# caption: A tasty figure.\nplt.plot([1,2])\n```'
@@ -105,13 +107,18 @@ class PyFigTests(TestCase):
             # caption is HTML escaped so check the text
             self.assertNotIn('# caption: A tasty figure.', out)
 
-    def test_pyfig_error_keeps_source_visible(self):
+    def test_pyfig_error_uses_banner_with_collapsed_source(self):
+        """Error path renders a compact banner + a collapsed <details>
+        for the source. No raw code spills into the post by default."""
         src = '```python pyfig\nthis_breaks\n```'
         with mock.patch('portfolio.blog._render_pyfig') as m:
             m.return_value = (None, "NameError: name 'this_breaks' is not defined")
             out = _process_pyfig_blocks(src)
-            self.assertIn('callout--error', out)
+            self.assertIn('pyfig--error', out)
             self.assertIn('NameError', out)
+            self.assertIn('Figure failed to render', out)
+            # Source is in a collapsed <details>, not free-floating
+            self.assertIn('<details class="pyfig-source"', out)
             self.assertIn('this_breaks', out)
 
     def test_pyfig_cache_hit_skips_subprocess(self):
