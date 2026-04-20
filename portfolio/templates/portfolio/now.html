@@ -1,5 +1,5 @@
 {% extends "portfolio/personal_base.html" %}
-{% load static %}
+{% load static portfolio_tags %}
 
 {% block title %}/now — Dennis Loevlie{% endblock %}
 
@@ -28,7 +28,7 @@
             {% for section in now.sections %}
             <section class="now-section">
                 <h2 class="now-section-title">{{ section.heading }}</h2>
-                <div class="now-section-body">{{ section.body|safe|linebreaksbr }}</div>
+                <div class="now-section-body">{{ section.body|md }}</div>
             </section>
             {% endfor %}
 

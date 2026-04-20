@@ -2349,6 +2349,14 @@ button.pub-cite-btn {
     color: var(--text-secondary);
 }
 
+.now-section-body p {
+    margin: 0 0 1.1em;
+}
+
+.now-section-body p:last-child {
+    margin-bottom: 0;
+}
+
 .now-section-body strong {
     color: var(--text-primary);
     font-weight: 600;

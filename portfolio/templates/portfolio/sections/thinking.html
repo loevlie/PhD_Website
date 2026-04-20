@@ -16,25 +16,30 @@
 
             <div class="thinking-prose">
                 <p>
-                    A simple <strong>mean-pooling MIL baseline</strong> matches or
-                    outperforms attention-based MIL and 3D-CNN methods on 4 of 6
-                    moderate-sized neuroimage tasks while training <strong>25× faster</strong>.
-                    My CHIL 2026 benchmark with Ethan Harvey gave me a precise way to
-                    see when bag-level pooling is enough — and when correlation between
-                    instances genuinely changes the geometry of the problem.
+                    A <strong>per-instance Gaussian baseline beats transformer-based MIL methods
+                    on instance-level metrics</strong> in our benchmarks, even though the
+                    transformers win on bag-level metrics. That gap matters — instance-level
+                    localization is what drives the clinical interpretation of these models.
+                    I'm investigating <strong>attention-regularization techniques</strong>
+                    (entropy penalties, sparsity priors, learned-k TopK attention) to
+                    drastically improve transformer instance-level metrics
+                    <em>without</em> sacrificing bag-level accuracy. Targeting NeurIPS 2026.
                 </p>
                 <p>
-                    The follow-up: how do we tell, <em>before training</em>, which regime a new dataset
-                    is in? Right now we run the full sweep. There should be a cheap
-                    diagnostic — something like a per-bag intra/inter variance ratio — that
-                    predicts whether attention pays for itself.
+                    On the same axis: our <strong>CHIL 2026 benchmark</strong> with Ethan Harvey
+                    showed a simple mean-pooling MIL baseline matches attention-MIL on
+                    4 of 6 moderate-sized neuroimage tasks while training
+                    <strong>25× faster</strong>. The follow-up question is how we predict,
+                    <em>before training</em>, which regime a new dataset is in.
                 </p>
                 <p>
-                    Adjacent: <strong>tabular foundation models</strong> (TabPFN, TabICL).
-                    The Frozen Forecaster on the homepage above is my hands-on with
-                    in-context learning vs gradient boosting on small synthetic 2D
-                    distributions. Next: extend the comparison to real medical-tabular
-                    benchmarks where the train sets are actually small.
+                    Looking ahead — picking the central PhD thread on
+                    <strong>tabular foundation models</strong>. Top candidates:
+                    V-JEPA-style world models for table dynamics, contrastive
+                    table-language alignment ("CLIP for tables") with column-then-row
+                    encoders + JEPA-in-modality, scaling-law theory for tabular
+                    pretraining, and causal structure inside TFMs.
+                    See <a href="/now/">the /now page</a> for details.
                 </p>
             </div>
 

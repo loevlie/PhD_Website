@@ -1,7 +1,25 @@
+import markdown as _md
+
 from django import template
 from django.utils.safestring import mark_safe
 
 register = template.Library()
+
+
+@register.filter(name='md')
+def render_md(text):
+    """Render an inline Markdown string to safe HTML.
+    Used by /now/ and other small editorial pages where the source
+    string is hand-authored (in data.py) and uses **bold** / *italic* /
+    [link](url) and inline `<br>` tags for paragraph spacing."""
+    if not text:
+        return ''
+    html = _md.markdown(
+        text,
+        extensions=['extra', 'smarty'],
+        output_format='html',
+    )
+    return mark_safe(html)
 
 
 AUTHOR_VARIANTS = [
