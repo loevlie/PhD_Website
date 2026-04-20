@@ -1718,12 +1718,27 @@
     text-align: center;
     max-width: 100%;
 }
-.blog-prose .pyfig img {
+.blog-prose .pyfig img,
+.blog-prose .pyfig svg {
     display: block;
     max-width: 100%;
     height: auto;
     margin: 0;
-    border-radius: 4px;
+    /* Match .prose img (regular blog images) so pyfig sits in the same
+       visual register. SVG: matplotlib hardcodes width="…pt" so we have
+       to override with max-width to keep figures from blowing past the
+       container; setting width: auto + height: auto + max-width: 100%
+       lets the browser scale on viewBox while honoring container width. */
+    width: auto;
+    border-radius: 8px;
+    /* matplotlib SVGs have a transparent background by default unless
+       facecolor is set on savefig. We pass facecolor="white" but keep
+       this as a defense in case a future plot uses a different theme. */
+    background: #ffffff;
+    /* Subtle bezel — same as the rest of the post imagery picks up via
+       the cards/figures it lives inside. Keeps the white plot from
+       reading as "floating" against a dark Catppuccin background. */
+    box-shadow: 0 1px 2px rgba(0, 0, 0, 0.04), 0 0 0 1px rgba(0, 0, 0, 0.06);
 }
 .blog-prose .pyfig-caption {
     margin-top: 12px;
