@@ -77,6 +77,7 @@ def blog_edit(request, slug):
         'post': post,
         'is_new': False,
         'tag_csv': ', '.join(t.name for t in post.tags.all()),
+        'demos': DEMOS,
     })
 
 

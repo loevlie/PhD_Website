@@ -1650,3 +1650,33 @@
     color: var(--ctp-base, #1e1e2e);
     opacity: 1;
 }
+
+/* Staff-only "Edit this post" pill. Floats top-right of the post. */
+.staff-edit-link {
+    position: fixed;
+    top: 76px;
+    right: 16px;
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    padding: 6px 12px;
+    background: var(--color-accent, var(--ctp-lavender, #7287fd));
+    color: var(--color-bg, white) !important;
+    border-radius: 999px;
+    font-family: var(--font-mono, 'JetBrains Mono', monospace);
+    font-size: 0.75rem;
+    font-weight: 600;
+    text-decoration: none;
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.18);
+    z-index: 50;
+    opacity: 0.78;
+    transition: opacity 150ms ease, transform 150ms ease;
+}
+.staff-edit-link:hover, .staff-edit-link:focus-visible {
+    opacity: 1;
+    transform: translateY(-1px);
+    color: var(--color-bg, white) !important;
+}
+@media (max-width: 720px) {
+    .staff-edit-link { padding: 5px 10px; font-size: 0.6875rem; }
+}

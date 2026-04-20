@@ -712,8 +712,13 @@
           insert: () => '\n## Heading\n\n', cursor: 4 },
         { id: 'h3',       label: 'Heading 3', icon: 'H₃', desc: 'Subsection heading',
           insert: () => '\n### Subheading\n\n', cursor: 5 },
-        { id: 'demo',     label: 'Demo embed', icon: '◫', desc: 'Embed a homepage demo',
-          insert: () => '<div class="demo-embed" data-slug="frozen-forecaster"></div>' },
+        // /demo expands at editor-load time into one entry per registered DEMO.
+        // Each inserts a `<div class="demo-embed" data-slug="...">` for that demo.
+        {% for d in demos %}
+        { id: 'demo-{{ d.slug }}', label: 'Demo: {{ d.title|escapejs }}', icon: '◫',
+          desc: '{{ d.summary|truncatechars:90|escapejs }}',
+          insert: () => '<div class="demo-embed" data-slug="{{ d.slug|escapejs }}"></div>' },
+        {% endfor %}
         { id: 'table',    label: 'Table', icon: '⊞', desc: '3×3 markdown table',
           insert: () => '\n| col1 | col2 | col3 |\n|------|------|------|\n| a    | b    | c    |\n| d    | e    | f    |\n' },
         { id: 'hr',       label: 'Section break', icon: '⎯', desc: 'Horizontal rule (---)',
