@@ -1,12 +1,73 @@
 # Design Pass — branch `design-pass-2026-04`
 
-Started 2026-04-19. Working branch off `main` at `973b341`. To revert all of this:
+Started 2026-04-19. Working branch off `main` at `973b341`.
+
+**Branch is pushed:** https://github.com/loevlie/PhD_Website/tree/design-pass-2026-04 — open a PR or just `git checkout` it locally to review.
+
+**Revert everything:**
 ```bash
 git checkout main
 git branch -D design-pass-2026-04
+git push origin --delete design-pass-2026-04   # if you want it gone from GH too
 ```
 
-This file is the running log for this session. Each change is a section with: **what**, **why**, **files touched**, and **how to undo just that piece**.
+**See it live (locally):** dev server is running at http://127.0.0.1:8000/. Most interesting URLs:
+- Homepage with new "What I'm thinking about" section: http://127.0.0.1:8000/
+- Lab notebook (rewritten /demos/): http://127.0.0.1:8000/demos/
+- Explainer template smoke test (sidenotes + citations + math): http://127.0.0.1:8000/blog/explainer-template-test/
+
+This file is the running log. Each change has: **what**, **why**, **files touched**, **how to undo just that piece**.
+
+---
+
+## TL;DR — what changed
+
+**Infrastructure (new capabilities):**
+- Tufte-style sidenotes for explainer posts (auto-generated from standard markdown footnote syntax).
+- Distill-style hover-citation popovers (one JSON manifest seeds every reference site-wide).
+- `is_explainer` flag on `Post` model + migration → opts a post into the heavier chrome.
+- Explainer template variant (collapsible top ToC, wider canvas, Explainer badge, sidenote-friendly layout).
+- Demos page rewritten as a dated lab notebook driven by `DEMOS` list in `data.py`. Each entry: what / why / what I learned.
+- New homepage section: "What I'm thinking about" — research-taste signal, three serif paragraphs, dated.
+
+**Aesthetic / animation modernization:**
+- OKLCH color tokens (perceptually uniform tints; replaced sRGB color-mix everywhere).
+- New tokens: `--focus-ring`, `--sidenote-color`, `--sidenote-marker`.
+- Native scroll-driven CSS animations expanded (`.section-reveal` utility, hero parallax).
+- Named view-transition for the avatar (homepage ↔ blog page morph).
+- Killed JS mousemove tilt + magnetic-cursor effects (Webflow tells); replaced with CSS-only hover lift.
+- Fluid `clamp()` typography on the hero name (28 px → 56 px without breakpoint jumps).
+- Trimmed top nav from 6 to 5 items, re-grouped children semantically.
+- Global `prefers-reduced-motion` guard.
+
+**Performance polish:**
+- `content-visibility: auto` for below-the-fold sections (LCP/INP win on long pages).
+- Async-load Google Fonts CSS + preload the two critical IBM Plex weights.
+
+**Deferred (need user input):**
+- 22 MB hero PNG → AVIF/WebP. Need lossless source. Tracked in Mind Mapper note 65.
+- 3 MB hero avatar video. Same — needs source to re-encode.
+
+## Numbers
+
+Local Lighthouse on `127.0.0.1:8000/` after the design pass:
+
+| | Before (live) | After (local) | Note |
+|---|---|---|---|
+| Performance | 56 | 59 | Local can't fix the 22 MB PNG; needs the source-file work to move materially |
+| Accessibility | 94 | 94 | Unchanged |
+| Best-Practices | 100 | 100 | Unchanged |
+| SEO | 100 | 100 | Unchanged |
+| FCP | 1.1 s | 0.8 s | Async-load fonts + preload helped |
+| LCP | 19.1 s | 19.1 s | **Hero PNG still dominates** — re-encoding it is the only thing that moves this |
+| CLS | 0.28 | 0.30 | Slightly worse — new sections shift layout. Sidenote: also dominated by the hero swap; needs the same fix |
+| TBT | 0 ms | 0 ms | Unchanged (JS workload was never the issue) |
+
+The performance story is unchanged because we deferred the dominant cost (the hero image). Once the lossless source is available, the deferred work in Mind Mapper note 65 will take Performance to 95+.
+
+The **aesthetic and capability** story is the substantive change in this branch — see the per-item changelog below.
+
+
 
 ---
 
