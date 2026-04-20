@@ -364,8 +364,14 @@ def blog_upload_image(request):
 
 
 def blog_post(request, slug):
-    post = get_post(slug)
+    is_staff = request.user.is_authenticated and request.user.is_staff
+    post = get_post(slug, include_drafts=is_staff)
     if post is None:
+        # Try again including drafts so anon visitors with the URL of a
+        # draft post see a friendly "working on it" stub instead of 404.
+        draft_post = get_post(slug, include_drafts=True)
+        if draft_post is not None:
+            return render(request, 'portfolio/blog_post_wip.html', {'post': draft_post})
         raise Http404("Post not found")
     all_posts = get_all_posts()
     # Get series posts if this post is part of a series

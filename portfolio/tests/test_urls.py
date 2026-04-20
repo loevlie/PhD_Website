@@ -60,6 +60,29 @@ class PublicUrlsRespondTests(StaffClientMixin, TestCase):
         r = self.anon_client.get('/blog/does-not-exist-xyz/')
         self.assertEqual(r.status_code, 404)
 
+    def test_draft_post_renders_wip_stub_for_anon(self):
+        draft = make_post(slug='wip-test', title='Coming soon', draft=True)
+        r = self.anon_client.get(f'/blog/{draft.slug}/')
+        self.assertEqual(r.status_code, 200)
+        self.assertContains(r, 'Working on it')
+        self.assertContains(r, 'Coming soon')  # title shown
+        # The actual body text should NOT leak to the public stub
+        self.assertNotContains(r, draft.body)
+
+    def test_draft_post_renders_full_for_staff(self):
+        draft = make_post(slug='wip-staff', title='Staff preview', draft=True)
+        r = self.staff_client.get(f'/blog/{draft.slug}/')
+        self.assertEqual(r.status_code, 200)
+        # Full post content visible to staff for preview
+        self.assertContains(r, 'Staff preview')
+
+    def test_draft_post_excluded_from_blog_listing(self):
+        make_post(slug='public-post', title='Public post')
+        make_post(slug='hidden-draft', title='Hidden draft', draft=True)
+        r = self.anon_client.get('/blog/')
+        self.assertContains(r, 'Public post')
+        self.assertNotContains(r, 'Hidden draft')
+
     def test_demo_detail_known(self):
         # frozen-forecaster ships in DEMOS
         r = self.anon_client.get('/demos/frozen-forecaster/')

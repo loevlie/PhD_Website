@@ -362,12 +362,19 @@ def get_all_posts(include_drafts=False):
     return posts
 
 
-def get_post(slug):
-    """Load a single blog post by slug."""
+def get_post(slug, include_drafts=False):
+    """Load a single blog post by slug.
+
+    By default drafts return None (so anon visitors get a 404 / WIP stub).
+    Pass `include_drafts=True` to fetch a draft for staff preview or for
+    the working-on-it stub renderer."""
     if _has_db():
         from portfolio.models import Post
         try:
-            p = Post.objects.get(slug=slug, draft=False)
+            qs = Post.objects.filter(slug=slug)
+            if not include_drafts:
+                qs = qs.filter(draft=False)
+            p = qs.get()
             return _post_to_dict(p)
         except Post.DoesNotExist:
             pass
@@ -377,6 +384,6 @@ def get_post(slug):
     if not filepath.exists():
         return None
     post = _parse_file_post(filepath)
-    if post['draft']:
+    if post['draft'] and not include_drafts:
         return None
     return post
