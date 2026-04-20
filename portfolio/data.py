@@ -8,7 +8,7 @@ HERO = {
     'title': 'ELLIS PhD Student',
     'affiliation': 'CWI & University of Amsterdam',
     'bio': (
-        'I am an ⭐ <a href="https://ellis.eu/research/phd-postdoc" target="_blank">ELLIS</a> PhD student at the <a href="https://www.cwi.nl/" target="_blank">Centrum Wiskunde & Informatica (CWI)</a> '
+        'I am an <a href="https://ellis.eu/research/phd-postdoc" target="_blank">ELLIS</a> PhD student at the <a href="https://www.cwi.nl/" target="_blank">Centrum Wiskunde & Informatica (CWI)</a> '
         'and the <a href="https://www.uva.nl/" target="_blank">University of Amsterdam</a>, '
         'working in the <a href="https://trl-lab.github.io/" target="_blank">Table Representation Learning Lab (TRLab)</a> '
         'and the <a href="https://amlab.science.uva.nl/" target="_blank">Amsterdam Machine Learning Lab (AMLab)</a>. '
@@ -498,7 +498,9 @@ NOW_PAGE = {
             'heading': 'Building',
             'body': (
                 "This site. **Frozen Forecaster** (homepage demo) — real TabICL vs "
-                "XGBoost inference cached from a Modal precompute."
+                "XGBoost inference cached from a Modal precompute. "
+                "**[NeurOpt](https://github.com/loevlie/neuropt)** — LLM-guided "
+                "ML optimization that reads training curves and proposes the next experiment."
             ),
         },
         # ─────────────────────────────────────────────────────────────
