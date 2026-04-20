@@ -84,6 +84,13 @@ STATIC_URL = 'static/'
 STATIC_ROOT = BASE_DIR / 'staticfiles'
 STATICFILES_STORAGE = 'whitenoise.storage.CompressedManifestStaticFilesStorage'
 
+# During tests, fall back to the basic static storage so {% static %}
+# lookups don't need a pre-built manifest. Tests assert behavior, not
+# the production storage backend.
+import sys as _sys
+if 'test' in _sys.argv or any('pytest' in a for a in _sys.argv):
+    STATICFILES_STORAGE = 'django.contrib.staticfiles.storage.StaticFilesStorage'
+
 # User-uploaded media (blog images posted via the in-browser editor).
 # In production this needs to be backed by S3 or equivalent — local
 # disk on Render's free tier is ephemeral. For local dev this is fine.
