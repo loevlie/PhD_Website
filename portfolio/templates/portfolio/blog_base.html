@@ -8,6 +8,22 @@
       x-init="$watch('flavor', val => { localStorage.setItem('ctp-flavor', val) })"
       :class="flavor">
 <head>
+    {# Anti-FOUC: apply the saved Catppuccin flavor BEFORE first paint.
+       Without this, the page paints with no flavor class for the few
+       hundred ms it takes Alpine to load — visible as a quick wrong-
+       theme flash. Mirrors the x-data default exactly. #}
+    <script>
+    (function () {
+        try {
+            var saved = localStorage.getItem('ctp-flavor');
+            if (!saved) {
+                saved = window.matchMedia('(prefers-color-scheme: dark)').matches ? 'mocha' : 'latte';
+            }
+            document.documentElement.classList.add(saved);
+        } catch (e) {}
+    })();
+    </script>
+    <style>[x-cloak]{display:none!important}</style>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <meta name="google-site-verification" content="taeW6FXPdYhqD0YVOOdBfMv2h_lGfn_Ku-x9zMF_vfg">

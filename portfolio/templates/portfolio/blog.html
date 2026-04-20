@@ -39,8 +39,13 @@
         <a href="{% url 'blog' %}?drafts=1" class="px-3 py-1 rounded-full text-xs font-medium transition-colors {% if only_drafts %}bg-accent text-white{% else %}bg-surface-2 text-content-secondary hover:text-content{% endif %}">Drafts only</a>
     </div>
     {% endif %}
-    <!-- Tag filters -->
-    <div class="flex gap-2 flex-wrap mb-10" id="blog-filter-tags">
+    <!-- Tag filters — hidden until Alpine + the dynamic-button JS settle.
+         `x-cloak` makes the row invisible during the brief window where
+         Alpine hasn't applied bindings yet AND the JS hasn't appended
+         per-tag buttons; both finish in <200ms and the row reveals
+         already-styled. Prevents the "All button flashes unstyled then
+         a row of buttons pops in" double flicker. -->
+    <div x-cloak class="flex gap-2 flex-wrap mb-10" id="blog-filter-tags">
         <button @click="activeTag = ''" :class="activeTag === '' ? 'bg-accent text-white' : 'bg-surface-2 text-content-secondary hover:text-content'"
                 class="px-4 py-1.5 rounded-full text-sm font-medium transition-colors">All</button>
     </div>

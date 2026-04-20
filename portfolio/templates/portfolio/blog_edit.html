@@ -723,6 +723,13 @@
           insert: () => '\n| col1 | col2 | col3 |\n|------|------|------|\n| a    | b    | c    |\n| d    | e    | f    |\n' },
         { id: 'hr',       label: 'Section break', icon: '⎯', desc: 'Horizontal rule (---)',
           insert: () => '\n\n---\n\n' },
+        // Markdown doesn't have native comment syntax. Two options:
+        //   - HTML comment: visible in HTML source but not rendered.
+        //   - Link-ref trick: vanishes entirely from the rendered output.
+        { id: 'comment',  label: 'Comment', icon: '※', desc: 'Hidden note for yourself (not rendered)',
+          insert: () => '<!--  -->', cursor: 5 },
+        { id: 'comment-hidden', label: 'Comment (fully hidden)', icon: '✎', desc: "Doesn't even appear in HTML source",
+          insert: () => '[//]: # ()', cursor: 9 },
     ];
 
     // ── /figure → file picker handler ───────────────────────────────
