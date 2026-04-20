@@ -469,9 +469,8 @@ NOW_PAGE = {
         {
             'heading': 'PhD direction',
             'body': (
-                "Settling on the central thread for the next few years — "
-                "**tabular foundation models**, with a few open angles I'm "
-                "weighing. Happy to compare notes privately."
+                "Currently interested in **tabular foundation models**. "
+                "Happy to compare notes."
             ),
         },
         # ─────────────────────────────────────────────────────────────
