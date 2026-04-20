@@ -59,6 +59,30 @@
     }
     </script>
 
+    {% comment %}
+    Speculation Rules — Chrome 109+. Pre-renders same-origin pages on
+    moderate hover/visibility, so internal navigation feels instant.
+    Excludes admin and analytics surfaces. Browsers without support
+    silently ignore the script tag.
+    {% endcomment %}
+    <script type="speculationrules">
+    {
+        "prerender": [{
+            "where": {
+                "and": [
+                    {"href_matches": "/*"},
+                    {"not": {"href_matches": "/admin/*"}},
+                    {"not": {"href_matches": "/site/insights*"}},
+                    {"not": {"href_matches": "/blog/*/edit/*"}},
+                    {"not": {"href_matches": "/cv.pdf"}},
+                    {"not": {"href_matches": "/a/*"}}
+                ]
+            },
+            "eagerness": "moderate"
+        }]
+    }
+    </script>
+
     <!-- Three.js import map -->
     <script type="importmap">
     { "imports": {

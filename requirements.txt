@@ -7,8 +7,11 @@ python-frontmatter==1.1.0
 psycopg[binary]>=3.1.18
 django-taggit==6.1.0
 dj-database-url==2.3.0
-# matplotlib + numpy for the /pyfig slash command — server-rendered
-# figures via subprocess (cached by content hash). Headless backend
-# (Agg) is set by the wrapper so no display is needed.
+# Default scientific-Python stack available to /pyfig blocks. Each post
+# can also declare extras via a per-post deps file (see _render_pyfig).
 matplotlib>=3.9
 numpy>=1.26
+scipy>=1.13
+pandas>=2.2
+scikit-learn>=1.5
+seaborn>=0.13

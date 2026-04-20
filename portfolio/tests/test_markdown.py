@@ -134,6 +134,28 @@ class PyFigTests(TestCase):
         finally:
             cached.unlink(missing_ok=True)
 
+    def test_get_all_posts_skips_html_render_for_speed(self):
+        """Listings should not pay the markdown-render cost. content_html
+        is empty; full render happens in get_post() per-post-view."""
+        from portfolio.blog import get_all_posts, invalidate_post_cache
+        from portfolio.tests._helpers import make_post
+        invalidate_post_cache()
+        make_post(slug='cheap-listing', title='Cheap', body='# H\n\ntext.')
+        listing = get_all_posts()
+        for p in listing:
+            self.assertEqual(p['content_html'], '',
+                             msg=f'{p["slug"]} should not have content_html in listing')
+
+    def test_get_post_renders_html_fresh_each_call(self):
+        """get_post is uncached; pyfig file-cache makes hot calls cheap.
+        Important so a fixed pyfig env (e.g. matplotlib install) doesn't
+        leave stale cached errors visible."""
+        from portfolio.blog import get_post
+        from portfolio.tests._helpers import make_post
+        make_post(slug='render-fresh', title='X', body='# Heading\n\nbody.')
+        p = get_post('render-fresh')
+        self.assertIn('<h1', p['content_html'])
+
     def test_pyfig_render_pipeline_replaces_block_with_figure(self):
         """End-to-end: render_markdown turns pyfig into a <figure> with
         the rendered image and a collapsible source <details>."""

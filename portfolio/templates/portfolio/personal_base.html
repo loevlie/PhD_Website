@@ -8,6 +8,12 @@
     <link rel="icon" type="image/png" href="{% static 'portfolio/images/favicon.png' %}">
     <link rel="apple-touch-icon" href="{% static 'portfolio/images/apple-touch-icon.png' %}">
     <title>{% block title %}Dennis Loevlie{% endblock %}</title>
+    {# Speculation Rules: Chrome 109+ pre-renders same-origin pages on
+       moderate hover/visibility for instant in-site nav. Excludes admin/
+       dashboard/editor/beacon. Other browsers ignore the script. #}
+    <script type="speculationrules">
+    {"prerender":[{"where":{"and":[{"href_matches":"/*"},{"not":{"href_matches":"/admin/*"}},{"not":{"href_matches":"/site/insights*"}},{"not":{"href_matches":"/blog/*/edit/*"}},{"not":{"href_matches":"/cv.pdf"}},{"not":{"href_matches":"/a/*"}}]},"eagerness":"moderate"}]}
+    </script>
 
     <!-- Webmention receiving — webmention.io is the free relay; replies on
          Mastodon/Bluesky/Twitter/personal sites POST here, and Bridgy Fed

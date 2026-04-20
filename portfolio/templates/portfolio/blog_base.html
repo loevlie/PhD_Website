@@ -14,6 +14,12 @@
     <link rel="icon" type="image/png" href="{% static 'portfolio/images/favicon.png' %}">
     <link rel="apple-touch-icon" href="{% static 'portfolio/images/apple-touch-icon.png' %}">
     <title>{% block title %}Blog — Dennis Loevlie{% endblock %}</title>
+    {# Speculation Rules: Chrome 109+ pre-renders same-origin pages on
+       moderate hover/visibility for instant in-site nav. Excludes admin
+       and editor surfaces. Other browsers ignore the script. #}
+    <script type="speculationrules">
+    {"prerender":[{"where":{"and":[{"href_matches":"/*"},{"not":{"href_matches":"/admin/*"}},{"not":{"href_matches":"/site/insights*"}},{"not":{"href_matches":"/blog/*/edit/*"}},{"not":{"href_matches":"/cv.pdf"}},{"not":{"href_matches":"/a/*"}}]},"eagerness":"moderate"}]}
+    </script>
 
     {% block meta %}
     <meta name="description" content="Thoughts on ML research, deep learning, and software engineering.">

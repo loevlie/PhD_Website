@@ -59,6 +59,26 @@ class SitemapTests(TestCase):
                              msg=f'sitemap leaked {forbidden}')
 
 
+class SpeculationRulesTests(TestCase):
+    """Speculation Rules JSON appears on every public page so Chrome
+    pre-renders the next-likely click."""
+
+    def test_home_has_speculation_rules(self):
+        r = self.client.get('/')
+        self.assertContains(r, '<script type="speculationrules">')
+        self.assertContains(r, '"prerender"')
+
+    def test_blog_post_has_speculation_rules(self):
+        make_post(slug='spec-test', title='Spec test')
+        r = self.client.get('/blog/spec-test/')
+        self.assertContains(r, '<script type="speculationrules">')
+
+    def test_speculation_rules_excludes_admin(self):
+        r = self.client.get('/')
+        # The JSON config must not pre-render admin URLs
+        self.assertContains(r, '"/admin/*"')
+
+
 class RobotsTxtTests(TestCase):
     def test_robots_returns_text(self):
         r = self.client.get('/robots.txt')

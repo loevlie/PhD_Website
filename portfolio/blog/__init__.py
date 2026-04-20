@@ -20,17 +20,60 @@ POSTS_DIR = Path(__file__).parent / 'posts'
 _PYFIG_RE = re.compile(r'```python\s+pyfig\s*\n(.*?)```', re.DOTALL)
 
 
-def _render_pyfig(code, timeout_s=10):
+def _post_extra_deps_path(slug):
+    """Optional per-post requirements file at blog/posts/<slug>.deps.txt
+    — one package per line. Lets a post that needs e.g. `torch` declare
+    it without bloating the global requirements.txt."""
+    if not slug:
+        return None
+    p = POSTS_DIR / f'{slug}.deps.txt'
+    return p if p.exists() else None
+
+
+def _ensure_post_deps(slug, cache_dir):
+    """If the post has an extras deps file and any package isn't already
+    importable, pip-install the file into <cache_dir>/<slug>/ and return
+    that path so it can be prepended to PYTHONPATH. Caches by file hash."""
+    deps_file = _post_extra_deps_path(slug)
+    if deps_file is None:
+        return None
+    deps_text = deps_file.read_text(encoding='utf-8').strip()
+    if not deps_text:
+        return None
+    h = hashlib.sha256(deps_text.encode('utf-8')).hexdigest()[:12]
+    target = cache_dir / 'pyfig-deps' / f'{slug}-{h}'
+    sentinel = target / '.installed'
+    if sentinel.exists():
+        return str(target)
+    target.mkdir(parents=True, exist_ok=True)
+    try:
+        subprocess.run(
+            [sys.executable, '-m', 'pip', 'install', '--quiet', '--target', str(target),
+             '-r', str(deps_file)],
+            timeout=120, capture_output=True, text=True, check=True,
+        )
+        sentinel.touch()
+        return str(target)
+    except Exception:
+        return None  # fall through; pyfig will fail with a clear ImportError
+
+
+def _render_pyfig(code, timeout_s=15, post_slug=None):
     """Run user matplotlib code in an isolated subprocess. Cache the
     resulting PNG by sha256 of the code so repeat renders cost nothing.
 
     Returns (rel_url, error_message). Exactly one is None.
 
+    Per-post extra deps: if a file exists at
+        portfolio/blog/posts/<slug>.deps.txt
+    its packages are pip-installed into a per-post directory and added
+    to PYTHONPATH for the subprocess. Cached by deps-file hash, so the
+    install only runs once per (slug, deps-content) combo.
+
     Security note: this executes arbitrary Python. The editor that
     creates these blocks is staff-only; the rendered post pulls from
-    the cache so untrusted readers never trigger execution. Subprocess
-    has a 10s timeout, runs with a clean PYTHONPATH inheriting only
-    the parent env (so matplotlib + numpy are available)."""
+    the cache so untrusted readers never trigger execution."""
+    import os as _os
     from django.conf import settings as dj_settings
 
     h = hashlib.sha256(code.encode('utf-8')).hexdigest()[:16]
@@ -42,8 +85,10 @@ def _render_pyfig(code, timeout_s=10):
     if out_path.exists():
         return rel_url, None
 
+    extras = _ensure_post_deps(post_slug, media_root)
+
     wrapper = (
-        'import os\n'
+        'import os, sys\n'
         'os.environ["MPLBACKEND"] = "Agg"\n'
         'import matplotlib\n'
         'matplotlib.use("Agg")\n'
@@ -56,12 +101,17 @@ def _render_pyfig(code, timeout_s=10):
         '    plt.close("all")\n'
     )
 
+    env = _os.environ.copy()
+    if extras:
+        env['PYTHONPATH'] = extras + _os.pathsep + env.get('PYTHONPATH', '')
+
     try:
         result = subprocess.run(
             [sys.executable, '-c', wrapper],
             timeout=timeout_s,
             capture_output=True,
             text=True,
+            env=env,
         )
     except subprocess.TimeoutExpired:
         return None, f'Render timed out (>{timeout_s}s)'
@@ -78,7 +128,7 @@ def _render_pyfig(code, timeout_s=10):
     return rel_url, None
 
 
-def _process_pyfig_blocks(content):
+def _process_pyfig_blocks(content, post_slug=None):
     """Replace ```python pyfig blocks with a <figure> wrapping the
     rendered image plus a collapsible <details> for the source.
 
@@ -99,7 +149,7 @@ def _process_pyfig_blocks(content):
         if lines and lines[0].lstrip().startswith('# caption:'):
             caption = lines[0].split('# caption:', 1)[1].strip()
             code = '\n'.join(lines[1:]) + ('\n' if not code.endswith('\n') else '')
-        url, err = _render_pyfig(code)
+        url, err = _render_pyfig(code, post_slug=post_slug)
         if err:
             return (
                 '<aside class="callout callout--error"><strong>Python figure error:</strong> '
@@ -241,7 +291,7 @@ def _transform_footnotes_to_sidenotes(html):
     return html
 
 
-def render_markdown(content, is_explainer=False):
+def render_markdown(content, is_explainer=False, post_slug=None):
     """Convert markdown string to HTML with syntax highlighting, ToC, and
     (for explainer posts) Tufte-style sidenotes from footnote markup.
 
@@ -256,7 +306,7 @@ def render_markdown(content, is_explainer=False):
     """
     # Render Python figure blocks first — replaces ```python pyfig with
     # an inline image, so subsequent passes treat them as ordinary images.
-    content = _process_pyfig_blocks(content)
+    content = _process_pyfig_blocks(content, post_slug=post_slug)
     content, latex_placeholders = _protect_latex(content)
 
     md = markdown.Markdown(extensions=[
@@ -288,11 +338,21 @@ def estimate_reading_time(content):
     return max(1, math.ceil(words / 200))
 
 
-def _post_to_dict(post_obj):
-    """Convert a Post model instance to the standard post dict."""
+def _post_to_dict(post_obj, render_html=True):
+    """Convert a Post model instance to the standard post dict.
+
+    `render_html=False` skips the markdown render — used by listings and
+    by the cached get_all_posts() so a single bad pyfig block can't
+    poison every listing for 10 minutes. content_html / toc_html are
+    rendered fresh in the single-post view path."""
     is_explainer = bool(getattr(post_obj, 'is_explainer', False))
     is_paper_companion = bool(getattr(post_obj, 'is_paper_companion', False))
-    content_html, toc_html = render_markdown(post_obj.body, is_explainer=is_explainer)
+    if render_html:
+        content_html, toc_html = render_markdown(
+            post_obj.body, is_explainer=is_explainer, post_slug=post_obj.slug,
+        )
+    else:
+        content_html, toc_html = '', ''
     return {
         'slug': post_obj.slug,
         'title': post_obj.title,
@@ -317,15 +377,21 @@ def _post_to_dict(post_obj):
     }
 
 
-def _parse_file_post(filepath):
-    """Parse a single markdown file into a post dict."""
+def _parse_file_post(filepath, render_html=True):
+    """Parse a single markdown file into a post dict.
+    `render_html=False` skips the markdown render (see _post_to_dict)."""
     post = frontmatter.load(filepath)
     slug = filepath.stem
 
     raw_content = post.content
     is_explainer = bool(post.get('is_explainer', False))
     is_paper_companion = bool(post.get('is_paper_companion', False))
-    content_html, toc_html = render_markdown(raw_content, is_explainer=is_explainer)
+    if render_html:
+        content_html, toc_html = render_markdown(
+            raw_content, is_explainer=is_explainer, post_slug=slug,
+        )
+    else:
+        content_html, toc_html = '', ''
     reading_time = estimate_reading_time(raw_content)
 
     post_date = post.get('date', date.today())
@@ -392,20 +458,21 @@ def invalidate_post_cache():
 
 
 def _load_all_posts(include_drafts=False):
-    """Uncached implementation of get_all_posts."""
+    """Uncached implementation of get_all_posts. Listings only need
+    metadata; content_html is rendered on demand by get_post()."""
     if _has_db():
         from portfolio.models import Post
-        qs = Post.objects.all()
+        qs = Post.objects.all().prefetch_related('tags')
         if not include_drafts:
             qs = qs.filter(draft=False)
-        return [_post_to_dict(p) for p in qs]
+        return [_post_to_dict(p, render_html=False) for p in qs]
 
     # Fallback to file-based posts
     posts = []
     if not POSTS_DIR.exists():
         return posts
     for filepath in POSTS_DIR.glob('*.md'):
-        post = _parse_file_post(filepath)
+        post = _parse_file_post(filepath, render_html=False)
         if post['draft'] and not include_drafts:
             continue
         posts.append(post)
@@ -414,7 +481,12 @@ def _load_all_posts(include_drafts=False):
 
 
 def get_post(slug, include_drafts=False):
-    """Load a single blog post by slug.
+    """Load a single blog post by slug, with full content_html rendered.
+
+    Not cached — pyfig blocks have their own file-level cache (PNG by
+    SHA-256 of the code), so cache hits are still cheap. Skipping the
+    in-memory cache here means a fresh render on every page-view, which
+    avoids stale-error caching when matplotlib isn't installed yet.
 
     By default drafts return None (so anon visitors get a 404 / WIP stub).
     Pass `include_drafts=True` to fetch a draft for staff preview or for
@@ -422,11 +494,11 @@ def get_post(slug, include_drafts=False):
     if _has_db():
         from portfolio.models import Post
         try:
-            qs = Post.objects.filter(slug=slug)
+            qs = Post.objects.filter(slug=slug).prefetch_related('tags')
             if not include_drafts:
                 qs = qs.filter(draft=False)
             p = qs.get()
-            return _post_to_dict(p)
+            return _post_to_dict(p, render_html=True)
         except Post.DoesNotExist:
             pass
 
@@ -434,7 +506,7 @@ def get_post(slug, include_drafts=False):
     filepath = POSTS_DIR / f'{slug}.md'
     if not filepath.exists():
         return None
-    post = _parse_file_post(filepath)
+    post = _parse_file_post(filepath, render_html=True)
     if post['draft'] and not include_drafts:
         return None
     return post
