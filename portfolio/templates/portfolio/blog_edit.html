@@ -840,9 +840,13 @@
         // Cheap visual update — only flip the .active class on existing
         // nodes. Don't re-render the whole menu (that destroys the node
         // mid-click and was the cause of "click does nothing" reports).
+        // Also scrolls the active item into view so ArrowUp/Down keeps
+        // the selection visible when the menu overflows its max-height.
         Array.from(menu.querySelectorAll('.si')).forEach(el => {
             const i = parseInt(el.dataset.i, 10);
-            el.classList.toggle('active', i === menuActive);
+            const isActive = i === menuActive;
+            el.classList.toggle('active', isActive);
+            if (isActive) el.scrollIntoView({ block: 'nearest' });
         });
     }
 
