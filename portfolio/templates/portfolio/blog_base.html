@@ -52,10 +52,12 @@
     <meta name="twitter:card" content="summary_large_image">
     {% endblock %}
 
-    <!-- Fonts -->
-    <link rel="preconnect" href="https://fonts.googleapis.com">
-    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
+    {% comment %}Fonts — self-hosted woff2 under portfolio/static/portfolio/fonts/.
+       Preload Inter regular since it's the LCP font for post bodies;
+       JetBrains Mono only appears inside code blocks so it can wait.{% endcomment %}
+    <link rel="preload" as="font" type="font/woff2" crossorigin
+          href="{% static 'portfolio/fonts/inter-400-latin.woff2' %}">
+    <link rel="stylesheet" href="{% static 'portfolio/css/fonts.css' %}">
 
     <!-- Webmention + Bridgy Fed receiving (same as portfolio base) -->
     <link rel="webmention" href="https://webmention.io/dennisloevlie.com/webmention">
