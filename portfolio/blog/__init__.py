@@ -367,9 +367,13 @@ def _transform_footnotes_to_sidenotes(html):
 # ──────────────────────────────────────────────────────────────────────
 #
 # Posts can embed a portfolio demo (see portfolio/content/demos.py) by
-# dropping this placeholder anywhere in the markdown body:
+# dropping either of these equivalent placeholders anywhere in the
+# markdown body:
 #
-#     <div data-demo="frozen-forecaster"></div>
+#     <div data-demo="frozen-forecaster"></div>         (preferred)
+#     <div class="demo-embed" data-slug="frozen-forecaster"></div>
+#                                                (pre-2026-04 syntax,
+#                                                 kept for existing posts)
 #
 # Before markdown conversion, `_expand_demo_embeds` swaps the placeholder
 # for the rendered contents of `portfolio/templates/portfolio/demos/
@@ -378,18 +382,30 @@ def _transform_footnotes_to_sidenotes(html):
 # module + demos-embed.css so the widget actually runs on the blog page.
 # Unknown slugs render as an inline error block (so a typo isn't silent).
 
+# New canonical form: <div data-demo="slug"></div>
 _DEMO_MARKER_RE = re.compile(
     r'<div\s+data-demo=["\']([a-z0-9\-]+)["\'][^>]*>\s*</div>',
     re.IGNORECASE,
 )
 
+# Legacy form from early demo-embed drafts: <div class="demo-embed" data-slug="…"></div>.
+# The order of attributes inside the tag isn't fixed, so we match them
+# independently (both must be present inside the same <div>).
+_DEMO_LEGACY_RE = re.compile(
+    r'<div\b(?=[^>]*\bclass=["\']demo-embed["\'])(?=[^>]*\bdata-slug=["\']([a-z0-9\-]+)["\'])[^>]*>\s*</div>',
+    re.IGNORECASE,
+)
+
 
 def _expand_demo_embeds(content):
-    """Replace `<div data-demo="slug"></div>` markers with the rendered
-    embed template for that demo, wrapped in `.demo-embed-root` so the
-    embed inherits blog-side CSS variables."""
-    if 'data-demo=' not in content:
-        return content  # fast-path: most posts don't embed demos
+    """Replace demo-marker placeholders with the rendered embed template
+    for the matching slug, wrapped in `.demo-embed-root` so the embed
+    inherits blog-side CSS variables. Supports both the canonical
+    `<div data-demo="slug"></div>` form and the legacy
+    `<div class="demo-embed" data-slug="slug"></div>` form."""
+    # Fast-path: if neither attribute is present, nothing to do.
+    if 'data-demo=' not in content and 'data-slug=' not in content:
+        return content
 
     # Deferred imports: this module is imported very early and Django
     # settings may not be configured yet when blog/__init__.py is loaded
@@ -399,8 +415,7 @@ def _expand_demo_embeds(content):
 
     demos_by_slug = {d['slug']: d for d in DEMOS}
 
-    def _replace(m):
-        slug = m.group(1)
+    def _render(slug):
         demo = demos_by_slug.get(slug)
         if demo is None:
             return (
@@ -429,7 +444,9 @@ def _expand_demo_embeds(content):
             f'</div>'
         )
 
-    return _DEMO_MARKER_RE.sub(_replace, content)
+    content = _DEMO_MARKER_RE.sub(lambda m: _render(m.group(1)), content)
+    content = _DEMO_LEGACY_RE.sub(lambda m: _render(m.group(1)), content)
+    return content
 
 
 def render_markdown(content, is_explainer=False, post_slug=None, errors_out=None):

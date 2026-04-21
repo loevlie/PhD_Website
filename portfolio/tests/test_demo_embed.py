@@ -64,6 +64,29 @@ class DemoEmbedMarkdownTests(TestCase):
         self.assertNotIn('demo-embed-root', html)
         self.assertNotIn('demo-embed-error', html)
 
+    def test_legacy_marker_form_also_expands(self):
+        """Pre-2026-04 posts used `<div class="demo-embed" data-slug="…"></div>`.
+        Both the legacy and canonical forms expand to the same output."""
+        body = (
+            'Legacy form:\n\n'
+            '<div class="demo-embed" data-slug="nanoparticle-viewer"></div>\n\n'
+            'Canonical form:\n\n'
+            '<div data-demo="nanoparticle-viewer"></div>\n'
+        )
+        html, _ = render_markdown(body)
+        # Both markers render the embed wrapper with the slug.
+        self.assertEqual(
+            html.count('class="demo-embed-root" data-demo="nanoparticle-viewer"'),
+            2,
+        )
+
+    def test_legacy_marker_attribute_order_tolerated(self):
+        """Authors sometimes write `data-slug` before `class`. Match anyway."""
+        body = '<div data-slug="frozen-forecaster" class="demo-embed"></div>\n'
+        html, _ = render_markdown(body)
+        self.assertIn('class="demo-embed-root" data-demo="frozen-forecaster"', html)
+        self.assertIn('id="ff-canvas"', html)
+
 
 class DemoEmbedBlogPostIntegrationTests(TestCase):
     """When a blog post body contains the marker, blog_post.html loads
@@ -117,6 +140,25 @@ class DemoEmbedBlogPostIntegrationTests(TestCase):
         r = Client().get(f'/blog/{p.slug}/')
         self.assertNotContains(r, 'portfolio/css/demos-embed.css')
         self.assertNotContains(r, 'portfolio/js/frozen-forecaster.js')
+
+    def test_legacy_marker_triggers_asset_loading(self):
+        """Posts that use the old `<div class="demo-embed" data-slug="…">`
+        form get the same CSS + JS loaded as posts using the new form."""
+        from portfolio.models import Post
+        p = Post.objects.create(
+            slug='legacy-demo-post',
+            title='Legacy post',
+            body=(
+                '# Legacy post\n\n'
+                '<div class="demo-embed" data-slug="nanoparticle-viewer"></div>\n'
+            ),
+            excerpt='.',
+            date=date.today(),
+        )
+        r = Client().get(f'/blog/{p.slug}/')
+        self.assertEqual(r.status_code, 200)
+        self.assertContains(r, 'portfolio/css/demos-embed.css')
+        self.assertContains(r, 'portfolio/js/nanoparticle.js')
 
 
 class DemoWriteupTemplateTests(TestCase):

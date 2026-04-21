@@ -43,10 +43,11 @@ If a post has an explicit cover (post.image), that takes precedence.
 <link rel="stylesheet" href="{% static 'portfolio/css/pygments.css' %}">
 <link rel="stylesheet" href="{% static 'portfolio/vendor/katex/katex.min.css' %}">
 {% comment %}Demo embeds. Any post with a `<div data-demo="…">` marker
-   gets the self-contained demo stylesheet. The per-demo JS modules are
-   gated at the bottom in {% block scripts %} so the download matches
-   what the body actually embeds.{% endcomment %}
-{% if 'data-demo=' in post.body or 'data-demo=' in post.content_html %}
+   (or the legacy `class="demo-embed" data-slug="…"` form) gets the
+   self-contained demo stylesheet. The per-demo JS modules are gated
+   at the bottom in {% block scripts %} so the download matches what
+   the body actually embeds.{% endcomment %}
+{% if 'data-demo=' in post.body or 'data-demo=' in post.content_html or 'class="demo-embed"' in post.body or 'class="demo-embed"' in post.content_html %}
 <link rel="stylesheet" href="{% static 'portfolio/css/demos-embed.css' %}">
 {% endif %}
 {% endblock %}
@@ -624,10 +625,10 @@ If a post has an explicit cover (post.image), that takes precedence.
    nanoparticle viewer we also declare the three.js importmap — mirrors
    demo_detail.html. frozen-forecaster and depth-estimation are pure
    modules / classic scripts so no importmap needed.{% endcomment %}
-{% if 'data-demo="frozen-forecaster"' in post.body or 'data-demo="frozen-forecaster"' in post.content_html %}
+{% if 'data-demo="frozen-forecaster"' in post.body or 'data-demo="frozen-forecaster"' in post.content_html or 'data-slug="frozen-forecaster"' in post.body or 'data-slug="frozen-forecaster"' in post.content_html %}
 <script src="{% static 'portfolio/js/frozen-forecaster.js' %}" defer></script>
 {% endif %}
-{% if 'data-demo="nanoparticle-viewer"' in post.body or 'data-demo="nanoparticle-viewer"' in post.content_html %}
+{% if 'data-demo="nanoparticle-viewer"' in post.body or 'data-demo="nanoparticle-viewer"' in post.content_html or 'data-slug="nanoparticle-viewer"' in post.body or 'data-slug="nanoparticle-viewer"' in post.content_html %}
 <script type="importmap">
 {
     "imports": {
@@ -638,7 +639,7 @@ If a post has an explicit cover (post.image), that takes precedence.
 </script>
 <script type="module" src="{% static 'portfolio/js/nanoparticle.js' %}"></script>
 {% endif %}
-{% if 'data-demo="depth-estimation"' in post.body or 'data-demo="depth-estimation"' in post.content_html %}
+{% if 'data-demo="depth-estimation"' in post.body or 'data-demo="depth-estimation"' in post.content_html or 'data-slug="depth-estimation"' in post.body or 'data-slug="depth-estimation"' in post.content_html %}
 <script type="module" src="{% static 'portfolio/js/depth-demo.js' %}"></script>
 {% endif %}
 <!-- Hover-citation popovers (active wherever <cite class="ref" data-key="..."> appears) -->
