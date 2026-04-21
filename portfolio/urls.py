@@ -48,6 +48,10 @@ urlpatterns = [
     path('a/p', analytics.beacon_pageview, name='analytics_beacon_pageview'),
     path('a/u', analytics.beacon_update, name='analytics_beacon_update'),
     path('site/insights/', analytics_dashboard.dashboard, name='analytics_dashboard'),
+    # Unified admin Studio landing — one dashboard for New post / Edit reading
+    # / etc. Reuses the staff-only auth pattern (see views/studio.py).
+    path('site/studio/', views.studio, name='studio'),
+    path('site/reading/add/', views.reading_quickadd, name='reading_quickadd'),
     path('sitemap.xml', sitemap, {'sitemaps': sitemaps}, name='sitemap'),
     path('robots.txt', views.robots_txt, name='robots_txt'),
     path('presentations/<slug:slug>/', views.presentation, name='presentation'),

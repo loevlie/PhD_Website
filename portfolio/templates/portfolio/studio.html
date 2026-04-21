@@ -1,0 +1,198 @@
+{% extends "portfolio/personal_base.html" %}
+{% load static %}
+
+{% block title %}Studio — Dennis Loevlie{% endblock %}
+
+{% block og_meta %}
+<meta property="og:title" content="Studio">
+<meta name="robots" content="noindex,nofollow">
+{% endblock %}
+
+{% block extra_head %}
+<link rel="stylesheet" href="{% static 'portfolio/css/studio.css' %}">
+{% endblock %}
+
+{% block content %}
+<main class="studio">
+    <div class="studio-container">
+        <header class="studio-head">
+            <div>
+                <p class="studio-eyebrow">Admin</p>
+                <h1 class="studio-title">Studio</h1>
+                <p class="studio-lede">Everything you can edit without a redeploy, in one place.</p>
+            </div>
+            <div class="studio-head-actions">
+                <a href="/admin/" class="studio-btn studio-btn--ghost">Full Django admin &rarr;</a>
+                <a href="/site/insights/" class="studio-btn studio-btn--ghost">Analytics &rarr;</a>
+            </div>
+        </header>
+
+        {% if messages %}
+        <div class="studio-messages">
+            {% for m in messages %}
+            <div class="studio-message studio-message--{{ m.tags|default:'info' }}">{{ m }}</div>
+            {% endfor %}
+        </div>
+        {% endif %}
+
+        {# ── Top row: write something new ───────────────────────────── #}
+        <section class="studio-section">
+            <h2 class="studio-section-title">Write something new</h2>
+            <div class="studio-grid studio-grid--3">
+                <a class="studio-card studio-card--primary" href="/blog/new/">
+                    <div class="studio-card-icon">✒️</div>
+                    <h3 class="studio-card-title">New blog post</h3>
+                    <p class="studio-card-desc">Long-form essay for /blog/. Opens the template picker.</p>
+                    <div class="studio-card-meta">{{ counts.essays }} published · {{ counts.essay_drafts }} draft{{ counts.essay_drafts|pluralize }}</div>
+                </a>
+                <a class="studio-card" href="/blog/new/?template=lab_note">
+                    <div class="studio-card-icon">🧪</div>
+                    <h3 class="studio-card-title">New lab note</h3>
+                    <p class="studio-card-desc">Dated, status-tagged entry for /notebook/.</p>
+                    <div class="studio-card-meta">{{ counts.lab_notes }} published · {{ counts.lab_note_drafts }} draft{{ counts.lab_note_drafts|pluralize }}</div>
+                </a>
+                <details class="studio-card studio-card--form">
+                    <summary>
+                        <div class="studio-card-icon">📚</div>
+                        <h3 class="studio-card-title">New reading entry</h3>
+                        <p class="studio-card-desc">Quick add — paste a title and URL.</p>
+                        <div class="studio-card-meta">{{ counts.reading_this_week }} this week · {{ counts.reading_lingering }} lingering</div>
+                    </summary>
+                    <form method="post" action="{% url 'reading_quickadd' %}" class="studio-quickform">
+                        {% csrf_token %}
+                        <input type="hidden" name="next" value="{% url 'studio' %}">
+                        <label>
+                            <span>Title <em>(required)</em></span>
+                            <input type="text" name="title" required maxlength="300" placeholder="e.g. Scaling Laws for Neural Language Models">
+                        </label>
+                        <label>
+                            <span>URL</span>
+                            <input type="url" name="url" placeholder="https://arxiv.org/abs/…">
+                        </label>
+                        <div class="studio-quickform-row">
+                            <label>
+                                <span>Venue</span>
+                                <input type="text" name="venue" placeholder="arXiv / NeurIPS / …">
+                            </label>
+                            <label>
+                                <span>Year</span>
+                                <input type="number" name="year" min="1900" max="2100">
+                            </label>
+                            <label>
+                                <span>Status</span>
+                                <select name="status">
+                                    <option value="this_week" selected>This week</option>
+                                    <option value="lingering">Lingering</option>
+                                    <option value="archived">Archived</option>
+                                </select>
+                            </label>
+                        </div>
+                        <label>
+                            <span>Annotation</span>
+                            <textarea name="annotation" rows="2" placeholder="One-line note in your own voice…"></textarea>
+                        </label>
+                        <button type="submit" class="studio-btn studio-btn--primary">Add to /reading/</button>
+                    </form>
+                </details>
+            </div>
+        </section>
+
+        {# ── Edit existing content ──────────────────────────────────── #}
+        <section class="studio-section">
+            <h2 class="studio-section-title">Edit existing content</h2>
+            <div class="studio-grid studio-grid--4">
+                <a class="studio-card" href="/admin/portfolio/post/">
+                    <h3 class="studio-card-title">Posts</h3>
+                    <p class="studio-card-desc">Essays + lab notes. Edit body / tags / maturity.</p>
+                </a>
+                <a class="studio-card" href="/admin/portfolio/reading/">
+                    <h3 class="studio-card-title">Reading list</h3>
+                    <p class="studio-card-desc">Bulk edit status / order, link annotations.</p>
+                </a>
+                <a class="studio-card" href="/admin/portfolio/newsitem/">
+                    <h3 class="studio-card-title">News</h3>
+                    <p class="studio-card-desc">Homepage /#news bullets.</p>
+                </a>
+                <a class="studio-card" href="/admin/portfolio/publication/">
+                    <h3 class="studio-card-title">Publications</h3>
+                    <p class="studio-card-desc">Papers + posters + selected-for-homepage toggle.</p>
+                </a>
+                <a class="studio-card" href="/admin/portfolio/project/">
+                    <h3 class="studio-card-title">Projects</h3>
+                    <p class="studio-card-desc">/#projects and /projects/ cards.</p>
+                </a>
+                <a class="studio-card" href="/admin/portfolio/timelineentry/">
+                    <h3 class="studio-card-title">Timeline</h3>
+                    <p class="studio-card-desc">/#experience rows.</p>
+                </a>
+                <a class="studio-card" href="/admin/portfolio/opensourceitem/">
+                    <h3 class="studio-card-title">Open source</h3>
+                    <p class="studio-card-desc">/#opensource contributions.</p>
+                </a>
+                <a class="studio-card" href="/admin/portfolio/sociallink/">
+                    <h3 class="studio-card-title">Social links</h3>
+                    <p class="studio-card-desc">Hero + contact + JSON-LD sameAs.</p>
+                </a>
+                <a class="studio-card" href="/admin/portfolio/nowpage/">
+                    <h3 class="studio-card-title">/now/ page</h3>
+                    <p class="studio-card-desc">Quarterly snapshot — update the date!</p>
+                </a>
+            </div>
+        </section>
+
+        {# ── Recent activity (essays / lab notes / reading) ─────────── #}
+        <section class="studio-section">
+            <h2 class="studio-section-title">Recent activity</h2>
+            <div class="studio-grid studio-grid--3">
+                <div class="studio-card studio-card--list">
+                    <h3 class="studio-card-title">Latest essays</h3>
+                    {% if recent_essays %}
+                    <ul class="studio-list">
+                        {% for p in recent_essays %}
+                        <li>
+                            <a href="/blog/{{ p.slug }}/edit/">{{ p.title }}</a>
+                            {% if p.draft %}<span class="studio-pill">Draft</span>{% endif %}
+                            <span class="studio-meta">{{ p.modified_at|date:'M j' }}</span>
+                        </li>
+                        {% endfor %}
+                    </ul>
+                    {% else %}
+                    <p class="studio-empty">No essays yet.</p>
+                    {% endif %}
+                </div>
+                <div class="studio-card studio-card--list">
+                    <h3 class="studio-card-title">Latest lab notes</h3>
+                    {% if recent_lab_notes %}
+                    <ul class="studio-list">
+                        {% for p in recent_lab_notes %}
+                        <li>
+                            <a href="/blog/{{ p.slug }}/edit/">{{ p.title }}</a>
+                            {% if p.draft %}<span class="studio-pill">Draft</span>{% endif %}
+                            <span class="studio-meta">{{ p.modified_at|date:'M j' }}</span>
+                        </li>
+                        {% endfor %}
+                    </ul>
+                    {% else %}
+                    <p class="studio-empty">No lab notes yet.</p>
+                    {% endif %}
+                </div>
+                <div class="studio-card studio-card--list">
+                    <h3 class="studio-card-title">Latest reading</h3>
+                    {% if recent_reading %}
+                    <ul class="studio-list">
+                        {% for r in recent_reading %}
+                        <li>
+                            <a href="/admin/portfolio/reading/{{ r.pk }}/change/">{{ r.title|truncatechars:60 }}</a>
+                            <span class="studio-meta">{{ r.modified_at|date:'M j' }}</span>
+                        </li>
+                        {% endfor %}
+                    </ul>
+                    {% else %}
+                    <p class="studio-empty">No reading entries yet.</p>
+                    {% endif %}
+                </div>
+            </div>
+        </section>
+    </div>
+</main>
+{% endblock %}

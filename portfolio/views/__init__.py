@@ -12,6 +12,7 @@ working.
   blog_editor  — staff-only in-browser editor: /blog/new/, /blog/<slug>/edit/,
                  autosave, preview, image upload.
   webmentions  — webmention.io fetcher used by blog_post.
+  studio       — unified admin-landing dashboard (/site/studio/).
 """
 from .pages import (
     index,
@@ -46,6 +47,8 @@ from .blog_editor import (
     blog_upload_image,
     blog_autosave,
 )
+from .studio import studio
+from .reading_quickadd import reading_quickadd
 
 __all__ = [
     'index',
@@ -75,4 +78,6 @@ __all__ = [
     'blog_preview',
     'blog_upload_image',
     'blog_autosave',
+    'studio',
+    'reading_quickadd',
 ]

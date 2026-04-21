@@ -1,0 +1,279 @@
+/* Studio — staff-facing dashboard at /site/studio/.
+   Reuses the portfolio's variables.css palette (var(--bg-primary),
+   --text-primary, --accent, --border) so dark/light mode follow the
+   site-wide theme toggle. No component overrides beyond what the
+   dashboard itself needs. */
+
+.studio {
+    min-height: calc(100vh - 64px);
+    padding: 80px 20px 120px;
+    background: var(--bg-primary);
+    color: var(--text-primary);
+}
+
+.studio-container {
+    max-width: 1080px;
+    margin: 0 auto;
+}
+
+.studio-head {
+    display: flex;
+    align-items: flex-end;
+    justify-content: space-between;
+    gap: 24px;
+    flex-wrap: wrap;
+    padding-bottom: 24px;
+    border-bottom: 1px solid var(--border);
+    margin-bottom: 32px;
+}
+.studio-eyebrow {
+    font-size: 0.75rem;
+    text-transform: uppercase;
+    letter-spacing: 0.12em;
+    color: var(--text-secondary);
+    margin: 0 0 6px;
+}
+.studio-title {
+    font-size: clamp(2rem, 4vw, 2.75rem);
+    font-weight: 700;
+    letter-spacing: -0.02em;
+    margin: 0 0 8px;
+    line-height: 1.05;
+}
+.studio-lede {
+    color: var(--text-secondary);
+    margin: 0;
+    max-width: 52ch;
+}
+.studio-head-actions { display: flex; gap: 8px; }
+
+.studio-btn {
+    display: inline-flex; align-items: center; gap: 6px;
+    padding: 8px 14px;
+    font-size: 0.85rem; font-weight: 500;
+    border-radius: 8px;
+    text-decoration: none;
+    background: transparent;
+    border: 1px solid var(--border);
+    color: var(--text-primary);
+    cursor: pointer;
+    transition: background 0.15s, border-color 0.15s;
+}
+.studio-btn:hover { background: var(--bg-tertiary); border-color: var(--accent); }
+.studio-btn--primary {
+    background: var(--accent);
+    border-color: var(--accent);
+    color: white;
+}
+.studio-btn--primary:hover { filter: brightness(1.06); background: var(--accent); }
+.studio-btn--ghost { background: transparent; }
+
+.studio-section { margin: 44px 0; }
+.studio-section-title {
+    font-size: 0.8125rem;
+    text-transform: uppercase;
+    letter-spacing: 0.12em;
+    color: var(--text-secondary);
+    font-weight: 600;
+    margin: 0 0 14px;
+}
+
+.studio-grid {
+    display: grid;
+    gap: 14px;
+}
+.studio-grid--3 { grid-template-columns: repeat(3, minmax(0, 1fr)); }
+.studio-grid--4 { grid-template-columns: repeat(4, minmax(0, 1fr)); }
+@media (max-width: 900px) {
+    .studio-grid--3, .studio-grid--4 { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+}
+@media (max-width: 620px) {
+    .studio-grid--3, .studio-grid--4 { grid-template-columns: 1fr; }
+}
+
+.studio-card {
+    display: block;
+    padding: 18px 18px 16px;
+    background: var(--bg-secondary);
+    border: 1px solid var(--border);
+    border-radius: 14px;
+    text-decoration: none;
+    color: inherit;
+    transition: transform 0.18s cubic-bezier(0.2, 0, 0, 1),
+                box-shadow 0.18s ease,
+                border-color 0.18s ease;
+}
+.studio-card:hover {
+    transform: translateY(-2px);
+    border-color: var(--accent);
+    box-shadow:
+        0 1px 2px rgba(10, 37, 64, 0.04),
+        0 8px 22px -12px rgba(10, 37, 64, 0.2);
+}
+.studio-card--primary {
+    background: linear-gradient(135deg, var(--accent) 0%, var(--accent-hover, var(--accent)) 100%);
+    color: white;
+    border-color: transparent;
+}
+.studio-card--primary:hover { border-color: transparent; }
+.studio-card--primary .studio-card-desc,
+.studio-card--primary .studio-card-meta { color: rgba(255, 255, 255, 0.86); }
+
+.studio-card-icon {
+    font-size: 1.4rem;
+    margin-bottom: 10px;
+    line-height: 1;
+}
+.studio-card-title {
+    font-size: 1.05rem;
+    font-weight: 600;
+    margin: 0 0 4px;
+    letter-spacing: -0.005em;
+}
+.studio-card-desc {
+    font-size: 0.875rem;
+    color: var(--text-secondary);
+    margin: 0 0 8px;
+    line-height: 1.5;
+}
+.studio-card-meta {
+    font-size: 0.75rem;
+    color: var(--text-tertiary, var(--text-secondary));
+    margin-top: 6px;
+}
+
+/* Quick-add form (<details>-based disclosure) */
+.studio-card--form { padding: 0; }
+.studio-card--form > summary {
+    display: block;
+    padding: 18px 18px 16px;
+    cursor: pointer;
+    list-style: none;
+    border-radius: 14px;
+}
+.studio-card--form > summary::-webkit-details-marker { display: none; }
+.studio-card--form[open] > summary { border-bottom: 1px solid var(--border); }
+.studio-card--form[open] { box-shadow: 0 8px 24px -10px rgba(10, 37, 64, 0.2); }
+
+.studio-quickform {
+    display: grid;
+    gap: 10px;
+    padding: 16px 18px 18px;
+}
+.studio-quickform label {
+    display: grid;
+    gap: 4px;
+    font-size: 0.78rem;
+    color: var(--text-secondary);
+    font-weight: 500;
+}
+.studio-quickform label em {
+    font-style: normal;
+    color: var(--text-tertiary, var(--text-secondary));
+    font-weight: 400;
+}
+.studio-quickform input,
+.studio-quickform textarea,
+.studio-quickform select {
+    width: 100%;
+    padding: 8px 10px;
+    font-size: 0.875rem;
+    font-family: inherit;
+    color: var(--text-primary);
+    background: var(--bg-primary);
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    transition: border-color 0.15s, box-shadow 0.15s;
+}
+.studio-quickform input:focus,
+.studio-quickform textarea:focus,
+.studio-quickform select:focus {
+    outline: none;
+    border-color: var(--accent);
+    box-shadow: 0 0 0 3px color-mix(in srgb, var(--accent) 22%, transparent);
+}
+.studio-quickform-row {
+    display: grid;
+    grid-template-columns: 1.3fr 0.7fr 1fr;
+    gap: 10px;
+}
+@media (max-width: 560px) {
+    .studio-quickform-row { grid-template-columns: 1fr; }
+}
+.studio-quickform button[type=submit] {
+    justify-self: flex-start;
+    margin-top: 4px;
+}
+
+/* Recent-activity lists */
+.studio-card--list { padding-top: 16px; }
+.studio-list {
+    list-style: none;
+    padding: 0;
+    margin: 0;
+    display: grid;
+    gap: 6px;
+}
+.studio-list li {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    padding: 6px 0;
+    border-bottom: 1px solid var(--border-subtle, var(--border));
+    font-size: 0.875rem;
+}
+.studio-list li:last-child { border-bottom: none; }
+.studio-list a {
+    color: var(--text-primary);
+    text-decoration: none;
+    flex: 1;
+    min-width: 0;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
+.studio-list a:hover { color: var(--accent); }
+.studio-meta {
+    font-size: 0.75rem;
+    color: var(--text-tertiary, var(--text-secondary));
+    font-variant-numeric: tabular-nums;
+    white-space: nowrap;
+}
+.studio-pill {
+    display: inline-block;
+    font-size: 0.6875rem;
+    padding: 1px 7px;
+    border-radius: 999px;
+    background: var(--bg-tertiary);
+    color: var(--text-secondary);
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+    font-weight: 600;
+}
+.studio-empty {
+    margin: 0;
+    color: var(--text-tertiary, var(--text-secondary));
+    font-size: 0.85rem;
+}
+
+/* Toast-style flash messages */
+.studio-messages {
+    display: grid;
+    gap: 8px;
+    margin-bottom: 28px;
+}
+.studio-message {
+    padding: 10px 14px;
+    border-radius: 10px;
+    font-size: 0.875rem;
+    border: 1px solid var(--border);
+    background: var(--bg-secondary);
+}
+.studio-message--success {
+    border-color: color-mix(in srgb, #22c55e 40%, transparent);
+    background: color-mix(in srgb, #22c55e 10%, var(--bg-secondary));
+}
+.studio-message--error {
+    border-color: color-mix(in srgb, #ef4444 40%, transparent);
+    background: color-mix(in srgb, #ef4444 10%, var(--bg-secondary));
+}

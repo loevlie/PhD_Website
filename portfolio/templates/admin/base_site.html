@@ -1,0 +1,33 @@
+{% extends "admin/base.html" %}
+{% load static %}
+
+{% comment %}Portfolio admin skin.
+
+Ships a single stylesheet on top of Django's default admin base —
+keeps every override we've registered (Reading changelist buttons,
+etc.) working. The CSS reads Catppuccin palette variables so the
+admin matches the blog's vibe while the portfolio pages live on
+their own palette.{% endcomment %}
+
+{% block extrastyle %}
+    {{ block.super }}
+    <link rel="stylesheet" href="{% static 'portfolio/css/admin.css' %}">
+{% endblock %}
+
+{% block branding %}
+<h1 id="site-name">
+    <a href="{% url 'admin:index' %}" class="admin-brand">
+        <span class="admin-brand-mark">DL</span>
+        <span class="admin-brand-wordmark">
+            <span class="admin-brand-title">Studio admin</span>
+            <span class="admin-brand-sub">dennisloevlie.com</span>
+        </span>
+    </a>
+</h1>
+<div class="admin-brand-links">
+    <a href="/site/studio/" class="admin-brand-link">Studio &rarr;</a>
+    <a href="/" class="admin-brand-link admin-brand-link--ghost">View site</a>
+</div>
+{% endblock %}
+
+{% block nav-global %}{% endblock %}

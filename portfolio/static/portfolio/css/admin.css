@@ -1,0 +1,634 @@
+/* ───────────────────────────────────────────────────────────────────
+   Portfolio admin skin
+   ───────────────────────────────────────────────────────────────────
+   Design goals:
+   1. Respect Catppuccin (latte/mocha) so the admin reads as part of
+      the same site, not a bolt-on.
+   2. Modernize typography, spacing, and card chrome without rewriting
+      Django's admin HTML. That way every built-in app (auth, taggit,
+      custom changelist overrides) keeps working.
+   3. Dark mode auto via `prefers-color-scheme`. Manual override by
+      setting `.admin-theme-light` / `.admin-theme-dark` on <body>
+      (wired to browser theme for now; a toggle can come later).
+   ─────────────────────────────────────────────────────────────────── */
+
+/* ─── Catppuccin palette (Latte light / Mocha dark) ─────────────── */
+:root {
+    /* Latte — light default */
+    --a-base:       #eff1f5;
+    --a-mantle:     #e6e9ef;
+    --a-crust:      #dce0e8;
+    --a-surface0:   #ccd0da;
+    --a-surface1:   #bcc0cc;
+    --a-surface2:   #acb0be;
+    --a-overlay0:   #9ca0b0;
+    --a-overlay1:   #8c8fa1;
+    --a-overlay2:   #7c7f93;
+    --a-subtext0:   #6c6f85;
+    --a-subtext1:   #5c5f77;
+    --a-text:       #4c4f69;
+    --a-lavender:   #7287fd;
+    --a-mauve:      #8839ef;
+    --a-blue:       #1e66f5;
+    --a-green:      #40a02b;
+    --a-red:        #d20f39;
+    --a-peach:      #fe640b;
+    --a-yellow:     #df8e1d;
+    --a-accent:     var(--a-lavender);
+    --a-shadow-sm:  0 1px 2px rgba(10, 37, 64, 0.06);
+    --a-shadow-md:  0 2px 8px rgba(10, 37, 64, 0.06), 0 1px 2px rgba(10, 37, 64, 0.04);
+    --a-shadow-lg:  0 12px 32px -8px rgba(10, 37, 64, 0.18);
+    --a-ring:       0 0 0 3px color-mix(in srgb, var(--a-accent) 22%, transparent);
+    --a-radius:     10px;
+    --a-radius-sm:  6px;
+}
+@media (prefers-color-scheme: dark) {
+    :root {
+        /* Mocha */
+        --a-base:     #1e1e2e;
+        --a-mantle:   #181825;
+        --a-crust:    #11111b;
+        --a-surface0: #313244;
+        --a-surface1: #45475a;
+        --a-surface2: #585b70;
+        --a-overlay0: #6c7086;
+        --a-overlay1: #7f849c;
+        --a-overlay2: #9399b2;
+        --a-subtext0: #a6adc8;
+        --a-subtext1: #bac2de;
+        --a-text:     #cdd6f4;
+        --a-lavender: #b4befe;
+        --a-mauve:    #cba6f7;
+        --a-blue:     #89b4fa;
+        --a-green:    #a6e3a1;
+        --a-red:      #f38ba8;
+        --a-peach:    #fab387;
+        --a-yellow:   #f9e2af;
+        --a-accent:   var(--a-lavender);
+        --a-shadow-sm: 0 1px 2px rgba(0, 0, 0, 0.3);
+        --a-shadow-md: 0 4px 12px rgba(0, 0, 0, 0.35);
+        --a-shadow-lg: 0 16px 48px -12px rgba(0, 0, 0, 0.5);
+    }
+}
+
+/* ─── Base + reset-ish ────────────────────────────────────────────── */
+body {
+    background: var(--a-base) !important;
+    color: var(--a-text) !important;
+    font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif !important;
+    font-size: 14px;
+    line-height: 1.5;
+    -webkit-font-smoothing: antialiased;
+    -moz-osx-font-smoothing: grayscale;
+}
+a, a:link {
+    color: var(--a-accent);
+    text-decoration: none;
+    transition: color 0.15s;
+}
+a:hover, a:focus { color: var(--a-mauve); }
+
+/* ─── Header ──────────────────────────────────────────────────────── */
+#header {
+    background: linear-gradient(
+        180deg,
+        var(--a-mantle) 0%,
+        color-mix(in srgb, var(--a-mantle) 85%, var(--a-base)) 100%
+    ) !important;
+    color: var(--a-text) !important;
+    border-bottom: 1px solid var(--a-surface0);
+    padding: 14px 40px;
+    display: flex;
+    align-items: center;
+    gap: 20px;
+    box-shadow: var(--a-shadow-sm);
+}
+#branding { flex: 1; }
+#site-name { margin: 0; padding: 0; }
+.admin-brand {
+    display: inline-flex;
+    align-items: center;
+    gap: 12px;
+    color: var(--a-text) !important;
+}
+.admin-brand-mark {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    width: 36px; height: 36px;
+    border-radius: 10px;
+    background: linear-gradient(135deg, var(--a-lavender) 0%, var(--a-mauve) 100%);
+    color: var(--a-crust);
+    font-weight: 700;
+    font-size: 0.85rem;
+    letter-spacing: 0.04em;
+    box-shadow: var(--a-shadow-md);
+}
+.admin-brand-wordmark {
+    display: flex;
+    flex-direction: column;
+    line-height: 1.1;
+}
+.admin-brand-title {
+    font-weight: 600;
+    font-size: 0.95rem;
+    color: var(--a-text);
+}
+.admin-brand-sub {
+    font-size: 0.7rem;
+    color: var(--a-overlay1);
+    letter-spacing: 0.04em;
+    margin-top: 2px;
+}
+.admin-brand-links {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+}
+.admin-brand-link {
+    padding: 6px 12px;
+    border-radius: var(--a-radius-sm);
+    font-size: 0.8rem;
+    font-weight: 500;
+    color: var(--a-text) !important;
+    background: var(--a-surface0);
+    border: 1px solid transparent;
+    transition: background 0.15s, border-color 0.15s;
+}
+.admin-brand-link:hover {
+    background: var(--a-surface1);
+    color: var(--a-text) !important;
+}
+.admin-brand-link--ghost {
+    background: transparent;
+    border-color: var(--a-surface0);
+}
+.admin-brand-link--ghost:hover {
+    background: var(--a-surface0);
+    border-color: var(--a-surface1);
+}
+
+/* Django's user-tools (welcome Dennis / change password / logout) */
+#user-tools {
+    font-size: 0.8rem;
+    color: var(--a-subtext0);
+    display: flex;
+    align-items: center;
+    gap: 12px;
+}
+#user-tools strong { color: var(--a-text); font-weight: 600; }
+#user-tools a {
+    color: var(--a-subtext0) !important;
+    padding: 4px 8px;
+    border-radius: var(--a-radius-sm);
+    transition: background 0.15s;
+}
+#user-tools a:hover {
+    background: var(--a-surface0);
+    color: var(--a-text) !important;
+}
+
+/* ─── Breadcrumbs ─────────────────────────────────────────────────── */
+div.breadcrumbs {
+    background: var(--a-mantle);
+    color: var(--a-overlay2);
+    padding: 10px 40px;
+    border-bottom: 1px solid var(--a-surface0);
+    font-size: 0.8rem;
+}
+div.breadcrumbs a {
+    color: var(--a-subtext0);
+}
+div.breadcrumbs a:hover { color: var(--a-accent); }
+
+/* ─── Main container ──────────────────────────────────────────────── */
+#container { background: var(--a-base) !important; }
+#content {
+    padding: 24px 40px 64px;
+    max-width: 1200px;
+    margin: 0 auto;
+}
+#content h1, #content-main h1 {
+    font-size: 1.6rem;
+    font-weight: 700;
+    letter-spacing: -0.015em;
+    color: var(--a-text);
+    margin: 0 0 18px;
+}
+
+/* ─── The Django admin index "app/model" cards ───────────────────── */
+.module {
+    background: var(--a-mantle) !important;
+    border: 1px solid var(--a-surface0) !important;
+    border-radius: var(--a-radius) !important;
+    margin-bottom: 20px !important;
+    overflow: hidden;
+    box-shadow: var(--a-shadow-sm);
+}
+.module h2, .module caption, .inline-group h2 {
+    background: color-mix(in srgb, var(--a-surface0) 40%, transparent) !important;
+    color: var(--a-text) !important;
+    font-size: 0.72rem !important;
+    text-transform: uppercase;
+    letter-spacing: 0.1em;
+    font-weight: 700 !important;
+    padding: 10px 16px !important;
+    border-bottom: 1px solid var(--a-surface0);
+}
+.module table { width: 100%; }
+.module table th, .module table td {
+    padding: 10px 16px !important;
+    border-bottom: 1px solid var(--a-surface0);
+    color: var(--a-text);
+}
+.module table tbody tr:last-child th,
+.module table tbody tr:last-child td {
+    border-bottom: none;
+}
+.module table th a { font-weight: 500; }
+
+/* App-index sidebar + grid */
+.dashboard .module {
+    min-height: auto;
+}
+
+/* ─── Changelist (result list) ────────────────────────────────────── */
+#changelist {
+    background: var(--a-mantle);
+    border: 1px solid var(--a-surface0);
+    border-radius: var(--a-radius);
+    padding: 0;
+    overflow: hidden;
+    box-shadow: var(--a-shadow-sm);
+}
+#changelist #toolbar {
+    background: color-mix(in srgb, var(--a-surface0) 40%, transparent);
+    border-bottom: 1px solid var(--a-surface0);
+    padding: 10px 14px;
+}
+#changelist #toolbar input[type=text] {
+    background: var(--a-crust) !important;
+    border: 1px solid var(--a-surface1) !important;
+    color: var(--a-text) !important;
+    padding: 6px 10px;
+    border-radius: var(--a-radius-sm);
+    font-size: 0.85rem;
+    min-width: 240px;
+}
+#changelist #toolbar input[type=text]:focus {
+    outline: none;
+    border-color: var(--a-accent) !important;
+    box-shadow: var(--a-ring);
+}
+#changelist #toolbar input[type=submit] {
+    background: var(--a-accent) !important;
+    color: var(--a-crust) !important;
+    border: none;
+    padding: 6px 14px;
+    border-radius: var(--a-radius-sm);
+    font-weight: 600;
+    cursor: pointer;
+}
+
+#changelist table { width: 100%; border-collapse: collapse; }
+#changelist thead th {
+    background: color-mix(in srgb, var(--a-surface0) 40%, transparent);
+    padding: 10px 14px !important;
+    font-size: 0.72rem;
+    text-transform: uppercase;
+    letter-spacing: 0.08em;
+    color: var(--a-subtext1) !important;
+    font-weight: 600;
+    border-bottom: 1px solid var(--a-surface0);
+}
+#changelist tbody td, #changelist tbody th {
+    padding: 10px 14px !important;
+    border-bottom: 1px solid var(--a-surface0);
+    color: var(--a-text);
+    vertical-align: middle !important;
+}
+#changelist tbody tr:hover td, #changelist tbody tr:hover th {
+    background: color-mix(in srgb, var(--a-surface0) 40%, transparent);
+}
+#changelist tbody tr:last-child td, #changelist tbody tr:last-child th { border-bottom: none; }
+
+/* ─── Filter sidebar ──────────────────────────────────────────────── */
+#changelist-filter {
+    background: var(--a-mantle);
+    border: 1px solid var(--a-surface0);
+    border-radius: var(--a-radius);
+    margin-left: 16px;
+    padding: 4px 0;
+    box-shadow: var(--a-shadow-sm);
+}
+#changelist-filter h2 {
+    background: color-mix(in srgb, var(--a-surface0) 40%, transparent) !important;
+    color: var(--a-text) !important;
+    font-size: 0.72rem !important;
+    text-transform: uppercase;
+    letter-spacing: 0.1em;
+    font-weight: 700 !important;
+    padding: 10px 14px !important;
+    margin: 0 !important;
+    border-radius: var(--a-radius) var(--a-radius) 0 0;
+}
+#changelist-filter h3 {
+    color: var(--a-subtext1) !important;
+    font-size: 0.75rem !important;
+    font-weight: 600;
+    margin: 12px 14px 4px !important;
+    padding: 0 !important;
+    text-transform: none;
+    letter-spacing: 0;
+}
+#changelist-filter ul, #changelist-filter li { padding: 0; margin: 0; list-style: none; }
+#changelist-filter li { border-bottom: none !important; }
+#changelist-filter li a {
+    color: var(--a-subtext0) !important;
+    font-size: 0.825rem;
+    padding: 4px 14px !important;
+    display: block;
+    border-left: 2px solid transparent;
+    transition: background 0.12s, border-color 0.12s;
+}
+#changelist-filter li.selected a {
+    color: var(--a-text) !important;
+    border-left-color: var(--a-accent);
+    background: color-mix(in srgb, var(--a-accent) 10%, transparent);
+    font-weight: 600;
+}
+#changelist-filter li a:hover { background: var(--a-surface0); color: var(--a-text) !important; }
+
+/* ─── Object tools (Add/Export/Sync/etc. buttons above changelist) ─ */
+ul.object-tools { padding: 0; margin: 0 0 14px; display: flex; flex-wrap: wrap; gap: 8px; }
+ul.object-tools li { margin: 0; }
+ul.object-tools a, ul.object-tools .addlink, ul.object-tools button.addlink {
+    background: var(--a-accent) !important;
+    color: var(--a-crust) !important;
+    padding: 7px 14px !important;
+    border-radius: var(--a-radius-sm) !important;
+    font-size: 0.8rem !important;
+    font-weight: 600 !important;
+    text-transform: none !important;
+    letter-spacing: 0 !important;
+    border: none !important;
+    cursor: pointer;
+    transition: filter 0.15s, transform 0.08s;
+    box-shadow: var(--a-shadow-sm);
+}
+ul.object-tools a:hover, ul.object-tools .addlink:hover, ul.object-tools button.addlink:hover {
+    filter: brightness(1.08);
+    transform: translateY(-1px);
+}
+
+/* ─── Forms (change_form.html) ────────────────────────────────────── */
+.form-row {
+    padding: 14px 0 !important;
+    border-bottom: 1px solid var(--a-surface0) !important;
+}
+.form-row:last-child { border-bottom: none !important; }
+.form-row label {
+    color: var(--a-subtext1) !important;
+    font-weight: 600;
+    font-size: 0.82rem;
+}
+.form-row .help,
+fieldset .description {
+    color: var(--a-overlay2) !important;
+    font-size: 0.78rem !important;
+    line-height: 1.55;
+    margin-top: 4px;
+}
+fieldset .description code {
+    background: var(--a-crust);
+    padding: 1px 6px;
+    border-radius: 4px;
+    font-size: 0.8em;
+    color: var(--a-peach);
+    border: 1px solid var(--a-surface0);
+}
+
+input[type=text], input[type=email], input[type=url], input[type=password],
+input[type=number], input[type=date], input[type=time], input[type=datetime-local],
+textarea, select, .vTextField, .vURLField, .vDateField, .vTimeField, .vIntegerField {
+    background: var(--a-crust) !important;
+    color: var(--a-text) !important;
+    border: 1px solid var(--a-surface1) !important;
+    border-radius: var(--a-radius-sm) !important;
+    padding: 7px 10px !important;
+    font-size: 0.875rem !important;
+    font-family: inherit !important;
+    transition: border-color 0.15s, box-shadow 0.15s;
+}
+input[type=text]:focus, input[type=email]:focus, input[type=url]:focus,
+input[type=password]:focus, input[type=number]:focus, input[type=date]:focus,
+input[type=time]:focus, input[type=datetime-local]:focus,
+textarea:focus, select:focus {
+    outline: none !important;
+    border-color: var(--a-accent) !important;
+    box-shadow: var(--a-ring) !important;
+}
+textarea { font-family: 'JetBrains Mono', ui-monospace, 'SF Mono', Menlo, Consolas, monospace !important; line-height: 1.55; }
+
+/* ─── Submit row ──────────────────────────────────────────────────── */
+.submit-row {
+    background: var(--a-mantle) !important;
+    border: 1px solid var(--a-surface0) !important;
+    border-top: 1px solid var(--a-surface0) !important;
+    border-radius: var(--a-radius);
+    padding: 12px !important;
+    margin-top: 20px !important;
+    display: flex;
+    gap: 10px;
+    align-items: center;
+    box-shadow: var(--a-shadow-sm);
+}
+.submit-row input, .submit-row a.button {
+    padding: 8px 16px !important;
+    font-size: 0.85rem !important;
+    font-weight: 600 !important;
+    border-radius: var(--a-radius-sm) !important;
+    border: 1px solid var(--a-surface1) !important;
+    background: var(--a-surface0) !important;
+    color: var(--a-text) !important;
+    cursor: pointer;
+    transition: background 0.15s, border-color 0.15s;
+}
+.submit-row input[name=_save], .submit-row .default {
+    background: var(--a-accent) !important;
+    color: var(--a-crust) !important;
+    border-color: var(--a-accent) !important;
+}
+.submit-row input[name=_save]:hover, .submit-row .default:hover { filter: brightness(1.08); }
+.submit-row a.deletelink {
+    background: transparent !important;
+    color: var(--a-red) !important;
+    border-color: color-mix(in srgb, var(--a-red) 45%, transparent) !important;
+}
+
+/* ─── Messages (flash) ────────────────────────────────────────────── */
+ul.messagelist { padding: 0; margin: 0 0 16px; list-style: none; }
+ul.messagelist li {
+    padding: 10px 14px !important;
+    border-radius: var(--a-radius);
+    border: 1px solid var(--a-surface0);
+    background: var(--a-mantle) !important;
+    color: var(--a-text) !important;
+    font-size: 0.875rem;
+    margin-bottom: 8px;
+}
+ul.messagelist li.success {
+    background: color-mix(in srgb, var(--a-green) 14%, var(--a-mantle)) !important;
+    border-color: color-mix(in srgb, var(--a-green) 40%, transparent);
+}
+ul.messagelist li.warning {
+    background: color-mix(in srgb, var(--a-yellow) 14%, var(--a-mantle)) !important;
+    border-color: color-mix(in srgb, var(--a-yellow) 45%, transparent);
+}
+ul.messagelist li.error {
+    background: color-mix(in srgb, var(--a-red) 14%, var(--a-mantle)) !important;
+    border-color: color-mix(in srgb, var(--a-red) 45%, transparent);
+}
+
+/* ─── Inline formsets (PublicationLink inside Publication, etc.) ──── */
+.inline-group { margin-bottom: 20px; }
+.inline-group .inline-related h3 {
+    background: color-mix(in srgb, var(--a-surface0) 30%, transparent) !important;
+    color: var(--a-subtext1) !important;
+    font-size: 0.78rem !important;
+    padding: 8px 14px !important;
+    border-bottom: 1px solid var(--a-surface0);
+    font-weight: 600;
+}
+.inline-group .tabular tr.has_original td { background: color-mix(in srgb, var(--a-surface0) 20%, transparent); }
+
+/* ─── Help links (stays readable in dark) ──────────────────────── */
+.help, p.help {
+    color: var(--a-overlay2) !important;
+    font-size: 0.78rem !important;
+}
+
+/* ─── Pagination ──────────────────────────────────────────────────── */
+.paginator {
+    padding: 12px 14px !important;
+    background: var(--a-mantle);
+    border: 1px solid var(--a-surface0);
+    border-top: none;
+    border-radius: 0 0 var(--a-radius) var(--a-radius);
+    color: var(--a-subtext0);
+}
+.paginator a, .paginator .this-page {
+    padding: 5px 10px;
+    border-radius: var(--a-radius-sm);
+    margin: 0 2px;
+    background: var(--a-surface0);
+    color: var(--a-text) !important;
+}
+.paginator .this-page {
+    background: var(--a-accent);
+    color: var(--a-crust) !important;
+    font-weight: 600;
+}
+
+/* ─── Links and buttons inside the change_form ──────────────────── */
+.button, a.button, input[type=submit].button {
+    background: var(--a-accent) !important;
+    color: var(--a-crust) !important;
+    padding: 6px 12px !important;
+    border-radius: var(--a-radius-sm) !important;
+    font-size: 0.82rem !important;
+    font-weight: 600 !important;
+    border: none !important;
+}
+
+/* ─── Login page polish (overrides the default rag-tag look) ─────── */
+.login #container {
+    background: var(--a-base);
+    min-height: 100vh;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+.login #content {
+    padding: 32px !important;
+    background: var(--a-mantle);
+    border: 1px solid var(--a-surface0);
+    border-radius: var(--a-radius);
+    box-shadow: var(--a-shadow-lg);
+    max-width: 400px;
+    width: 100%;
+}
+.login #header { display: none !important; }
+.login .submit-row { border: none !important; box-shadow: none !important; }
+
+/* ─── Scrollbar (webkit only, tiny polish) ───────────────────────── */
+::-webkit-scrollbar { width: 10px; height: 10px; }
+::-webkit-scrollbar-track { background: var(--a-base); }
+::-webkit-scrollbar-thumb {
+    background: var(--a-surface1);
+    border-radius: 5px;
+    border: 2px solid var(--a-base);
+}
+::-webkit-scrollbar-thumb:hover { background: var(--a-surface2); }
+
+/* ─── Fieldset cards (change_form) ───────────────────────────────── */
+fieldset.module {
+    border: 1px solid var(--a-surface0) !important;
+    border-radius: var(--a-radius);
+    padding: 0 20px 12px;
+    margin-bottom: 16px;
+    background: var(--a-mantle) !important;
+}
+fieldset.module h2 {
+    margin: 0 -20px 10px !important;
+    border-bottom: 1px solid var(--a-surface0);
+    border-radius: var(--a-radius) var(--a-radius) 0 0;
+}
+
+/* ─── Readonly fields ─────────────────────────────────────────────── */
+.readonly, .form-row .readonly {
+    background: color-mix(in srgb, var(--a-surface0) 30%, transparent);
+    padding: 6px 10px;
+    border-radius: var(--a-radius-sm);
+    color: var(--a-subtext1);
+    font-family: 'JetBrains Mono', ui-monospace, monospace;
+    font-size: 0.82rem;
+    white-space: pre-wrap;
+    display: inline-block;
+    max-width: 100%;
+}
+
+/* ─── Tables inside `list_editable` rows keep select & number inputs sane ─ */
+#changelist input[type=text], #changelist input[type=number],
+#changelist select, #changelist textarea {
+    padding: 4px 8px !important;
+    font-size: 0.82rem !important;
+}
+
+/* ─── Tighten the action dropdown above changelist ──────────────── */
+.actions {
+    background: color-mix(in srgb, var(--a-surface0) 30%, transparent);
+    border-top: 1px solid var(--a-surface0);
+    padding: 8px 14px !important;
+    display: flex;
+    gap: 8px;
+    align-items: center;
+    font-size: 0.82rem;
+}
+.actions select {
+    padding: 4px 8px !important;
+    min-width: 200px;
+}
+.actions .button {
+    padding: 4px 10px !important;
+    font-size: 0.8rem !important;
+}
+
+/* ─── Help text clarity ──────────────────────────────────────────── */
+fieldset .description a { color: var(--a-accent); }
+fieldset .description code { background: var(--a-crust); color: var(--a-peach); }
+
+/* ─── Print ──────────────────────────────────────────────────────── */
+@media print {
+    #header, #user-tools, .admin-brand-links, #changelist-filter, .submit-row { display: none !important; }
+}

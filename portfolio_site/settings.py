@@ -43,7 +43,11 @@ ROOT_URLCONF = 'portfolio_site.urls'
 TEMPLATES = [
     {
         'BACKEND': 'django.template.backends.django.DjangoTemplates',
-        'DIRS': [],
+        # portfolio/templates is listed first so our admin/base_site.html
+        # override wins over django.contrib.admin's default. Without this,
+        # APP_DIRS order puts django.contrib.admin earlier in INSTALLED_APPS
+        # and its templates win.
+        'DIRS': [BASE_DIR / 'portfolio' / 'templates'],
         'APP_DIRS': True,
         'OPTIONS': {
             'context_processors': [
