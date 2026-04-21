@@ -173,7 +173,11 @@ class ReadingAdmin(admin.ModelAdmin):
     def sync_from_mm(self, request):
         """Admin endpoint: runs `sync_reading` and redirects back with a
         flash message summarizing what changed. POST-only to avoid
-        accidental double-syncs from a bookmark."""
+        accidental double-syncs from a bookmark.
+
+        Pass ?prune=1 in the form to also delete local rows whose MM
+        source has been removed (used when you delete a paper in MM and
+        want it gone from /reading/ on the next sync)."""
         from django.shortcuts import redirect
         from django.urls import reverse
         from django.contrib import messages
@@ -183,13 +187,17 @@ class ReadingAdmin(admin.ModelAdmin):
         if request.method != 'POST':
             return redirect(reverse('admin:portfolio_reading_changelist'))
 
+        prune = request.POST.get('prune') == '1'
         out = StringIO()
         try:
-            call_command('sync_reading', stdout=out, stderr=out)
+            kwargs = {'stdout': out, 'stderr': out}
+            if prune:
+                kwargs['prune'] = True
+            call_command('sync_reading', **kwargs)
             output = out.getvalue()
-            # Pull the final summary line from the output
             last_line = next((ln for ln in reversed(output.splitlines()) if ln.strip()), 'sync ran')
-            messages.success(request, f'Mind Mapper sync: {last_line.strip()}')
+            verb = 'Mind Mapper sync (with prune)' if prune else 'Mind Mapper sync'
+            messages.success(request, f'{verb}: {last_line.strip()}')
         except Exception as e:
             messages.error(request, f'Mind Mapper sync failed: {e}')
         return redirect(reverse('admin:portfolio_reading_changelist'))

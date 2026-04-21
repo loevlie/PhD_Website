@@ -7,6 +7,14 @@
 
 {% block object-tools-items %}
     <li>
+        <a href="https://mind-mapper-x1zt.onrender.com/projects/15/" target="_blank" rel="noopener"
+           class="addlink"
+           style="background:#cba6f7;color:#11111b"
+           title="Open the Mind Mapper Reading project to add or edit a paper note.">
+            + New paper (in Mind Mapper)
+        </a>
+    </li>
+    <li>
         <form method="post" action="{% url 'admin:portfolio_reading_sync_mm' %}" style="display:inline">
             {% csrf_token %}
             <button type="submit"
@@ -14,6 +22,19 @@
                     style="background:#7287fd;color:#fff;border:none;padding:6px 12px;border-radius:4px;cursor:pointer;font-weight:500"
                     title="Pulls all notes from the Mind Mapper Reading project and upserts them into the Reading model. Idempotent.">
                 ↻ Sync from Mind Mapper
+            </button>
+        </form>
+    </li>
+    <li>
+        <form method="post" action="{% url 'admin:portfolio_reading_sync_mm' %}" style="display:inline"
+              onsubmit="return confirm('Sync + prune will DELETE Reading rows whose Mind Mapper note has been removed. Continue?');">
+            {% csrf_token %}
+            <input type="hidden" name="prune" value="1">
+            <button type="submit"
+                    class="addlink"
+                    style="background:transparent;color:#7287fd;border:1px solid #7287fd;padding:5px 11px;border-radius:4px;cursor:pointer;font-weight:500"
+                    title="Same as Sync, plus delete Reading rows whose source MM note has been removed. Use after deleting a note in Mind Mapper.">
+                ↻ Sync + Prune deleted
             </button>
         </form>
     </li>
