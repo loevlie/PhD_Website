@@ -1,45 +1,38 @@
 {% extends "admin/change_list.html" %}
 {% load static %}
 
-{% comment %}Adds a "Sync from Mind Mapper" form-button at the top of
-   the Reading admin changelist, right beside the standard "Add" button.
-   Form posts to the custom admin URL we registered in ReadingAdmin.{% endcomment %}
+{% comment %}Reading changelist toolbar.
+
+Sync semantics (2026-04): Sync only attaches MM annotations to
+existing rows — it never creates, updates, or deletes entries.
+Adding a paper is manual: use the "+ Add Reading entry" button (the
+built-in one) or the quick-add form on /site/studio/.{% endcomment %}
 
 {% block object-tools-items %}
-    {% comment %}URLs are hardcoded (not via {% url %} tag) because the
-       admin custom URL resolver was a suspected culprit for a prod 500
-       on this changelist; static URLs eliminate that risk.{% endcomment %}
     <li>
-        <a href="https://mind-mapper-x1zt.onrender.com/projects/15/" target="_blank" rel="noopener"
-           class="addlink"
-           style="background:#cba6f7;color:#11111b"
-           title="Open the Mind Mapper Reading project to add or edit a paper note.">
-            + New paper (in Mind Mapper)
+        <a href="/site/studio/#quickadd" class="addlink"
+           style="background:#7287fd;color:#fff"
+           title="Open the Studio quick-add panel (fast inline form).">
+            + Quick add (Studio)
         </a>
     </li>
     <li>
         <form method="post" action="/admin/portfolio/reading/sync-mm/" style="display:inline">
             {% csrf_token %}
-            <button type="submit"
-                    class="addlink"
-                    style="background:#7287fd;color:#fff;border:none;padding:6px 12px;border-radius:4px;cursor:pointer;font-weight:500"
-                    title="Pulls all notes from the Mind Mapper Reading project and upserts them into the Reading model. Idempotent.">
-                ↻ Sync from Mind Mapper
+            <button type="submit" class="addlink"
+                    style="background:transparent;color:#7287fd;border:1px solid #7287fd;padding:5px 11px;border-radius:4px;cursor:pointer;font-weight:500"
+                    title="Pulls annotations from the Mind Mapper Reading project and attaches them to any existing /reading/ entry with a matching URL or title. Does not create entries.">
+                ↻ Sync MM annotations
             </button>
         </form>
     </li>
     <li>
-        <form method="post" action="/admin/portfolio/reading/sync-mm/" style="display:inline"
-              onsubmit="return confirm('Sync + prune will DELETE Reading rows whose Mind Mapper note has been removed. Continue?');">
-            {% csrf_token %}
-            <input type="hidden" name="prune" value="1">
-            <button type="submit"
-                    class="addlink"
-                    style="background:transparent;color:#7287fd;border:1px solid #7287fd;padding:5px 11px;border-radius:4px;cursor:pointer;font-weight:500"
-                    title="Same as Sync, plus delete Reading rows whose source MM note has been removed. Use after deleting a note in Mind Mapper.">
-                ↻ Sync + Prune deleted
-            </button>
-        </form>
+        <a href="https://mind-mapper-x1zt.onrender.com/projects/15/" target="_blank" rel="noopener"
+           class="addlink"
+           style="background:transparent;color:#cba6f7;border:1px solid #cba6f7;padding:5px 11px;border-radius:4px;font-weight:500"
+           title="Open the Mind Mapper Reading project to edit a paper note.">
+            Open Mind Mapper ↗
+        </a>
     </li>
     {{ block.super }}
 {% endblock %}

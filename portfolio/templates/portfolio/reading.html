@@ -63,6 +63,62 @@
         color: var(--ctp-subtext0, #a6adc8);
         margin-top: 0.4rem;
     }
+    .reading-list .pnote--mm {
+        font-family: var(--font-serif, serif);
+        font-style: normal;
+        font-size: 0.85rem; line-height: 1.55;
+        color: var(--ctp-subtext0, #a6adc8);
+        margin-top: 0.4rem;
+        padding: 0.35rem 0 0.35rem 0.6rem;
+        border-left: 2px solid var(--ctp-surface1, #45475a);
+        white-space: pre-wrap;
+    }
+    .reading-list .pnote--mm::before {
+        content: 'mm ·';
+        font-family: var(--font-mono, monospace);
+        font-size: 0.6rem;
+        color: var(--ctp-overlay0, #6c7086);
+        letter-spacing: 0.08em;
+        text-transform: uppercase;
+        margin-right: 0.4rem;
+    }
+    /* Staff-only "quick add" form at the top of /reading/ */
+    .reading-quickadd {
+        display: grid; gap: 0.5rem;
+        padding: 1rem; margin: 1.25rem 0 2rem;
+        background: var(--ctp-mantle, #181825);
+        border: 1px dashed var(--ctp-surface1, #45475a);
+        border-radius: 10px;
+    }
+    .reading-quickadd input, .reading-quickadd select, .reading-quickadd textarea {
+        font-family: var(--font-mono, monospace);
+        font-size: 0.85rem;
+        padding: 0.4rem 0.6rem;
+        color: var(--ctp-text, #cdd6f4);
+        background: var(--ctp-crust, #11111b);
+        border: 1px solid var(--ctp-surface1, #45475a);
+        border-radius: 6px;
+    }
+    .reading-quickadd input:focus, .reading-quickadd select:focus, .reading-quickadd textarea:focus {
+        outline: none;
+        border-color: var(--ctp-lavender, #7287fd);
+    }
+    .reading-quickadd-row { display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 0.5rem; }
+    @media (max-width: 560px) { .reading-quickadd-row { grid-template-columns: 1fr; } }
+    .reading-quickadd button[type=submit] {
+        justify-self: start;
+        padding: 0.5rem 0.9rem;
+        font-size: 0.8rem;
+        font-family: var(--font-mono, monospace);
+        color: #11111b; background: var(--ctp-lavender, #7287fd);
+        border: none; border-radius: 6px; cursor: pointer;
+        font-weight: 600;
+    }
+    .reading-quickadd-meta {
+        font-family: var(--font-mono, monospace);
+        font-size: 0.65rem; color: var(--ctp-overlay0, #6c7086);
+        text-transform: uppercase; letter-spacing: 0.12em;
+    }
 </style>
 
 <section class="max-w-blog mx-auto px-6 pt-12 pb-24 reading-page">
@@ -74,6 +130,28 @@
         to. Each note is what makes the piece interesting to me right now,
         not a summary. Updated when something earns a slot.
     </p>
+
+    {% if is_staff %}
+    {% comment %}Staff-only inline quick-add. Same endpoint as the Studio
+       dashboard so everything goes through one validated path.{% endcomment %}
+    <form method="post" action="{% url 'reading_quickadd' %}" class="reading-quickadd">
+        {% csrf_token %}
+        <input type="hidden" name="next" value="/reading/">
+        <p class="reading-quickadd-meta">Staff · quick add</p>
+        <input type="text" name="title" required maxlength="300" placeholder="Paper title (required)">
+        <input type="url" name="url" placeholder="https://arxiv.org/abs/…">
+        <div class="reading-quickadd-row">
+            <input type="text" name="venue" placeholder="Venue (arXiv / NeurIPS / …)">
+            <input type="number" name="year" min="1900" max="2100" placeholder="Year">
+            <select name="status">
+                <option value="this_week" selected>This week</option>
+                <option value="lingering">Lingering</option>
+            </select>
+        </div>
+        <textarea name="annotation" rows="2" placeholder="One-line annotation in your own voice (optional)"></textarea>
+        <button type="submit">Add to /reading/</button>
+    </form>
+    {% endif %}
 
     {% if total %}
     {% if this_week %}
@@ -90,6 +168,7 @@
             <div class="pmeta">{{ r.venue }}{% if r.venue and r.year %} · {% endif %}{% if r.year %}{{ r.year }}{% endif %}</div>
             {% endif %}
             {% if r.annotation %}<p class="pnote">{{ r.annotation }}</p>{% endif %}
+            {% if r.mm_annotation %}<p class="pnote pnote--mm">{{ r.mm_annotation }}</p>{% endif %}
         </li>
         {% endfor %}
     </ul>
@@ -109,6 +188,7 @@
             <div class="pmeta">{{ r.venue }}{% if r.venue and r.year %} · {% endif %}{% if r.year %}{{ r.year }}{% endif %}</div>
             {% endif %}
             {% if r.annotation %}<p class="pnote">{{ r.annotation }}</p>{% endif %}
+            {% if r.mm_annotation %}<p class="pnote pnote--mm">{{ r.mm_annotation }}</p>{% endif %}
         </li>
         {% endfor %}
     </ul>

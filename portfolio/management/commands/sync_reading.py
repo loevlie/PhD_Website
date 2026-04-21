@@ -1,44 +1,36 @@
-"""Sync the /reading/ list from a Mind Mapper "Reading" project.
+"""Decorate /reading/ entries with annotations from a Mind Mapper
+"Reading" project.
 
-Architecture: every note in a designated Mind Mapper project is treated
-as one paper. Each note has YAML frontmatter for metadata
-(venue/year/url/status/order) and prose annotation underneath.
+Behavior change (2026-04): sync NEVER creates Reading rows. Adding
+new papers is manual (admin or /site/studio/ quick-add). This command
+only attaches the MM note's prose annotation to existing rows that
+match by URL (preferred) or by title (case-insensitive, fuzzy).
 
-Run on demand:
-    python manage.py sync_reading
-
-Or with a custom project name:
-    python manage.py sync_reading --project Reading
-
-Or as a dry-run (no DB writes):
-    python manage.py sync_reading --dry-run
+    python manage.py sync_reading                   (match + attach)
+    python manage.py sync_reading --dry-run         (print matches, don't write)
+    python manage.py sync_reading --project Reading (non-default MM project)
 
 Environment:
     MIND_MAPPER_URL      defaults to https://mind-mapper-x1zt.onrender.com
-    MIND_MAPPER_API_KEY  required (Bearer token)
+    MIND_MAPPER_API_KEY  required (Bearer token). Without it, the command
+                         errors out with a clear message.
 
-Note format (one per Mind Mapper note in the Reading project):
+Matched MM note content is written to Reading.mm_annotation and shown
+beneath the manual annotation on /reading/. Edit the MM note to update
+the text; edit nothing else from MM (sync doesn't touch status/order/
+venue/year/url — those are yours).
 
+Note format:
     Title of the paper goes in the note's title field.
-
-    Note body:
-    ---
-    venue: arXiv 2503.16302
-    year: 2025
-    url: https://arxiv.org/abs/2503.16302
-    status: this_week        # this_week | lingering | archived
-    order: 10                # lower = higher in its bucket; optional
-    ---
-    One-line italic annotation in your own voice — what makes this
-    interesting to you right now. Plain text or markdown.
-
-The frontmatter block is optional but recommended; without it the
-title is the only metadata.
+    Body: YAML frontmatter (optional) + prose annotation.
+    Frontmatter supports `url:` (used as the match key).
 """
-import os
-import urllib.request
-import urllib.parse
 import json
+import os
+import urllib.parse
+import urllib.request
+import urllib.error
+
 from django.core.management.base import BaseCommand, CommandError
 
 import frontmatter
@@ -49,7 +41,6 @@ DEFAULT_PROJECT = 'Reading'
 
 
 def _api_get(path):
-    """Fetch path from Mind Mapper, raise CommandError on failure."""
     base = os.environ.get('MIND_MAPPER_URL') or DEFAULT_MM_URL
     key = os.environ.get('MIND_MAPPER_API_KEY')
     if not key:
@@ -72,80 +63,55 @@ def _api_get(path):
 
 
 def _parse_note(note_detail):
-    """Convert a Mind Mapper note into the kwargs Reading.objects.update_or_create needs.
-
-    Returns a (defaults_dict, errors_list) tuple. errors is non-empty if
-    the note's frontmatter is malformed; we still try to import using
-    the title alone."""
-    errors = []
+    """Return (title, url_hint, annotation_text) for a MM note detail."""
     title = (note_detail.get('title') or '').strip() or 'Untitled'
     body = note_detail.get('content') or ''
-
-    venue = ''
-    year = None
-    url = ''
     annotation = body.strip()
-    status = 'this_week'
-    order = 0
-
+    url_hint = ''
     try:
         post = frontmatter.loads(body)
         meta = post.metadata or {}
         annotation = (post.content or '').strip()
-        venue = str(meta.get('venue', '') or '').strip()
-        url = str(meta.get('url', '') or '').strip()
-        raw_year = meta.get('year')
-        if raw_year is not None and str(raw_year).strip():
-            try:
-                year = int(str(raw_year).strip())
-            except (TypeError, ValueError):
-                errors.append(f'invalid year: {raw_year!r}')
-        raw_status = str(meta.get('status', 'this_week') or 'this_week').strip().lower().replace('-', '_')
-        # Accept legacy `chewing` as an alias for `lingering` so old MM
-        # notes don't break sync if you forget to update the frontmatter.
-        if raw_status == 'chewing':
-            raw_status = 'lingering'
-        if raw_status in {'this_week', 'lingering', 'archived'}:
-            status = raw_status
-        else:
-            errors.append(f'invalid status: {raw_status!r} (must be this_week|lingering|archived)')
-        try:
-            order = int(meta.get('order', 0) or 0)
-        except (TypeError, ValueError):
-            errors.append(f'invalid order: {meta.get("order")!r}')
-    except Exception as e:
-        errors.append(f'frontmatter parse failed: {e}')
+        url_hint = str(meta.get('url', '') or '').strip()
+    except Exception:
+        pass
+    return title, url_hint, annotation
 
-    defaults = {
-        'title': title[:300],
-        'venue': venue[:200],
-        'year': year,
-        'url': url,
-        'annotation': annotation,
-        'status': status,
-        'order': order,
-    }
-    return defaults, errors
+
+def _find_matching_reading(Reading, title, url_hint):
+    """Return the Reading row that should receive this MM note's
+    annotation, or None if there's no manual match. Preference:
+
+      1. Already claimed by this note id (but we compare title/url on caller).
+      2. Exact URL match on a manually-added row.
+      3. Case-insensitive title match on a manually-added row.
+    """
+    if url_hint:
+        match = Reading.objects.filter(url=url_hint).first()
+        if match:
+            return match
+    if title:
+        match = Reading.objects.filter(title__iexact=title).first()
+        if match:
+            return match
+    return None
 
 
 class Command(BaseCommand):
-    help = 'Sync /reading/ from a Mind Mapper project (default: "Reading"). One MM note = one paper.'
+    help = ('Decorate /reading/ rows with annotations from a Mind Mapper '
+            'project. Never creates rows — adding entries is manual.')
 
     def add_arguments(self, parser):
         parser.add_argument(
             '--project', default=DEFAULT_PROJECT,
-            help=f'Mind Mapper project name (default: {DEFAULT_PROJECT}). Every note in this project is treated as a paper.',
+            help=f'Mind Mapper project name (default: {DEFAULT_PROJECT}).',
         )
         parser.add_argument(
             '--dry-run', action='store_true',
             help='Print what would change without touching the DB.',
         )
-        parser.add_argument(
-            '--prune', action='store_true',
-            help='Delete local Reading rows whose mind_mapper_note_id no longer exists in the MM project. Off by default to avoid accidents.',
-        )
 
-    def handle(self, *args, project, dry_run, prune, **opts):
+    def handle(self, *args, project, dry_run, **opts):
         from portfolio.models import Reading
 
         project_q = urllib.parse.quote(project)
@@ -155,8 +121,7 @@ class Command(BaseCommand):
 
         # Defensive client-side filter: the MM API does partial / fallback
         # matching on project name; when there's no exact match it returns
-        # ALL notes, which would import the entire knowledge base into
-        # /reading/. Only process notes whose project field is an exact
+        # ALL notes. Only process notes whose project field is an exact
         # case-insensitive match.
         notes = [n for n in notes if (n.get('project') or '').strip().lower() == project.strip().lower()]
 
@@ -164,98 +129,61 @@ class Command(BaseCommand):
             f'Found {len(notes)} note(s) in MM project "{project}".'
         ))
         if not notes:
-            self.stdout.write(self.style.WARNING(
-                f'  No notes match. Create a project named "{project}" in Mind Mapper '
-                f'and add one note per paper. Each note: title = paper title, '
-                f'body = YAML frontmatter (venue/year/url/status/order) + annotation.'
-            ))
             return
 
-        seen_ids = set()
-        created = updated = errored = 0
+        matched = skipped = cleared_stale = 0
 
+        seen_reading_ids = set()
         for n in notes:
             note_id = n.get('id')
             if not note_id:
                 continue
-            # Re-fetch detail because the list endpoint omits content + tags
             detail = _api_get(f'/api/notes/{note_id}/')
-            defaults, errors = _parse_note(detail)
-            seen_ids.add(int(note_id))
+            title, url_hint, annotation = _parse_note(detail)
 
-            if errors:
+            # Prefer a row already claimed by this note id — so renames in
+            # MM don't orphan the attachment.
+            row = Reading.objects.filter(mind_mapper_note_id=int(note_id)).first()
+            if row is None:
+                row = _find_matching_reading(Reading, title, url_hint)
+
+            if row is None:
                 self.stdout.write(self.style.WARNING(
-                    f'  WARN  note {note_id} "{defaults["title"][:40]}": {"; ".join(errors)}'
+                    f'  SKIP   no /reading/ entry matches MM #{note_id} "{title[:50]}" — '
+                    f'add it from /site/studio/ first.'
                 ))
-
-            # Resolve which local row this MM note corresponds to:
-            #   1. Existing row with this exact mind_mapper_note_id  -> update
-            #   2. Manual row (no MM id) with matching url           -> claim
-            #   3. Manual row (no MM id) with matching title (case-i) -> claim
-            #   4. None of the above                                 -> create
-            existing = Reading.objects.filter(mind_mapper_note_id=int(note_id)).first()
-            claimed = None
-            if existing is None:
-                if defaults.get('url'):
-                    claimed = Reading.objects.filter(
-                        mind_mapper_note_id__isnull=True,
-                        url=defaults['url'],
-                    ).first()
-                if claimed is None:
-                    claimed = Reading.objects.filter(
-                        mind_mapper_note_id__isnull=True,
-                        title__iexact=defaults['title'],
-                    ).first()
-
-            if dry_run:
-                if existing:
-                    self.stdout.write(f'  DRY   UPD note {note_id}: {defaults["title"][:50]}')
-                elif claimed:
-                    self.stdout.write(f'  DRY   CLAIM existing manual entry "{claimed.title[:40]}" for note {note_id}')
-                else:
-                    self.stdout.write(f'  DRY   NEW note {note_id}: {defaults["title"][:50]}')
+                skipped += 1
                 continue
 
-            if existing:
-                for k, v in defaults.items():
-                    setattr(existing, k, v)
-                existing.save()
-                updated += 1
-                self.stdout.write(f'  UPD   {existing.title[:60]}')
-            elif claimed:
-                for k, v in defaults.items():
-                    setattr(claimed, k, v)
-                claimed.mind_mapper_note_id = int(note_id)
-                claimed.save()
-                updated += 1
-                self.stdout.write(self.style.SUCCESS(f'  CLAIM {claimed.title[:60]} (was manual; now sourced from MM #{note_id})'))
-            else:
-                obj = Reading.objects.create(
-                    mind_mapper_note_id=int(note_id),
-                    **defaults,
-                )
-                created += 1
-                self.stdout.write(self.style.SUCCESS(f'  NEW   {obj.title[:60]}'))
+            seen_reading_ids.add(row.pk)
+            if dry_run:
+                self.stdout.write(f'  DRY    would attach MM #{note_id} to "{row.title[:50]}"')
+                continue
 
-        pruned = 0
-        if prune and not dry_run:
+            row.mm_annotation = annotation
+            row.mind_mapper_note_id = int(note_id)
+            row.save(update_fields=['mm_annotation', 'mind_mapper_note_id', 'modified_at'])
+            matched += 1
+            self.stdout.write(self.style.SUCCESS(
+                f'  OK     attached MM #{note_id} to "{row.title[:50]}"'
+            ))
+
+        # Rows previously linked to an MM note that's no longer in the
+        # project: clear the link + annotation (keep the row itself).
+        if not dry_run:
             stale = Reading.objects.filter(
-                mind_mapper_note_id__isnull=False,
-            ).exclude(mind_mapper_note_id__in=seen_ids)
-            pruned = stale.count()
-            for r in stale:
-                self.stdout.write(self.style.WARNING(f'  DEL   {r.title[:60]} (note {r.mind_mapper_note_id} no longer in MM)'))
-            if pruned and not dry_run:
-                stale.delete()
-        elif not prune:
-            stale = Reading.objects.filter(
-                mind_mapper_note_id__isnull=False,
-            ).exclude(mind_mapper_note_id__in=seen_ids).count()
-            if stale:
-                self.stdout.write(self.style.NOTICE(
-                    f'  ({stale} local row(s) point at MM notes no longer in the project — pass --prune to delete)'
+                mind_mapper_note_id__isnull=False
+            ).exclude(pk__in=seen_reading_ids)
+            for row in stale:
+                row.mm_annotation = ''
+                row.mind_mapper_note_id = None
+                row.save(update_fields=['mm_annotation', 'mind_mapper_note_id', 'modified_at'])
+                cleared_stale += 1
+                self.stdout.write(self.style.WARNING(
+                    f'  CLEAR  "{row.title[:50]}" — MM note no longer in project '
+                    f'(entry kept; only MM annotation cleared)'
                 ))
 
-        verb = 'Would' if dry_run else ''
-        summary = f'\n{verb} created {created}, updated {updated}, pruned {pruned}.'
-        self.stdout.write(self.style.NOTICE(summary))
+        self.stdout.write(self.style.NOTICE(
+            f'\nMatched {matched}, skipped {skipped} (no manual row), cleared {cleared_stale} stale.'
+        ))

@@ -93,37 +93,40 @@ class PageviewAdmin(admin.ModelAdmin):
 
 @admin.register(Reading)
 class ReadingAdmin(admin.ModelAdmin):
-    """Curated reading list shown at /reading/. Stored in the DB so you
-    can edit on the go from /admin/ without a redeploy.
+    """Curated reading list shown at /reading/. All entries are added
+    manually — either from /admin/ or the /site/studio/ quick-add form.
 
-    Source of truth: a Mind Mapper "Reading" project (one note per
-    paper). The "Sync from Mind Mapper" button at the top of the
-    changelist runs `python manage.py sync_reading` from the admin so
-    you don't need the Render shell."""
+    Mind Mapper integration (2026-04 rework): `sync_reading` no longer
+    creates rows. It only attaches optional MM-sourced annotations
+    (via `mm_annotation`) to entries that already exist, matching by
+    URL or title. Remove an MM note → sync clears the annotation but
+    keeps the Reading entry."""
     list_display = ['title_with_mm_link', 'venue', 'year', 'status', 'order', 'source', 'modified_at']
     list_display_links = ['title_with_mm_link']
     list_filter = ['status', 'year']
     list_editable = ['status', 'order']
-    search_fields = ['title', 'venue', 'annotation']
+    search_fields = ['title', 'venue', 'annotation', 'mm_annotation']
     save_on_top = True
     actions = ['mark_this_week', 'mark_lingering', 'mark_archived']
     change_list_template = 'admin/portfolio/reading/change_list.html'
+    readonly_fields = ['mm_annotation']
     fieldsets = (
         ('Reference', {
             'fields': ('title', 'venue', 'year', 'url'),
         }),
-        ('Annotation', {
+        ('Your annotation', {
             'fields': ('annotation',),
-            'description': 'One-line note in your own voice. Italic on the page; keep it short. Will be overwritten by the next Mind Mapper sync if mind_mapper_note_id is set, so prefer editing in MM for synced rows.',
+            'description': 'One-line note in your own voice. Italic on the page; keep it short. Your hand edits are never overwritten by sync.',
+        }),
+        ('Mind Mapper annotation (optional, synced)', {
+            'fields': ('mm_annotation', 'mind_mapper_note_id'),
+            'classes': ('collapse',),
+            'description': 'Overwritten on every <code>sync_reading</code> run — edit the MM note itself, not here. '
+                           'Shown beneath your annotation on /reading/. Sync matches by URL or by exact title.',
         }),
         ('Surface', {
             'fields': ('status', 'order'),
             'description': 'this_week shows top, lingering shows below, archived hides from /reading/. Lower order = higher in its bucket.',
-        }),
-        ('Provenance', {
-            'fields': ('mind_mapper_note_id',),
-            'classes': ('collapse',),
-            'description': 'NULL = manually-added (never touched by sync). An integer = synced from this Mind Mapper note id; sync will update fields from MM on each run.',
         }),
     )
 
@@ -173,12 +176,13 @@ class ReadingAdmin(admin.ModelAdmin):
         ] + urls
 
     def sync_from_mm(self, request):
-        """Admin endpoint: runs `sync_reading` and redirects back with a
-        flash message summarizing what changed. POST-only to avoid
-        accidental double-syncs from a bookmark.
+        """Admin endpoint: runs `sync_reading` (match + attach annotations)
+        and redirects back with a flash message summarizing what changed.
+        POST-only to avoid accidental double-syncs from a bookmark.
 
-        Pass prune=1 in the form body to also delete local rows whose
-        MM source has been removed."""
+        As of 2026-04, sync does NOT create, update, or delete Reading
+        rows — it only attaches optional annotations from matched MM
+        notes (see `mm_annotation`)."""
         from django.shortcuts import redirect
         from django.urls import reverse
         from django.contrib import messages
@@ -188,17 +192,12 @@ class ReadingAdmin(admin.ModelAdmin):
         if request.method != 'POST':
             return redirect(reverse('admin:portfolio_reading_changelist'))
 
-        prune = request.POST.get('prune') == '1'
         out = StringIO()
         try:
-            kwargs = {'stdout': out, 'stderr': out}
-            if prune:
-                kwargs['prune'] = True
-            call_command('sync_reading', **kwargs)
+            call_command('sync_reading', stdout=out, stderr=out)
             output = out.getvalue()
             last_line = next((ln for ln in reversed(output.splitlines()) if ln.strip()), 'sync ran')
-            verb = 'Mind Mapper sync (with prune)' if prune else 'Mind Mapper sync'
-            messages.success(request, f'{verb}: {last_line.strip()}')
+            messages.success(request, f'Mind Mapper sync: {last_line.strip()}')
         except Exception as e:
             messages.error(request, f'Mind Mapper sync failed: {e}')
         return redirect(reverse('admin:portfolio_reading_changelist'))
