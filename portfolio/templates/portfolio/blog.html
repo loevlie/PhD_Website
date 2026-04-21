@@ -142,11 +142,12 @@
     .blog-card.tint-7 { background: var(--ctp-green); }
     .blog-card.tint-8 { background: var(--ctp-sapphire); }
 
-    /* Subtle decorative pilcrow in the top-right corner — editorial mark
-       that signals "this is a piece of writing." Half-opacity, serif. */
+    /* Subtle decorative pilcrow in the top-LEFT corner — editorial mark
+       that signals "this is a piece of writing." Half-opacity, serif.
+       (Moved from top-right because the Latest chip lives there now.) */
     .blog-card .mark {
         position: absolute;
-        top: 0.5rem; right: 0.875rem;
+        top: 0.5rem; left: 0.875rem;
         font-family: var(--font-serif, 'IBM Plex Serif', serif);
         font-size: 1.25rem;
         font-style: italic;
@@ -259,7 +260,7 @@
        card-tint contrast just works. Mono meta + serif title + serif blurb
        + mono tags. */
     .blog-card .latest-chip {
-        position: absolute; top: 0.875rem; left: 0.875rem;
+        position: absolute; top: 0.875rem; right: 0.875rem;
         z-index: 3;
         font-family: var(--font-mono, monospace);
         font-size: 0.58rem; text-transform: uppercase; letter-spacing: 0.16em;
@@ -267,6 +268,9 @@
         padding: 0.2rem 0.55rem; border-radius: 999px;
         opacity: 0.92;
     }
+    /* When the Latest chip is present, hide the pilcrow on that card —
+       it would sit awkwardly close to the date in the top-left. */
+    .blog-card:has(.latest-chip) .mark { display: none; }
     .blog-card .meta-eyebrow {
         font-family: var(--font-mono, monospace);
         font-size: 0.62rem; text-transform: uppercase; letter-spacing: 0.16em;
