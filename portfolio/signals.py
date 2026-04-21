@@ -15,8 +15,46 @@ from django.db.models.signals import post_save, post_delete
 from django.dispatch import receiver
 from django.utils import timezone
 
-from portfolio.models import Post
+from portfolio.models import (
+    Post,
+    NewsItem, Publication, PublicationLink,
+    Project, ProjectLink, TimelineEntry, OpenSourceItem,
+    SocialLink, NowPage, NowSection,
+)
 from portfolio.blog import invalidate_post_cache, render_markdown
+from portfolio.content import live as content_live
+
+
+# ─── Content cache invalidation ──────────────────────────────────────
+# live.* memoizes content for 10 min. Every time a model changes in the
+# admin we drop the relevant cache key so the public pages reflect the
+# edit without waiting for TTL.
+_CONTENT_CACHE_KEYS = {
+    NewsItem: 'news',
+    Publication: 'publications',
+    PublicationLink: 'publications',
+    Project: 'projects',
+    ProjectLink: 'projects',
+    TimelineEntry: 'timeline',
+    OpenSourceItem: 'opensource',
+    SocialLink: 'social_links',
+    NowPage: 'now_page',
+    NowSection: 'now_page',
+}
+
+
+@receiver(post_save)
+def _content_saved(sender, **kwargs):
+    key = _CONTENT_CACHE_KEYS.get(sender)
+    if key:
+        content_live.invalidate(key)
+
+
+@receiver(post_delete)
+def _content_deleted(sender, **kwargs):
+    key = _CONTENT_CACHE_KEYS.get(sender)
+    if key:
+        content_live.invalidate(key)
 
 
 @receiver(post_save, sender=Post)

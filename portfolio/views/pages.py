@@ -165,10 +165,10 @@ def garden(request):
 def now(request):
     """/now/ — Derek Sivers convention. What I'm doing in life and work
     right now. Updated quarterly. Strong taste signal for FAANG/ELLIS
-    reviewers. The content is in NOW_PAGE in content/now.py so it's
-    editable without touching templates."""
-    from portfolio.content.now import NOW_PAGE
-    return render(request, 'portfolio/now.html', {'now': NOW_PAGE})
+    reviewers. Content is DB-backed (NowPage / NowSection), with a
+    data.py fallback when empty — see portfolio.content.live."""
+    from portfolio.content import live
+    return render(request, 'portfolio/now.html', {'now': live.now_page()})
 
 
 # ─── CV ────────────────────────────────────────────────────────────────
