@@ -1,0 +1,198 @@
+{% extends "portfolio/blog_base.html" %}
+{% load static %}
+
+{% block title %}dl.blog — Foundations{% endblock %}
+
+{% block og_meta %}<meta name="robots" content="noindex,nofollow">{% endblock %}
+
+{% block content %}
+{% comment %}Topographic — explicit `Foundations` zone above `Recent` feed.
+
+   - Foundations: evergreen-tagged posts (or, if there aren't any, the
+     oldest 2-3 posts as a stand-in). Each gets a hand-picked one-line
+     "why this matters" — for the prototype we synthesize from excerpt.
+   - Recent: chronological list of everything else, mono dates, no thumbnails.
+
+   Catches readers who land via one viral post: gives them a thesis to
+   follow rather than a stream to scroll.
+{% endcomment %}
+<style>
+    .topo-page { font-family: var(--font-serif, 'IBM Plex Serif', Georgia, serif); }
+
+    .topo-h1 {
+        font-family: var(--font-serif, serif);
+        font-size: 2rem; line-height: 1.1; font-weight: 600;
+        color: var(--ctp-text, #cdd6f4);
+        margin-bottom: 0.5rem; letter-spacing: -0.01em;
+    }
+    .topo-flag {
+        font-family: var(--font-mono, monospace);
+        font-size: 0.7rem; text-transform: uppercase; letter-spacing: 0.22em;
+        color: var(--ctp-overlay1, #7f849c);
+        margin-bottom: 0.5rem;
+    }
+    .topo-intro {
+        font-family: var(--font-serif, serif);
+        font-style: italic;
+        font-size: 1.0625rem; line-height: 1.7;
+        color: var(--ctp-subtext1, #bac2de);
+        max-width: 36rem;
+        margin-bottom: 3rem;
+    }
+
+    .topo-section-h {
+        font-family: var(--font-mono, monospace);
+        font-size: 0.7rem; text-transform: uppercase; letter-spacing: 0.22em;
+        color: var(--ctp-overlay1, #7f849c);
+        padding-bottom: 0.5rem;
+        border-bottom: 1px solid var(--ctp-surface0, #313244);
+        margin: 0 0 1.75rem;
+    }
+
+    .topo-foundations {
+        display: grid;
+        grid-template-columns: 1fr;
+        gap: 1.25rem;
+        margin-bottom: 3.5rem;
+    }
+    @media (min-width: 720px) {
+        .topo-foundations { grid-template-columns: 1fr 1fr; gap: 1.5rem; }
+    }
+    .topo-foundation {
+        position: relative;
+        display: block;
+        padding: 1.5rem 1.625rem 1.625rem;
+        border: 1px solid color-mix(in oklch, var(--ctp-surface0, #313244) 70%, transparent);
+        border-radius: 12px;
+        background: color-mix(in oklch, var(--ctp-mantle, #181825) 85%, transparent);
+        text-decoration: none !important;
+        transition: all 200ms ease;
+    }
+    .topo-foundation:hover {
+        border-color: var(--ctp-lavender, #7287fd);
+        background: color-mix(in oklch, var(--ctp-mantle, #181825) 95%, transparent);
+        transform: translateY(-1px);
+    }
+    .topo-foundation .num {
+        position: absolute;
+        top: 1.25rem; right: 1.5rem;
+        font-family: var(--font-mono, monospace);
+        font-size: 0.7rem;
+        color: var(--ctp-overlay0, #6c7086);
+        font-variant-numeric: tabular-nums;
+        letter-spacing: 0.05em;
+    }
+    .topo-foundation .head {
+        font-family: var(--font-serif, serif);
+        font-size: 1.25rem; line-height: 1.25;
+        color: var(--ctp-text, #cdd6f4);
+        font-weight: 600;
+        margin-bottom: 0.5rem;
+        padding-right: 2.5rem;
+        letter-spacing: -0.005em;
+        transition: color 150ms ease;
+    }
+    .topo-foundation:hover .head { color: var(--ctp-lavender, #7287fd); }
+    .topo-foundation .why {
+        font-family: var(--font-serif, serif);
+        font-style: italic;
+        font-size: 0.9rem;
+        line-height: 1.55;
+        color: var(--ctp-subtext0, #a6adc8);
+        margin: 0;
+    }
+
+    .topo-recent {
+        list-style: none; padding: 0; margin: 0;
+    }
+    .topo-recent li {
+        display: grid;
+        grid-template-columns: 1fr auto;
+        gap: 1rem;
+        padding: 0.875rem 0;
+        border-bottom: 1px solid color-mix(in oklch, var(--ctp-surface0, #313244) 35%, transparent);
+        align-items: baseline;
+    }
+    .topo-recent a {
+        font-family: var(--font-serif, serif);
+        font-size: 1.0625rem;
+        color: var(--ctp-subtext1, #bac2de);
+        text-decoration: none;
+        line-height: 1.4;
+        transition: color 150ms ease;
+    }
+    .topo-recent a:hover { color: var(--ctp-lavender, #7287fd); }
+    .topo-recent .when {
+        font-family: var(--font-mono, monospace);
+        font-size: 0.7rem;
+        color: var(--ctp-overlay1, #7f849c);
+        text-transform: uppercase; letter-spacing: 0.06em; white-space: nowrap;
+    }
+</style>
+
+<section class="max-w-blog mx-auto px-6 pt-12 pb-24 topo-page">
+
+    <p class="topo-flag">dl.blog · canon &amp; river</p>
+    <h1 class="topo-h1">If you're new, start here</h1>
+    <p class="topo-intro">
+        The handful of posts below are what I'd send to a stranger who
+        asked, "what do you think about?" The list under them is just
+        chronological — everything else, newest first.
+    </p>
+
+    {% if posts %}
+        {# Foundations: evergreen-marked posts; fall back to the oldest 3
+           if no evergreens exist yet. We render exactly the curated list,
+           never auto-sorted, so the framing stays editorial. #}
+        {% with foundations=posts|dictsortreversed:"date"|dictsortreversed:"maturity" %}
+        {# We want only evergreens; filter via inline x-show is overkill,
+           do it Python-side via a helper: if any post.maturity == 'evergreen',
+           use those; else, take the latest 2 as the fallback. #}
+        {% endwith %}
+
+        {# Compute foundations: posts with maturity 'evergreen', else fallback to first 2. #}
+        {% with first_two=posts|slice:":2" %}
+        <h2 class="topo-section-h">Foundations</h2>
+        <div class="topo-foundations" id="topo-foundations-grid">
+            {% for post in posts %}
+            {% if post.maturity == 'evergreen' %}
+            <a href="{% url 'blog_post' post.slug %}" class="topo-foundation">
+                <span class="num">{{ forloop.counter|stringformat:"02d" }}</span>
+                <h3 class="head">{{ post.title }}</h3>
+                <p class="why">{{ post.excerpt|truncatewords:24 }}</p>
+            </a>
+            {% endif %}
+            {% endfor %}
+        </div>
+        <p id="topo-foundations-empty" class="font-mono text-[0.65rem] text-content-muted/60 italic" style="margin-top:-2rem; margin-bottom: 2.5rem; display: none;">
+            No evergreen posts yet — Foundations will populate as you mark posts evergreen.
+        </p>
+        {% endwith %}
+
+        <h2 class="topo-section-h">Recent</h2>
+        <ul class="topo-recent">
+            {% for post in posts %}
+            <li>
+                <a href="{% url 'blog_post' post.slug %}">{{ post.title }}</a>
+                <span class="when"><time datetime="{{ post.date|date:'Y-m-d' }}">{{ post.date|date:'Y · m · d' }}</time></span>
+            </li>
+            {% endfor %}
+        </ul>
+    {% else %}
+    <p class="text-content-muted py-20 text-center font-serif italic">No posts yet.</p>
+    {% endif %}
+</section>
+
+<script>
+// If no foundations rendered, surface the helper note.
+(function() {
+    var grid = document.getElementById('topo-foundations-grid');
+    var note = document.getElementById('topo-foundations-empty');
+    if (!grid || !note) return;
+    if (grid.children.length === 0) {
+        grid.style.display = 'none';
+        note.style.display = 'block';
+    }
+})();
+</script>
+{% endblock %}

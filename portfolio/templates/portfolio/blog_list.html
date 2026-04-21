@@ -1,0 +1,399 @@
+{% extends "portfolio/blog_base.html" %}
+{% load static %}
+
+{% block title %}dl.blog — list{% endblock %}
+
+{% block og_meta %}
+<meta property="og:title" content="Blog — Dennis Loevlie">
+<meta property="og:description" content="Long-form essays on machine-learning research, deep learning, and software engineering.">
+<meta property="og:type" content="website">
+<link rel="alternate" type="application/rss+xml" title="Dennis Loevlie — Blog" href="{% url 'blog_feed' %}">
+{% endblock %}
+
+{% block content %}
+{% comment %}/blog/?view=list — calm typographic, year-grouped flat list.
+
+   Pivoted away from the centered Postcard "magazine spread" register
+   (which was grand but hard to read). Inspired by Comeau, Karpathy,
+   Lee Robinson — left-aligned, year-headered, scannable.
+
+   Each row is a 4-column grid:
+     [date]  [thumbnail]  [title + excerpt + tags]  []
+   The thumbnail is a small square (3.5rem) that anchors the row visually
+   but doesn't dominate. Date sits in a mono left column. Title/excerpt
+   are serif and left-aligned for natural reading.
+
+   Year headers (mono uppercase) break the river into navigable epochs.
+{% endcomment %}
+<style>
+    .list-flag {
+        font-family: var(--font-mono, monospace);
+        font-size: 0.7rem; text-transform: uppercase; letter-spacing: 0.22em;
+        color: var(--ctp-overlay1, #7f849c);
+        margin-bottom: 0.5rem;
+    }
+    .list-h1 {
+        font-family: var(--font-serif, 'IBM Plex Serif', Georgia, serif);
+        font-size: 2rem; line-height: 1.1; font-weight: 600;
+        color: var(--ctp-text, #cdd6f4);
+        letter-spacing: -0.01em;
+        margin-bottom: 0.25rem;
+        display: inline;
+    }
+    .list-tagline {
+        font-family: var(--font-serif, serif);
+        font-size: 1rem; line-height: 1.65;
+        color: var(--ctp-subtext1, #bac2de);
+        margin-top: 0.5rem;
+        max-width: 36rem;
+    }
+
+    .view-toggle {
+        display: inline-flex; gap: 0.25rem;
+        background: var(--ctp-mantle, #181825);
+        border: 1px solid var(--ctp-surface0, #313244);
+        border-radius: 999px;
+        padding: 2px;
+        margin-left: 1rem; vertical-align: middle;
+    }
+    .view-toggle a {
+        font-family: var(--font-mono, monospace);
+        font-size: 0.65rem;
+        text-transform: uppercase; letter-spacing: 0.08em;
+        padding: 0.3rem 0.7rem;
+        border-radius: 999px;
+        text-decoration: none !important;
+        color: var(--ctp-overlay1, #7f849c);
+        transition: all 150ms ease;
+    }
+    .view-toggle a:hover { color: var(--ctp-text, #cdd6f4); }
+    .view-toggle a.active { background: var(--ctp-lavender, #7287fd); color: white; }
+
+    /* ── Year-grouped list ─────────────────────────────────────── */
+    .year-block { margin-top: 3.5rem; }
+    .year-h {
+        font-family: var(--font-mono, monospace);
+        font-size: 0.7rem;
+        text-transform: uppercase; letter-spacing: 0.22em;
+        color: var(--ctp-overlay1, #7f849c);
+        padding-bottom: 0.5rem;
+        margin-bottom: 0.5rem;
+        border-bottom: 1px solid var(--ctp-surface0, #313244);
+    }
+
+    .list-row {
+        display: grid;
+        /* date | landscape thumbnail (~10rem wide × 6rem tall, 5:3) | body */
+        grid-template-columns: 4.5rem 10rem 1fr;
+        gap: 1.5rem;
+        align-items: start;
+        padding: 1.25rem 0;
+        border-bottom: 1px solid color-mix(in oklch, var(--ctp-surface0, #313244) 35%, transparent);
+        text-decoration: none !important;
+        transition: background-color 150ms ease;
+        padding-left: 0.5rem; padding-right: 0.5rem;
+        margin: 0 -0.5rem;
+        border-radius: 10px;
+    }
+    .list-row:hover { background: color-mix(in oklch, var(--ctp-surface0, #313244) 18%, transparent); }
+    .list-row:last-child { border-bottom: none; }
+
+    .list-row .when {
+        font-family: var(--font-mono, monospace);
+        font-size: 0.7rem;
+        color: var(--ctp-overlay1, #7f849c);
+        text-transform: uppercase; letter-spacing: 0.06em;
+        white-space: nowrap;
+        padding-top: 0.4rem;
+        font-variant-numeric: tabular-nums;
+    }
+    .list-row .thumb {
+        width: 10rem; height: 6rem;
+        border-radius: 8px;
+        object-fit: cover;
+        background: color-mix(in oklch, var(--ctp-surface0, #313244) 60%, transparent);
+        border: 1px solid color-mix(in oklch, var(--ctp-surface0, #313244) 70%, transparent);
+        transition: transform 350ms cubic-bezier(0.16, 1, 0.3, 1);
+    }
+    .list-row:hover .thumb { transform: scale(1.02); }
+    .list-row .thumb-fallback {
+        width: 10rem; height: 6rem;
+        border-radius: 8px;
+        background: linear-gradient(135deg,
+            color-mix(in oklch, var(--ctp-mantle, #181825) 88%, var(--ctp-lavender, #7287fd)) 0%,
+            var(--ctp-crust, #11111b) 100%);
+        border: 1px solid color-mix(in oklch, var(--ctp-surface0, #313244) 70%, transparent);
+        display: grid; place-items: center;
+        color: var(--ctp-overlay1, #7f849c);
+        font-family: var(--font-serif, serif);
+        font-size: 1.5rem;
+    }
+    .list-row .body { min-width: 0; padding-top: 0.25rem; }
+    .list-row .head {
+        font-family: var(--font-serif, 'IBM Plex Serif', Georgia, serif);
+        font-size: 1.1875rem; line-height: 1.3;
+        color: var(--ctp-text, #cdd6f4);
+        font-weight: 500;
+        margin-bottom: 0.35rem;
+        transition: color 150ms ease;
+        letter-spacing: -0.005em;
+    }
+    .list-row:hover .head { color: var(--ctp-lavender, #7287fd); }
+    .list-row .blurb {
+        font-family: var(--font-serif, serif);
+        font-size: 0.9rem; line-height: 1.55;
+        color: var(--ctp-subtext0, #a6adc8);
+        margin: 0 0 0.5rem;
+        display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical;
+        overflow: hidden;
+    }
+    .list-row .meta-row {
+        display: flex; gap: 0.5rem; align-items: center; flex-wrap: wrap;
+        font-family: var(--font-mono, monospace);
+        font-size: 0.65rem;
+        color: var(--ctp-overlay1, #7f849c);
+        text-transform: uppercase; letter-spacing: 0.06em;
+    }
+    .list-row .tag {
+        background: color-mix(in oklch, var(--ctp-surface0, #313244) 60%, transparent);
+        color: var(--ctp-subtext0, #a6adc8);
+        padding: 0.18rem 0.5rem;
+        border-radius: 999px;
+        text-transform: lowercase; letter-spacing: 0.02em;
+    }
+
+    @media (max-width: 640px) {
+        .list-row {
+            grid-template-columns: 6rem 1fr;
+            gap: 1rem;
+        }
+        .list-row .when {
+            grid-column: 1 / -1;
+            order: -1;
+            padding-top: 0;
+            font-size: 0.65rem;
+        }
+        .list-row .thumb,
+        .list-row .thumb-fallback {
+            width: 6rem; height: 4rem;
+        }
+        .list-row .thumb-fallback { font-size: 1.125rem; }
+    }
+</style>
+
+<section class="max-w-blog mx-auto px-6 pt-12 pb-24" x-data="{
+        activeTag: '{{ active_tag|default:'' }}',
+        searchQuery: '{{ search_query|default:''|escapejs }}',
+        cardVisible(el) {
+            if (this.activeTag) {
+                var tags = (el.dataset.tags || '').split(',');
+                if (tags.indexOf(this.activeTag) === -1) return false;
+            }
+            if (this.searchQuery) {
+                var q = this.searchQuery.toLowerCase();
+                var hay = (el.dataset.search || '').toLowerCase();
+                if (hay.indexOf(q) === -1) return false;
+            }
+            return true;
+        }
+    }">
+
+    <p class="list-flag">dl.blog · essays</p>
+    <div class="flex items-baseline flex-wrap gap-y-3">
+        <h1 class="list-h1">Notes on machine-learning research</h1>
+        <span class="view-toggle" role="group" aria-label="View">
+            <a href="{% url 'blog' %}">grid</a>
+            <a href="{% url 'blog' %}?view=list" class="active" aria-current="page">list</a>
+        </span>
+    </div>
+    <p class="list-tagline">
+        Long-form pieces on machine-learning research, with the occasional
+        aside about Amsterdam, side projects, and whatever else holds my
+        attention long enough to write down. I also like making visual,
+        interactive introductions to ML and DL concepts, the kind I wish
+        I'd had when I was learning them.
+    </p>
+
+    {% comment %}Search input + tag dropdown. Same pattern as the grid
+       view; same Alpine activeTag + searchQuery state.{% endcomment %}
+    <div class="filter-bar mt-12 mb-2 flex flex-col sm:flex-row gap-3 sm:items-center">
+        <form action="{% url 'blog' %}" method="get" class="flex-1 max-w-md">
+            <input type="hidden" name="view" value="list">
+            <label class="search-input">
+                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" class="text-content-muted flex-shrink-0"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
+                <input type="text" name="q" value="{{ search_query|default:'' }}"
+                       placeholder="Search essays…" autocomplete="off"
+                       x-model="searchQuery">
+                <button type="button" x-show="searchQuery" x-cloak
+                        @click="searchQuery = ''"
+                        class="search-clear" aria-label="Clear search">
+                    <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
+                </button>
+            </label>
+        </form>
+
+        <div class="relative" x-data="{ filterOpen: false }" @keydown.escape.window="filterOpen = false" x-cloak>
+            <button @click="filterOpen = !filterOpen"
+                    :class="activeTag ? 'tag-trigger active' : 'tag-trigger'">
+                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round" class="trigger-icon"><polygon points="22 3 2 3 10 12.46 10 19 14 21 14 12.46 22 3"/></svg>
+                <span class="trigger-label">
+                    <span x-show="!activeTag" class="trigger-label-empty">Filter by tag</span>
+                    <span x-show="activeTag" x-text="activeTag" x-cloak></span>
+                </span>
+                <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.25" stroke-linecap="round" stroke-linejoin="round" :class="filterOpen ? 'rotate-180' : ''" class="trigger-chev"><polyline points="6 9 12 15 18 9"/></svg>
+            </button>
+            <div x-show="filterOpen" x-cloak @click.outside="filterOpen = false"
+                 x-transition:enter="transition ease-out duration-150"
+                 x-transition:enter-start="opacity-0 -translate-y-1 scale-[0.98]"
+                 x-transition:enter-end="opacity-100 translate-y-0 scale-100"
+                 class="tag-panel">
+                <button @click="activeTag = ''; filterOpen = false"
+                        :class="activeTag === '' ? 'tag-option active' : 'tag-option'">
+                    <span class="tag-option-label">All essays</span>
+                    <span class="tag-option-count">{{ posts|length }}</span>
+                </button>
+                <div class="tag-divider"></div>
+                <div id="list-tag-options"></div>
+            </div>
+        </div>
+    </div>
+
+    <style>
+        .search-input { display: flex; align-items: center; gap: 0.75rem; padding: 0.6rem 1rem; background: var(--ctp-mantle, #181825); border: 1px solid color-mix(in oklch, var(--ctp-surface0, #313244) 70%, transparent); border-radius: 999px; transition: border-color 200ms ease, background 200ms ease; }
+        .search-input:focus-within { border-color: color-mix(in oklch, var(--ctp-lavender, #7287fd) 50%, transparent); background: var(--ctp-base, #1e1e2e); }
+        .search-input input { flex: 1; background: transparent; border: none; outline: none; color: var(--ctp-text, #cdd6f4); font-family: var(--font-serif, 'IBM Plex Serif', Georgia, serif); font-size: 0.95rem; }
+        .search-input input::placeholder { color: var(--ctp-overlay0, #6c7086); font-style: italic; }
+        .search-clear { background: none; border: none; cursor: pointer; color: var(--ctp-overlay1, #7f849c); transition: color 150ms ease; padding: 2px; }
+        .search-clear:hover { color: var(--ctp-text, #cdd6f4); }
+        .tag-trigger { display: inline-flex; align-items: center; gap: 0.6rem; padding: 0.55rem 1rem 0.55rem 0.875rem; background: var(--ctp-mantle, #181825); border: 1px solid color-mix(in oklch, var(--ctp-surface0, #313244) 70%, transparent); border-radius: 999px; cursor: pointer; font-family: var(--font-serif, serif); color: var(--ctp-subtext1, #bac2de); transition: all 200ms ease; min-width: 11rem; }
+        .tag-trigger:hover { border-color: color-mix(in oklch, var(--ctp-lavender, #7287fd) 40%, transparent); background: var(--ctp-base, #1e1e2e); }
+        .tag-trigger.active { border-color: color-mix(in oklch, var(--ctp-lavender, #7287fd) 60%, transparent); color: var(--ctp-text, #cdd6f4); }
+        .tag-trigger .trigger-icon { color: var(--ctp-overlay1, #7f849c); flex-shrink: 0; }
+        .tag-trigger.active .trigger-icon { color: var(--ctp-lavender, #7287fd); }
+        .tag-trigger .trigger-label { flex: 1; text-align: left; font-size: 0.95rem; }
+        .tag-trigger .trigger-label-empty { color: var(--ctp-overlay0, #6c7086); font-style: italic; }
+        .tag-trigger .trigger-chev { color: var(--ctp-overlay1, #7f849c); transition: transform 200ms ease; flex-shrink: 0; }
+        .tag-panel { position: absolute; top: calc(100% + 0.5rem); left: 0; min-width: 280px; max-width: 360px; max-height: 22rem; overflow-y: auto; background: var(--ctp-mantle, #181825); border: 1px solid color-mix(in oklch, var(--ctp-surface0, #313244) 70%, transparent); border-radius: 14px; padding: 0.4rem; z-index: 30; box-shadow: 0 1px 2px rgba(0,0,0,0.06), 0 8px 24px -8px rgba(0,0,0,0.30), 0 24px 48px -16px rgba(0,0,0,0.20); }
+        .tag-divider { height: 1px; background: color-mix(in oklch, var(--ctp-surface0, #313244) 60%, transparent); margin: 0.4rem 0.5rem; }
+        .tag-option { display: flex; align-items: center; justify-content: space-between; gap: 1rem; width: 100%; padding: 0.55rem 0.75rem; border-radius: 8px; background: transparent; border: none; cursor: pointer; text-align: left; font-family: var(--font-serif, serif); color: var(--ctp-subtext1, #bac2de); transition: background 120ms ease, color 120ms ease; }
+        .tag-option:hover { background: color-mix(in oklch, var(--ctp-surface0, #313244) 60%, transparent); color: var(--ctp-text, #cdd6f4); }
+        .tag-option.active { background: color-mix(in oklch, var(--ctp-lavender, #7287fd) 14%, transparent); color: var(--ctp-lavender, #7287fd); }
+        .tag-option-label { font-size: 0.95rem; }
+        .tag-option-count { font-family: var(--font-mono, monospace); font-size: 0.7rem; color: var(--ctp-overlay1, #7f849c); font-variant-numeric: tabular-nums; }
+        .tag-option.active .tag-option-count { color: var(--ctp-lavender, #7287fd); }
+    </style>
+
+    {% if is_staff %}
+    <div class="flex gap-2 flex-wrap mt-5 items-center">
+        <span class="text-[0.6875rem] uppercase tracking-wider text-content-muted font-mono">Staff:</span>
+        <a href="{% url 'blog' %}?view=list" class="px-3 py-1 rounded-full text-xs font-medium transition-colors {% if not only_drafts %}bg-accent text-white{% else %}bg-surface-2 text-content-secondary hover:text-content{% endif %}">All ({{ posts|length }})</a>
+        <a href="{% url 'blog' %}?view=list&drafts=1" class="px-3 py-1 rounded-full text-xs font-medium transition-colors {% if only_drafts %}bg-accent text-white{% else %}bg-surface-2 text-content-secondary hover:text-content{% endif %}">Drafts only</a>
+    </div>
+    {% endif %}
+
+    {% if posts %}
+    <div id="list-mount"></div>
+    <script id="list-data" type="application/json">
+    [
+    {% for p in posts %}{
+        "slug": "{{ p.slug|escapejs }}",
+        "title": "{{ p.title|escapejs }}",
+        "excerpt": "{{ p.excerpt|escapejs }}",
+        "date": "{{ p.date|date:'Y-m-d' }}",
+        "year": "{{ p.date|date:'Y' }}",
+        "month": "{{ p.date|date:'M' }}",
+        "day": "{{ p.date|date:'j' }}",
+        "reading_time": {{ p.reading_time }},
+        "tags": [{% for t in p.tags %}"{{ t|escapejs }}"{% if not forloop.last %},{% endif %}{% endfor %}],
+        "image": "{% if p.image %}{% load static %}{% static p.image %}{% endif %}",
+        "url": "{% url 'blog_post' p.slug %}",
+        "draft": {% if p.draft %}true{% else %}false{% endif %}
+    }{% if not forloop.last %},{% endif %}{% endfor %}
+    ]
+    </script>
+    {% else %}
+    <p class="text-content-muted py-20 text-center font-serif italic" style="margin-top: 2rem;">
+        {% if search_query %}No essays matching "{{ search_query }}".{% else %}No essays yet — check back soon.{% endif %}
+    </p>
+    {% endif %}
+</section>
+
+<script>
+(function() {
+    var dataEl = document.getElementById('list-data');
+    if (!dataEl) return;
+    var posts = JSON.parse(dataEl.textContent);
+    var mount = document.getElementById('list-mount');
+    if (!mount || !posts.length) return;
+
+    // Bucket by year, newest year first
+    var byYear = {};
+    posts.forEach(function(p) { (byYear[p.year] = byYear[p.year] || []).push(p); });
+    var years = Object.keys(byYear).sort(function(a, b) { return b.localeCompare(a); });
+
+    years.forEach(function(year) {
+        var block = document.createElement('section');
+        block.className = 'year-block';
+        block.innerHTML = '<h2 class="year-h">' + year + ' &middot; ' + byYear[year].length + ' ' + (byYear[year].length === 1 ? 'essay' : 'essays') + '</h2>';
+        byYear[year].sort(function(a, b) { return b.date.localeCompare(a.date); }).forEach(function(p) {
+            var row = document.createElement('a');
+            row.href = p.url;
+            row.className = 'list-row';
+            var thumb = p.image
+                ? '<img class="thumb" src="' + p.image + '" alt="" loading="lazy">'
+                : '<span class="thumb-fallback">' + (p.title.charAt(0) || '·') + '</span>';
+            var tags = p.tags.slice(0, 3).map(function(t) { return '<span class="tag">' + t + '</span>'; }).join('');
+            row.innerHTML =
+                '<span class="when">' + p.month + '&nbsp;' + p.day + '</span>' +
+                thumb +
+                '<div class="body">' +
+                  '<div class="head">' + p.title + (p.draft ? ' <span style="opacity:.5;font-style:italic;font-size:.8em">(draft)</span>' : '') + '</div>' +
+                  '<p class="blurb">' + p.excerpt + '</p>' +
+                  '<div class="meta-row">' +
+                    '<span>' + p.reading_time + ' min</span>' +
+                    (tags ? '<span>·</span>' + tags : '') +
+                  '</div>' +
+                '</div>';
+            // Wire tag + search filter via Alpine x-show. cardVisible() lives
+            // on the parent section's x-data scope and considers both
+            // activeTag and searchQuery.
+            row.dataset.tags = p.tags.join(',');
+            row.dataset.search = (p.title + ' ' + p.excerpt + ' ' + p.tags.join(' ')).toLowerCase();
+            row.setAttribute('x-show', 'cardVisible($el)');
+            block.appendChild(row);
+        });
+        // Hide year header when all its rows are filtered out. We reuse
+        // cardVisible by walking the rows in the block at evaluation time.
+        block.dataset.year = year;
+        block.setAttribute('x-show',
+            "[].slice.call($el.querySelectorAll('.list-row')).some(function(r){ return cardVisible(r); })"
+        );
+        mount.appendChild(block);
+    });
+
+    // Build the polished tag dropdown options
+    var counts = {};
+    posts.forEach(function(p) {
+        p.tags.forEach(function(t) { if (t) counts[t] = (counts[t] || 0) + 1; });
+    });
+    var optionsMount = document.getElementById('list-tag-options');
+    if (optionsMount) {
+        Object.keys(counts).sort(function(a, b) {
+            return counts[b] - counts[a] || a.localeCompare(b);
+        }).forEach(function(tag) {
+            var safe = tag.replace(/'/g, "\\'");
+            var btn = document.createElement('button');
+            btn.setAttribute('x-on:click', "activeTag = (activeTag === '" + safe + "' ? '' : '" + safe + "'); filterOpen = false");
+            btn.setAttribute(':class', "activeTag === '" + safe + "' ? 'tag-option active' : 'tag-option'");
+            btn.className = 'tag-option';
+            btn.innerHTML = '<span class="tag-option-label"></span><span class="tag-option-count"></span>';
+            btn.querySelector('.tag-option-label').textContent = tag;
+            btn.querySelector('.tag-option-count').textContent = counts[tag];
+            optionsMount.appendChild(btn);
+        });
+    }
+
+    // No localStorage auto-redirect — see blog.html for rationale.
+})();
+</script>
+{% endblock %}

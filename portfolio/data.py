@@ -37,6 +37,14 @@ HERO = {
     ],
 }
 
+CURRENTLY = (
+    # Single-line "what I'm thinking about right now" string for the
+    # /notebook/ sticky bar. Edit by hand. HTML allowed (use <em> sparingly).
+    "Pre-training a small SAE on Pythia-410M. Re-reading the <em>μP</em> paper. "
+    "Writing an explainer on multiple-instance learning for non-medical-imaging readers."
+)
+
+
 NEWS = [
     {
         'date': '2026',
@@ -610,7 +618,9 @@ NAV_LINKS = [
         {'label': 'News', 'href': '#news'},
     ]},
     {'label': 'Writing', 'href': '/blog/', 'children': [
-        {'label': 'Blog', 'href': '/blog/'},
+        {'label': 'Blog (essays)', 'href': '/blog/'},
+        {'label': 'Notebook (open lab notes)', 'href': '/notebook/'},
+        {'label': 'Reading (papers I am chewing on)', 'href': '/reading/'},
         {'label': 'Garden (notes by maturity)', 'href': '/garden/'},
         {'label': 'Featured Projects', 'href': '#projects'},
         {'label': 'All Projects', 'href': '/projects/'},

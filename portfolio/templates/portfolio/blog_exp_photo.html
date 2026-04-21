@@ -1,0 +1,224 @@
+{% extends "portfolio/blog_base.html" %}
+{% load static %}
+
+{% block title %}dl.blog — Plates{% endblock %}
+
+{% block og_meta %}<meta name="robots" content="noindex,nofollow">{% endblock %}
+
+{% block content %}
+{% comment %}Photo-Essay First — image-led asymmetric grid; hover for title.
+
+   - One-line masthead.
+   - Asymmetric CSS grid: 3-col base; some cells span 2 rows ("tall") or
+     2 cols ("wide"). The size pattern is hashed from the post slug so it
+     stays stable across renders without owner intervention.
+   - Each cell = cover figure with Catppuccin-tinted overlay at low opacity.
+   - Hover: overlay deepens, title + date slide up from bottom in serif.
+   - "Show titles" toggle for keyboard / screen-reader / hover-haters.
+   - Posts without images fall back to a typographic tile (title in serif
+     centered on a Catppuccin gradient).
+{% endcomment %}
+<style>
+    .photo-page {}
+
+    .photo-flag {
+        font-family: var(--font-mono, monospace);
+        font-size: 0.7rem; text-transform: uppercase; letter-spacing: 0.22em;
+        color: var(--ctp-overlay1, #7f849c);
+        margin-bottom: 0.5rem;
+    }
+    .photo-h1 {
+        font-family: var(--font-serif, 'IBM Plex Serif', Georgia, serif);
+        font-size: 2rem; line-height: 1.1; font-weight: 600;
+        color: var(--ctp-text, #cdd6f4);
+        margin-bottom: 0.5rem; letter-spacing: -0.01em;
+        display: inline;
+    }
+    .photo-toggle {
+        font-family: var(--font-mono, monospace);
+        font-size: 0.7rem;
+        color: var(--ctp-overlay1, #7f849c);
+        background: transparent;
+        border: 1px solid var(--ctp-surface0, #313244);
+        padding: 0.25rem 0.6rem;
+        border-radius: 999px;
+        cursor: pointer;
+        text-transform: uppercase; letter-spacing: 0.06em;
+        transition: all 150ms ease;
+        margin-left: 1rem; vertical-align: middle;
+    }
+    .photo-toggle:hover { color: var(--ctp-lavender, #7287fd); border-color: var(--ctp-lavender, #7287fd); }
+    .photo-toggle.on { background: var(--ctp-lavender, #7287fd); color: white; border-color: var(--ctp-lavender, #7287fd); }
+
+    .photo-grid {
+        display: grid;
+        grid-template-columns: repeat(2, minmax(0, 1fr));
+        grid-auto-rows: 220px;
+        grid-auto-flow: dense;
+        gap: 0.75rem;
+        margin-top: 2rem;
+    }
+    @media (min-width: 768px) {
+        .photo-grid {
+            grid-template-columns: repeat(3, minmax(0, 1fr));
+            grid-auto-rows: 240px;
+        }
+    }
+
+    .photo-tile {
+        position: relative;
+        overflow: hidden;
+        border-radius: 12px;
+        text-decoration: none !important;
+        background: var(--ctp-mantle, #181825);
+        display: block;
+        transition: transform 250ms ease;
+    }
+    .photo-tile:hover { transform: translateY(-2px); }
+    .photo-tile.tall { grid-row: span 2; }
+    .photo-tile.wide { grid-column: span 2; }
+
+    .photo-tile img {
+        width: 100%; height: 100%;
+        object-fit: cover;
+        transition: transform 600ms cubic-bezier(0.16, 1, 0.3, 1);
+    }
+    .photo-tile:hover img { transform: scale(1.04); }
+
+    /* Overlay: subtle by default, deeper on hover */
+    .photo-tile::before {
+        content: ''; position: absolute; inset: 0;
+        background: linear-gradient(180deg,
+            color-mix(in oklch, var(--ctp-base, #1e1e2e) 8%, transparent) 0%,
+            color-mix(in oklch, var(--ctp-base, #1e1e2e) 8%, transparent) 60%,
+            color-mix(in oklch, var(--ctp-base, #1e1e2e) 75%, transparent) 100%);
+        pointer-events: none;
+        transition: background 250ms ease;
+        z-index: 1;
+    }
+    .photo-tile:hover::before {
+        background: linear-gradient(180deg,
+            color-mix(in oklch, var(--ctp-base, #1e1e2e) 25%, transparent) 0%,
+            color-mix(in oklch, var(--ctp-base, #1e1e2e) 50%, transparent) 50%,
+            color-mix(in oklch, var(--ctp-base, #1e1e2e) 95%, transparent) 100%);
+    }
+
+    .photo-caption {
+        position: absolute; bottom: 0; left: 0; right: 0;
+        padding: 1rem 1.125rem 1rem;
+        z-index: 2;
+        color: var(--ctp-text, #cdd6f4);
+        transform: translateY(20%);
+        opacity: 0;
+        transition: transform 350ms cubic-bezier(0.16, 1, 0.3, 1), opacity 250ms ease;
+    }
+    .photo-tile:hover .photo-caption,
+    .photo-tile:focus-visible .photo-caption,
+    .photo-grid.show-titles .photo-caption {
+        transform: translateY(0); opacity: 1;
+    }
+    .photo-caption .head {
+        font-family: var(--font-serif, 'IBM Plex Serif', Georgia, serif);
+        font-size: 1.0625rem; line-height: 1.25;
+        font-weight: 500;
+        margin-bottom: 0.25rem;
+        text-shadow: 0 1px 2px rgba(0,0,0,0.4);
+    }
+    .photo-caption .when {
+        font-family: var(--font-mono, monospace);
+        font-size: 0.65rem;
+        color: rgba(255,255,255,0.78);
+        text-transform: uppercase; letter-spacing: 0.08em;
+        text-shadow: 0 1px 2px rgba(0,0,0,0.5);
+    }
+
+    /* Typographic fallback for posts with no image */
+    .photo-tile.no-image {
+        background: linear-gradient(135deg,
+            color-mix(in oklch, var(--ctp-mantle, #181825) 95%, var(--ctp-lavender, #7287fd)) 0%,
+            var(--ctp-crust, #11111b) 100%);
+        display: grid; place-items: center;
+        padding: 1.25rem;
+    }
+    .photo-tile.no-image::before { display: none; }
+    .photo-tile.no-image .typeset {
+        font-family: var(--font-serif, 'IBM Plex Serif', Georgia, serif);
+        font-size: 1.125rem; line-height: 1.25;
+        color: var(--ctp-text, #cdd6f4);
+        text-align: center;
+        z-index: 2;
+        padding-bottom: 1.75rem;
+    }
+    .photo-tile.no-image .photo-caption .head { font-size: 0.8125rem; }
+</style>
+
+<section class="max-w-blog mx-auto px-6 pt-12 pb-24 photo-page">
+
+    <p class="photo-flag">dl.blog · plates</p>
+    <div>
+        <h1 class="photo-h1">A picture of every essay.</h1>
+        <button type="button" class="photo-toggle" id="photo-titles-toggle" aria-pressed="false">show titles</button>
+    </div>
+    <p class="font-serif text-[0.95rem] leading-[1.6] text-content-secondary mt-3 max-w-md">
+        Cover figures, asymmetric. Hover or tap any plate to read.
+    </p>
+
+    {% if posts %}
+    <div class="photo-grid" id="photo-grid">
+        {% for post in posts %}
+        <a href="{% url 'blog_post' post.slug %}" class="photo-tile" data-slug="{{ post.slug }}">
+            {% if post.image %}
+            <img src="{% static post.image %}" alt="" loading="lazy">
+            {% else %}
+            {# Typographic fallback handled by the .no-image class — applied via JS below
+               so we don't duplicate the markup. The <span class="typeset"> contains the title. #}
+            <span class="typeset">{{ post.title }}</span>
+            {% endif %}
+            <div class="photo-caption">
+                <div class="head">{{ post.title }}</div>
+                <div class="when">{{ post.date|date:'M Y' }} · {{ post.reading_time }} min</div>
+            </div>
+        </a>
+        {% endfor %}
+    </div>
+    {% else %}
+    <p class="text-content-muted py-20 text-center font-serif italic">No plates yet.</p>
+    {% endif %}
+</section>
+
+<script>
+(function() {
+    var grid = document.getElementById('photo-grid');
+    if (!grid) return;
+    var tiles = Array.prototype.slice.call(grid.children);
+
+    // Hash slug → size class. Stable across renders. Mostly squares, with
+    // a few tall and a few wide for visual interest.
+    function sizeFor(slug) {
+        var h = 0;
+        for (var i = 0; i < slug.length; i++) h = (h * 31 + slug.charCodeAt(i)) & 0xffffffff;
+        var bucket = Math.abs(h) % 7;
+        if (bucket === 0) return 'tall';
+        if (bucket === 1) return 'wide';
+        return '';
+    }
+    tiles.forEach(function(t) {
+        var size = sizeFor(t.dataset.slug || '');
+        if (size) t.classList.add(size);
+        // Mark image-less tiles
+        if (!t.querySelector('img')) t.classList.add('no-image');
+    });
+
+    // Show-titles toggle
+    var btn = document.getElementById('photo-titles-toggle');
+    if (btn) {
+        btn.addEventListener('click', function() {
+            var on = grid.classList.toggle('show-titles');
+            btn.classList.toggle('on', on);
+            btn.setAttribute('aria-pressed', String(on));
+            btn.textContent = on ? 'hide titles' : 'show titles';
+        });
+    }
+})();
+</script>
+{% endblock %}

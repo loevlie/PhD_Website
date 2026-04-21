@@ -5,141 +5,727 @@
 
 {% block og_meta %}
 <meta property="og:title" content="Blog — Dennis Loevlie">
-<meta property="og:description" content="Thoughts on ML research, deep learning, and software engineering.">
+<meta property="og:description" content="Long-form essays on machine-learning research, deep learning, and software engineering.">
 <meta property="og:type" content="website">
 <meta name="twitter:card" content="summary_large_image">
 <meta name="twitter:title" content="Blog — Dennis Loevlie">
-<meta name="twitter:description" content="Thoughts on ML research, deep learning, and software engineering.">
+<meta name="twitter:description" content="Long-form essays on machine-learning research, deep learning, and software engineering.">
 <link rel="alternate" type="application/rss+xml" title="Dennis Loevlie — Blog" href="{% url 'blog_feed' %}">
 {% endblock %}
 
 {% block content %}
-<section class="max-w-blog mx-auto px-6 pt-16 pb-12" x-data="{ activeTag: '{{ active_tag|default:'' }}' }">
-    <!-- Header -->
-    <div class="mb-12">
-        <h1 class="text-4xl md:text-5xl font-bold text-content tracking-tight mb-4">Blog</h1>
-        <p class="text-lg text-content-secondary max-w-xl leading-relaxed">Thoughts on ML research, life in Amsterdam, and whatever else comes to mind.</p>
+{% comment %}Canonical /blog/ — uniform card grid.
+
+   Pivoted from the asymmetric image-led variant: the grid now reads as
+   a proper grid because every card is the same size. Closer to Vercel /
+   Stripe / Notion blog indexes than to an art portfolio.
+
+   - 3-col on ≥1024px, 2-col on ≥640px, 1-col on phones
+   - Each card: 16:9 cover image (top), serif title (3-line clamp),
+     mono meta (date · reading time), 2-line excerpt, tag pills
+   - All info visible without hovering — scannable
+   - Hover: card lifts, image scales subtle, title shifts to accent
+   - No featured hero, no wide modifier — uniformity *is* the grid.
+   - First card carries a `Latest` eyebrow chip so the newest essay
+     has a quiet visual anchor without breaking the grid rhythm.{% endcomment %}
+<style>
+    .blog-flag {
+        font-family: var(--font-mono, monospace);
+        font-size: 0.7rem; text-transform: uppercase; letter-spacing: 0.22em;
+        color: var(--ctp-overlay1, #7f849c);
+        margin-bottom: 0.5rem;
+    }
+    .blog-h1 {
+        font-family: var(--font-serif, 'IBM Plex Serif', Georgia, serif);
+        font-size: 2rem; line-height: 1.1; font-weight: 600;
+        color: var(--ctp-text, #cdd6f4);
+        letter-spacing: -0.01em;
+        margin-bottom: 0.25rem;
+        display: inline;
+    }
+    .blog-tagline {
+        font-family: var(--font-serif, serif);
+        font-size: 1rem; line-height: 1.65;
+        color: var(--ctp-subtext1, #bac2de);
+        margin-top: 0.5rem;
+        max-width: 36rem;
+    }
+
+    .view-toggle {
+        display: inline-flex; gap: 0.25rem;
+        background: var(--ctp-mantle, #181825);
+        border: 1px solid var(--ctp-surface0, #313244);
+        border-radius: 999px;
+        padding: 2px;
+        margin-left: 1rem; vertical-align: middle;
+    }
+    .view-toggle a {
+        font-family: var(--font-mono, monospace);
+        font-size: 0.65rem;
+        text-transform: uppercase; letter-spacing: 0.08em;
+        padding: 0.3rem 0.7rem;
+        border-radius: 999px;
+        text-decoration: none !important;
+        color: var(--ctp-overlay1, #7f849c);
+        transition: all 150ms ease;
+    }
+    .view-toggle a:hover { color: var(--ctp-text, #cdd6f4); }
+    .view-toggle a.active { background: var(--ctp-lavender, #7287fd); color: white; }
+
+    /* ── Bento grid: position-aware sizing à la Apple Newsroom ────
+       4-col lg / 2-col md / 1-col sm. Cards get explicit size classes
+       (hero, feature, wide, tall, small) assigned by position. The first
+       two posts are 2×2 anchors with image-overlay treatment; smaller
+       cards fill in below with mixed widths/heights for visual rhythm.
+
+       grid-auto-flow: dense lets later small cards fill any gap left
+       by an earlier wide card, so the bento always looks packed. */
+    .blog-grid {
+        display: grid;
+        grid-template-columns: 1fr;
+        gap: 1.25rem;
+        margin-top: 3rem;
+    }
+    @media (min-width: 640px) {
+        .blog-grid {
+            grid-template-columns: repeat(2, minmax(0, 1fr));
+            grid-auto-rows: 240px;
+            grid-auto-flow: dense;
+        }
+    }
+    @media (min-width: 1024px) {
+        .blog-grid {
+            grid-template-columns: repeat(4, minmax(0, 1fr));
+            grid-auto-rows: 220px;
+        }
+    }
+
+    /* ── Color Field card ────────────────────────────────────────
+       Each card is a tinted Catppuccin tile. The accent color chosen
+       per position (see below) is the dominant visual; serif title
+       sits on it. Image (when present) is a small "Polaroid" inset,
+       not the structural element.
+
+       The text uses var(--ctp-base) so contrast flips correctly across
+       theme flavors — on mocha (dark theme) the pastels are LIGHT and
+       --ctp-base is DARK; on latte (light theme) the accents are more
+       saturated and --ctp-base is LIGHT. Same rule, opposite outcome,
+       always readable. */
+    .blog-card {
+        position: relative;
+        display: flex; flex-direction: column;
+        text-decoration: none !important;
+        overflow: hidden;
+        border-radius: 14px;
+        background: var(--ctp-mantle, #181825);
+        color: var(--ctp-base, #1e1e2e);
+        transition: transform 300ms cubic-bezier(0.16, 1, 0.3, 1),
+                    box-shadow 250ms ease;
+        min-height: 280px;
+        box-shadow: 0 1px 2px rgba(0,0,0,0.06),
+                    inset 0 1px 0 rgba(255,255,255,0.08);
+    }
+    .blog-card:hover {
+        transform: translateY(-3px);
+        box-shadow: 0 16px 32px -12px rgba(0,0,0,0.30),
+                    inset 0 1px 0 rgba(255,255,255,0.10);
+    }
+
+    /* Position-rotated accent colors. 8 hues = no repeat for ~8 posts.
+       After 8 the cycle restarts (predictable, intentional). */
+    .blog-card.tint-1 { background: var(--ctp-lavender); }
+    .blog-card.tint-2 { background: var(--ctp-peach); }
+    .blog-card.tint-3 { background: var(--ctp-teal); }
+    .blog-card.tint-4 { background: var(--ctp-rosewater); }
+    .blog-card.tint-5 { background: var(--ctp-mauve); }
+    .blog-card.tint-6 { background: var(--ctp-sky); }
+    .blog-card.tint-7 { background: var(--ctp-green); }
+    .blog-card.tint-8 { background: var(--ctp-sapphire); }
+
+    /* Subtle decorative pilcrow in the top-right corner — editorial mark
+       that signals "this is a piece of writing." Half-opacity, serif. */
+    .blog-card .mark {
+        position: absolute;
+        top: 0.5rem; right: 0.875rem;
+        font-family: var(--font-serif, 'IBM Plex Serif', serif);
+        font-size: 1.25rem;
+        font-style: italic;
+        color: var(--ctp-base, #1e1e2e);
+        opacity: 0.30;
+        line-height: 1;
+        pointer-events: none;
+    }
+
+    /* ── Size classes ──────────────────────────────────────────── */
+    @media (min-width: 640px) {
+        .blog-card { min-height: 0; }
+        .blog-card.size-hero,
+        .blog-card.size-feature { grid-column: span 2; grid-row: span 2; }
+        .blog-card.size-wide { grid-column: span 2; grid-row: span 1; }
+        .blog-card.size-tall { grid-column: span 1; grid-row: span 2; }
+        .blog-card.size-small { grid-column: span 1; grid-row: span 1; }
+    }
+    @media (min-width: 1024px) {
+        .blog-card.size-hero { grid-column: span 2; grid-row: span 2; }
+        .blog-card.size-feature { grid-column: span 2; grid-row: span 2; }
+        .blog-card.size-wide { grid-column: span 2; grid-row: span 1; }
+        .blog-card.size-tall { grid-column: span 1; grid-row: span 2; }
+        .blog-card.size-small { grid-column: span 1; grid-row: span 1; }
+    }
+
+    /* The card body — full-bleed inside the colored tile. Title and meta
+       laid out as the primary visual; image (when present) is a small
+       inset Polaroid in the bottom-right corner. */
+    .blog-card .body {
+        position: relative;
+        display: flex; flex-direction: column;
+        flex: 1;
+        padding: 1.25rem 1.375rem 1.25rem;
+        color: inherit;  /* inherits ctp-base for contrast */
+        z-index: 1;
+    }
+
+    /* Polaroid image inset — bottom-right corner, framed in white-ish */
+    .blog-card .polaroid {
+        position: absolute;
+        bottom: 0.875rem; right: 0.875rem;
+        z-index: 0;
+        background: var(--ctp-base, #1e1e2e);
+        padding: 0.3rem 0.3rem 0.5rem;
+        border-radius: 4px;
+        box-shadow: 0 4px 12px rgba(0,0,0,0.18),
+                    0 1px 2px rgba(0,0,0,0.12);
+        transform: rotate(-1.5deg);
+        transition: transform 350ms cubic-bezier(0.16, 1, 0.3, 1);
+        overflow: hidden;
+    }
+    .blog-card:hover .polaroid {
+        transform: rotate(-0.5deg) translateY(-2px);
+    }
+    .blog-card .polaroid img {
+        display: block;
+        width: 100%; height: 100%;
+        object-fit: cover;
+        border-radius: 2px;
+    }
+    .blog-card .latest-chip {
+        font-family: var(--font-mono, monospace);
+        font-size: 0.6rem; text-transform: uppercase; letter-spacing: 0.12em;
+        background: var(--ctp-lavender, #7287fd); color: white;
+        padding: 0.22rem 0.6rem; border-radius: 999px;
+        align-self: flex-start;
+        box-shadow: 0 2px 8px rgba(0,0,0,0.25);
+    }
+    .blog-card .meta-eyebrow {
+        font-family: var(--font-mono, monospace);
+        font-size: 0.65rem; text-transform: uppercase; letter-spacing: 0.16em;
+        color: var(--ctp-overlay1, #7f849c);
+        display: flex; gap: 0.5rem; align-items: center; flex-wrap: wrap;
+    }
+    .blog-card .head {
+        font-family: var(--font-serif, 'IBM Plex Serif', Georgia, serif);
+        font-weight: 600;
+        color: var(--ctp-text, #cdd6f4);
+        letter-spacing: -0.005em;
+        transition: color 200ms ease;
+        display: -webkit-box; -webkit-box-orient: vertical;
+        overflow: hidden;
+    }
+    /* No hover color shift here — see .blog-card:hover .head { opacity: ... }
+       further down. The lavender hover shift turned titles invisible on
+       lavender-tinted cards. */
+    .blog-card .blurb {
+        font-family: var(--font-serif, serif);
+        color: var(--ctp-subtext0, #a6adc8);
+        display: -webkit-box; -webkit-box-orient: vertical;
+        overflow: hidden;
+    }
+    .blog-card .tag-row {
+        display: flex; gap: 0.4rem; flex-wrap: wrap;
+    }
+    .blog-card .tag {
+        font-family: var(--font-mono, monospace);
+        font-size: 0.625rem;
+        color: var(--ctp-subtext0, #a6adc8);
+        background: color-mix(in oklch, var(--ctp-surface0, #313244) 70%, transparent);
+        backdrop-filter: blur(4px);
+        padding: 0.18rem 0.55rem;
+        border-radius: 999px;
+        text-transform: lowercase;
+        letter-spacing: 0.02em;
+    }
+
+    /* Common typography — all type uses inherit color (ctp-base) so the
+       card-tint contrast just works. Mono meta + serif title + serif blurb
+       + mono tags. */
+    .blog-card .latest-chip {
+        position: absolute; top: 0.875rem; left: 0.875rem;
+        z-index: 3;
+        font-family: var(--font-mono, monospace);
+        font-size: 0.58rem; text-transform: uppercase; letter-spacing: 0.16em;
+        background: var(--ctp-base, #1e1e2e); color: var(--ctp-text, #cdd6f4);
+        padding: 0.2rem 0.55rem; border-radius: 999px;
+        opacity: 0.92;
+    }
+    .blog-card .meta-eyebrow {
+        font-family: var(--font-mono, monospace);
+        font-size: 0.62rem; text-transform: uppercase; letter-spacing: 0.16em;
+        color: inherit;
+        opacity: 0.7;
+        margin-bottom: 0.625rem;
+        display: flex; gap: 0.4rem; align-items: center; flex-wrap: wrap;
+    }
+    .blog-card .head {
+        font-family: var(--font-serif, 'IBM Plex Serif', Georgia, serif);
+        font-style: italic;
+        font-weight: 600;
+        color: inherit;
+        letter-spacing: -0.01em;
+        margin-bottom: 0.5rem;
+        display: -webkit-box; -webkit-box-orient: vertical;
+        overflow: hidden;
+        transition: opacity 200ms ease;
+    }
+    .blog-card:hover .head { opacity: 0.78; }
+    .blog-card .blurb {
+        font-family: var(--font-serif, serif);
+        color: inherit;
+        opacity: 0.85;
+        margin: 0 0 0.7rem;
+        display: -webkit-box; -webkit-box-orient: vertical;
+        overflow: hidden;
+    }
+    .blog-card .tag-row {
+        display: flex; gap: 0.4rem; flex-wrap: wrap; margin-top: auto;
+        position: relative; z-index: 2;
+    }
+    .blog-card .tag {
+        font-family: var(--font-mono, monospace);
+        font-size: 0.58rem;
+        color: inherit;
+        background: color-mix(in oklch, var(--ctp-base, #1e1e2e) 14%, transparent);
+        border: 1px solid color-mix(in oklch, var(--ctp-base, #1e1e2e) 18%, transparent);
+        padding: 0.18rem 0.55rem;
+        border-radius: 999px;
+        text-transform: lowercase;
+        letter-spacing: 0.02em;
+    }
+
+    /* ── HERO (2×2): editorial display title, large polaroid ── */
+    .blog-card.size-hero .body,
+    .blog-card.size-feature .body {
+        padding: 1.5rem 1.625rem 1.5rem;
+    }
+    .blog-card.size-hero .head,
+    .blog-card.size-feature .head {
+        font-size: 2rem; line-height: 1.05;
+        font-weight: 700;
+        letter-spacing: -0.02em;
+        -webkit-line-clamp: 4;
+        margin-bottom: 0.625rem;
+        max-width: 88%;
+    }
+    @media (min-width: 1024px) {
+        .blog-card.size-hero .head,
+        .blog-card.size-feature .head { font-size: 2.375rem; -webkit-line-clamp: 4; }
+    }
+    .blog-card.size-hero .blurb,
+    .blog-card.size-feature .blurb {
+        font-size: 0.9375rem; line-height: 1.55;
+        -webkit-line-clamp: 2;
+        max-width: 60%;
+    }
+    .blog-card.size-hero .polaroid,
+    .blog-card.size-feature .polaroid {
+        width: 42%; aspect-ratio: 4/3; height: auto;
+        bottom: 1rem; right: 1rem;
+    }
+
+    /* ── WIDE (2×1): big italic title left, polaroid right ── */
+    .blog-card.size-wide .body {
+        padding: 1.125rem 1.375rem 1.125rem;
+        justify-content: center;
+    }
+    .blog-card.size-wide .head {
+        font-size: 1.4375rem; line-height: 1.1;
+        -webkit-line-clamp: 2;
+        margin-bottom: 0.5rem;
+        max-width: 65%;
+    }
+    .blog-card.size-wide .blurb { display: none; }
+    .blog-card.size-wide .polaroid {
+        width: 32%; aspect-ratio: 4/3; height: auto;
+        bottom: 0.875rem; right: 0.875rem;
+        transform: rotate(2deg);
+    }
+    .blog-card.size-wide:hover .polaroid { transform: rotate(0.5deg) translateY(-2px); }
+
+    /* ── TALL (1×2): big italic title top, optional polaroid bottom ── */
+    .blog-card.size-tall .body {
+        padding: 1.125rem 1.25rem 1.125rem;
+    }
+    .blog-card.size-tall .head {
+        font-size: 1.4375rem; line-height: 1.05;
+        -webkit-line-clamp: 5;
+        margin-bottom: 0.5rem;
+    }
+    .blog-card.size-tall .blurb {
+        font-size: 0.8125rem; line-height: 1.5;
+        -webkit-line-clamp: 2;
+        max-width: 100%;
+    }
+    .blog-card.size-tall .polaroid {
+        width: 70%; aspect-ratio: 16/10; height: auto;
+        bottom: 0.875rem; right: 0.875rem;
+    }
+
+    /* ── SMALL (1×1): tight italic title, no image inset (would crowd) ── */
+    .blog-card.size-small .body {
+        padding: 0.875rem 1rem 0.875rem;
+    }
+    .blog-card.size-small .head {
+        font-size: 1.0625rem; line-height: 1.15;
+        -webkit-line-clamp: 4;
+        margin-bottom: 0.4rem;
+    }
+    .blog-card.size-small .blurb { display: none; }
+    .blog-card.size-small .meta-eyebrow {
+        font-size: 0.55rem;
+        margin-bottom: 0.4rem;
+    }
+    /* Small cards still get a polaroid IF post has image — but smaller */
+    .blog-card.size-small .polaroid {
+        width: 55%; aspect-ratio: 4/3; height: auto;
+        bottom: 0.625rem; right: 0.625rem;
+        padding: 0.18rem 0.18rem 0.32rem;
+    }
+
+    /* ── TYPE-LED (no image): big italic statement title takes the card.
+       Used every Nth position for editorial variety / "rest stop." ── */
+    .blog-card.size-type .body {
+        padding: 1.5rem 1.625rem;
+        justify-content: space-between;
+    }
+    .blog-card.size-type .head {
+        font-size: 1.625rem; line-height: 1.1;
+        -webkit-line-clamp: 5;
+        margin-bottom: 0;
+    }
+    .blog-card.size-type .blurb { display: none; }
+    .blog-card.size-type .polaroid { display: none; }
+
+    /* Mobile (single-col): every card collapses to consistent stack */
+    @media (max-width: 639px) {
+        .blog-card { min-height: 240px; }
+        .blog-card .head { font-size: 1.5rem; -webkit-line-clamp: 4; max-width: 100%; }
+        .blog-card .blurb { font-size: 0.875rem; -webkit-line-clamp: 2; display: -webkit-box; max-width: 100%; }
+        .blog-card.size-small .blurb,
+        .blog-card.size-wide .blurb,
+        .blog-card.size-type .blurb { display: none; }
+        .blog-card .polaroid {
+            position: relative; bottom: auto; right: auto;
+            width: 60%; height: auto; aspect-ratio: 16/10;
+            margin-top: 1rem; align-self: flex-end;
+        }
+    }
+</style>
+
+<section class="max-w-blog mx-auto px-6 pt-12 pb-24" x-data="{
+        activeTag: '{{ active_tag|default:'' }}',
+        searchQuery: '{{ search_query|default:''|escapejs }}',
+        cardVisible(el) {
+            if (this.activeTag) {
+                var tags = (el.dataset.tags || '').split(',');
+                if (tags.indexOf(this.activeTag) === -1) return false;
+            }
+            if (this.searchQuery) {
+                var q = this.searchQuery.toLowerCase();
+                var hay = (el.dataset.search || '').toLowerCase();
+                if (hay.indexOf(q) === -1) return false;
+            }
+            return true;
+        }
+    }">
+
+    <p class="blog-flag">dl.blog · essays</p>
+    <div class="flex items-baseline flex-wrap gap-y-3">
+        <h1 class="blog-h1">Notes on machine-learning research</h1>
+        <span class="view-toggle" role="group" aria-label="View">
+            <a href="{% url 'blog' %}" class="active" aria-current="page">grid</a>
+            <a href="{% url 'blog' %}?view=list">list</a>
+        </span>
+    </div>
+    <p class="blog-tagline">
+        Long-form pieces on machine-learning research, with the occasional
+        aside about Amsterdam, side projects, and whatever else holds my
+        attention long enough to write down. I also like making visual,
+        interactive introductions to ML and DL concepts, the kind I wish
+        I'd had when I was learning them.
+    </p>
+
+    {% comment %}Search input + tag dropdown. Server-side fallback: the form submits
+       with q= so it works without JS. With JS, Alpine binds the input to
+       `searchQuery` so typing filters live; tag dropdown sets `activeTag`.
+       The two filters compose (AND).{% endcomment %}
+    <div class="filter-bar mt-12 mb-2 flex flex-col sm:flex-row gap-3 sm:items-center">
+        <form action="{% url 'blog' %}" method="get" class="flex-1 max-w-md">
+            <label class="search-input">
+                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" class="text-content-muted flex-shrink-0"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
+                <input type="text" name="q" value="{{ search_query|default:'' }}"
+                       placeholder="Search essays…" autocomplete="off"
+                       x-model="searchQuery">
+                <button type="button" x-show="searchQuery" x-cloak
+                        @click="searchQuery = ''"
+                        class="search-clear" aria-label="Clear search">
+                    <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
+                </button>
+            </label>
+        </form>
+
+        {# Tag dropdown — soft pill trigger, polished panel #}
+        <div class="relative" x-data="{ filterOpen: false }" @keydown.escape.window="filterOpen = false" x-cloak>
+            <button @click="filterOpen = !filterOpen"
+                    :class="activeTag ? 'tag-trigger active' : 'tag-trigger'">
+                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round" class="trigger-icon"><polygon points="22 3 2 3 10 12.46 10 19 14 21 14 12.46 22 3"/></svg>
+                <span class="trigger-label">
+                    <span x-show="!activeTag" class="trigger-label-empty">Filter by tag</span>
+                    <span x-show="activeTag" x-text="activeTag" x-cloak></span>
+                </span>
+                <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.25" stroke-linecap="round" stroke-linejoin="round" :class="filterOpen ? 'rotate-180' : ''" class="trigger-chev"><polyline points="6 9 12 15 18 9"/></svg>
+            </button>
+            <div x-show="filterOpen" x-cloak @click.outside="filterOpen = false"
+                 x-transition:enter="transition ease-out duration-150"
+                 x-transition:enter-start="opacity-0 -translate-y-1 scale-[0.98]"
+                 x-transition:enter-end="opacity-100 translate-y-0 scale-100"
+                 class="tag-panel">
+                <button @click="activeTag = ''; filterOpen = false"
+                        :class="activeTag === '' ? 'tag-option active' : 'tag-option'">
+                    <span class="tag-option-label">All essays</span>
+                    <span class="tag-option-count">{{ posts|length }}</span>
+                </button>
+                <div class="tag-divider"></div>
+                <div id="blog-tag-options"></div>
+            </div>
+        </div>
     </div>
 
-    <!-- Search -->
-    <form action="{% url 'blog' %}" method="get" class="mb-8">
-        <div class="flex items-center gap-3 px-4 py-3 bg-surface-1 border border-border rounded-xl focus-within:border-accent transition-colors">
-            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" class="text-content-muted flex-shrink-0"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
-            <input type="text" name="q" value="{{ search_query|default:'' }}" placeholder="Search posts..." autocomplete="off"
-                   class="flex-1 bg-transparent border-none outline-none text-content placeholder:text-content-muted text-base">
-        </div>
-    </form>
+    <style>
+        .search-input {
+            display: flex; align-items: center; gap: 0.75rem;
+            padding: 0.6rem 1rem;
+            background: var(--ctp-mantle, #181825);
+            border: 1px solid color-mix(in oklch, var(--ctp-surface0, #313244) 70%, transparent);
+            border-radius: 999px;
+            transition: border-color 200ms ease, background 200ms ease;
+        }
+        .search-input:focus-within {
+            border-color: color-mix(in oklch, var(--ctp-lavender, #7287fd) 50%, transparent);
+            background: var(--ctp-base, #1e1e2e);
+        }
+        .search-input input {
+            flex: 1;
+            background: transparent; border: none; outline: none;
+            color: var(--ctp-text, #cdd6f4);
+            font-family: var(--font-serif, 'IBM Plex Serif', Georgia, serif);
+            font-size: 0.95rem;
+        }
+        .search-input input::placeholder {
+            color: var(--ctp-overlay0, #6c7086);
+            font-style: italic;
+        }
+        .search-clear {
+            background: none; border: none; cursor: pointer;
+            color: var(--ctp-overlay1, #7f849c);
+            transition: color 150ms ease;
+            padding: 2px;
+        }
+        .search-clear:hover { color: var(--ctp-text, #cdd6f4); }
 
-    {% if posts %}
+        .tag-trigger {
+            display: inline-flex; align-items: center; gap: 0.6rem;
+            padding: 0.55rem 1rem 0.55rem 0.875rem;
+            background: var(--ctp-mantle, #181825);
+            border: 1px solid color-mix(in oklch, var(--ctp-surface0, #313244) 70%, transparent);
+            border-radius: 999px;
+            cursor: pointer;
+            font-family: var(--font-serif, serif);
+            color: var(--ctp-subtext1, #bac2de);
+            transition: all 200ms ease;
+            min-width: 11rem;
+        }
+        .tag-trigger:hover {
+            border-color: color-mix(in oklch, var(--ctp-lavender, #7287fd) 40%, transparent);
+            background: var(--ctp-base, #1e1e2e);
+        }
+        .tag-trigger.active {
+            border-color: color-mix(in oklch, var(--ctp-lavender, #7287fd) 60%, transparent);
+            color: var(--ctp-text, #cdd6f4);
+        }
+        .tag-trigger .trigger-icon { color: var(--ctp-overlay1, #7f849c); flex-shrink: 0; }
+        .tag-trigger.active .trigger-icon { color: var(--ctp-lavender, #7287fd); }
+        .tag-trigger .trigger-label {
+            flex: 1; text-align: left;
+            font-size: 0.95rem;
+            font-feature-settings: 'kern', 'liga';
+        }
+        .tag-trigger .trigger-label-empty {
+            color: var(--ctp-overlay0, #6c7086);
+            font-style: italic;
+        }
+        .tag-trigger .trigger-chev {
+            color: var(--ctp-overlay1, #7f849c);
+            transition: transform 200ms ease;
+            flex-shrink: 0;
+        }
+
+        .tag-panel {
+            position: absolute;
+            top: calc(100% + 0.5rem);
+            left: 0;
+            min-width: 280px;
+            max-width: 360px;
+            max-height: 22rem;
+            overflow-y: auto;
+            background: var(--ctp-mantle, #181825);
+            border: 1px solid color-mix(in oklch, var(--ctp-surface0, #313244) 70%, transparent);
+            border-radius: 14px;
+            padding: 0.4rem;
+            z-index: 30;
+            box-shadow:
+                0 1px 2px rgba(0,0,0,0.06),
+                0 8px 24px -8px rgba(0,0,0,0.30),
+                0 24px 48px -16px rgba(0,0,0,0.20);
+        }
+        .tag-divider {
+            height: 1px;
+            background: color-mix(in oklch, var(--ctp-surface0, #313244) 60%, transparent);
+            margin: 0.4rem 0.5rem;
+        }
+        .tag-option {
+            display: flex; align-items: center; justify-content: space-between;
+            gap: 1rem;
+            width: 100%;
+            padding: 0.55rem 0.75rem;
+            border-radius: 8px;
+            background: transparent; border: none; cursor: pointer;
+            text-align: left;
+            font-family: var(--font-serif, serif);
+            color: var(--ctp-subtext1, #bac2de);
+            transition: background 120ms ease, color 120ms ease;
+        }
+        .tag-option:hover {
+            background: color-mix(in oklch, var(--ctp-surface0, #313244) 60%, transparent);
+            color: var(--ctp-text, #cdd6f4);
+        }
+        .tag-option.active {
+            background: color-mix(in oklch, var(--ctp-lavender, #7287fd) 14%, transparent);
+            color: var(--ctp-lavender, #7287fd);
+        }
+        .tag-option-label { font-size: 0.95rem; }
+        .tag-option-count {
+            font-family: var(--font-mono, monospace);
+            font-size: 0.7rem;
+            color: var(--ctp-overlay1, #7f849c);
+            font-variant-numeric: tabular-nums;
+        }
+        .tag-option.active .tag-option-count { color: var(--ctp-lavender, #7287fd); }
+    </style>
+
     {% if is_staff %}
-    {# Staff-only "Drafts" filter chip — only visible when logged-in as staff. #}
-    <div class="flex gap-2 flex-wrap mb-4 items-center">
+    <div class="flex gap-2 flex-wrap mt-5 items-center">
         <span class="text-[0.6875rem] uppercase tracking-wider text-content-muted font-mono">Staff:</span>
         <a href="{% url 'blog' %}" class="px-3 py-1 rounded-full text-xs font-medium transition-colors {% if not only_drafts %}bg-accent text-white{% else %}bg-surface-2 text-content-secondary hover:text-content{% endif %}">All ({{ posts|length }})</a>
         <a href="{% url 'blog' %}?drafts=1" class="px-3 py-1 rounded-full text-xs font-medium transition-colors {% if only_drafts %}bg-accent text-white{% else %}bg-surface-2 text-content-secondary hover:text-content{% endif %}">Drafts only</a>
     </div>
     {% endif %}
-    {% comment %}Tag filter dropdown — replaces the wrap-everywhere chip row.
-       Scales to N tags without eating vertical space. Mirrors the
-       theme-picker pattern in blog_base.html for visual consistency.
-       Per-tag buttons are appended by the inline script below before
-       Alpine initializes (defer), so Alpine binds them on first pass.{% endcomment %}
-    <div x-cloak class="mb-10" x-data="{ filterOpen: false }" @keydown.escape.window="filterOpen = false">
-        <div class="relative inline-block">
-            <button @click="filterOpen = !filterOpen"
-                    :class="activeTag ? 'border-accent/60 text-content' : 'border-border text-content-secondary'"
-                    class="inline-flex items-center gap-2 px-4 py-2 rounded-lg bg-surface-1 border hover:border-accent/40 transition-colors text-sm font-medium">
-                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="text-content-muted"><polygon points="22 3 2 3 10 12.46 10 19 14 21 14 12.46 22 3"/></svg>
-                <span x-text="activeTag || 'All posts'"></span>
-                <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" :class="filterOpen ? 'rotate-180' : ''" class="transition-transform text-content-muted"><polyline points="6 9 12 15 18 9"/></svg>
-            </button>
-            <div x-show="filterOpen" x-cloak @click.outside="filterOpen = false"
-                 x-transition:enter="transition ease-out duration-150"
-                 x-transition:enter-start="opacity-0 -translate-y-1"
-                 x-transition:enter-end="opacity-100 translate-y-0"
-                 class="absolute left-0 top-full mt-2 z-30 min-w-[220px] max-h-80 overflow-y-auto bg-surface-1 border border-border rounded-lg p-1.5 shadow-xl">
-                <button @click="activeTag = ''; filterOpen = false"
-                        :class="activeTag === '' ? 'bg-accent/10 text-accent' : 'text-content-secondary hover:text-content hover:bg-surface-2'"
-                        class="w-full text-left px-3 py-1.5 rounded-md text-sm flex items-center justify-between gap-4 transition-colors">
-                    <span>All posts</span>
-                    <span class="text-xs text-content-muted tabular-nums">{{ posts|length }}</span>
-                </button>
-                <div id="blog-filter-tags-list"></div>
-            </div>
-        </div>
-    </div>
 
-    <!-- Post grid -->
-    <div class="grid gap-4" id="blog-grid">
+    {% if posts %}
+    <div class="blog-grid">
         {% for post in posts %}
-        <a href="{% url 'blog_post' post.slug %}" class="blog-card-link group" data-tags="{{ post.tags|join:',' }}"
-           x-show="activeTag === '' || '{{ post.tags|join:',' }}'.split(',').includes(activeTag)">
-            <article class="bg-surface-1 border border-border rounded-xl overflow-hidden transition-all duration-200 hover:border-accent/40 hover:shadow-lg hover:shadow-accent/5 hover:-translate-y-0.5 flex flex-col md:flex-row">
-                {% if post.image %}
-                <div class="overflow-hidden md:w-64 md:flex-shrink-0">
-                    <img src="{% static post.image %}" alt="{{ post.title }}" loading="lazy"
-                         class="w-full h-40 md:h-full object-cover transition-transform duration-300 group-hover:scale-[1.02]">
+        {% comment %}Color Field bento. Each card is a Catppuccin-tinted tile
+           with the title set in big serif italic as the dominant visual.
+           Image (when present) appears as a small "Polaroid" inset, framed
+           in mantle-base, slightly rotated for handcrafted feel.
+
+           Two rotations cycle independently:
+           - SIZE rotates by position (hero / feature / wide / tall / small / type)
+             so the bento shape stays composed.
+           - TINT rotates 1..8 by position so adjacent cards have distinct hues.
+        {% endcomment %}
+        {% with idx=forloop.counter %}
+        <a href="{% url 'blog_post' post.slug %}"
+           class="blog-card {% cycle 'tint-1' 'tint-2' 'tint-3' 'tint-4' 'tint-5' 'tint-6' 'tint-7' 'tint-8' %}{% if idx == 1 %} size-hero{% elif idx == 2 %} size-feature{% elif idx == 3 %} size-wide{% elif idx == 4 %} size-tall{% elif idx == 6 %} size-type{% elif idx|divisibleby:'8' %} size-wide{% else %} size-small{% endif %}"
+           data-tags="{{ post.tags|join:',' }}"
+           data-search="{{ post.title }} {{ post.excerpt }} {{ post.tags|join:' ' }}"
+           x-show="cardVisible($el)">
+            {% if forloop.first %}
+            <span class="latest-chip">Latest</span>
+            {% endif %}
+            <span class="mark" aria-hidden="true">¶</span>
+            <div class="body">
+                <div class="meta-eyebrow">
+                    <time datetime="{{ post.date|date:'Y-m-d' }}">{{ post.date|date:'M j, Y' }}</time>
+                    <span>·</span>
+                    <span>{{ post.reading_time }} min</span>
+                    {% if post.draft %}<span>· <span style="color:#fbbf24">Draft</span></span>{% endif %}
                 </div>
-                {% endif %}
-                <div class="p-5 md:p-6 flex flex-col justify-center flex-1 min-w-0">
-                    <div class="flex items-center gap-3 text-xs text-content-muted mb-2">
-                        <time datetime="{{ post.date|date:'Y-m-d' }}">{{ post.date|date:'M j, Y' }}</time>
-                        <span class="w-1 h-1 rounded-full bg-content-muted/40"></span>
-                        <span>{{ post.reading_time }} min read</span>
-                        {% if post.draft %}
-                        <span class="ml-auto px-2 py-0.5 rounded font-mono text-[0.6875rem] tracking-wide uppercase bg-yellow-500/10 text-yellow-600 border border-yellow-500/30">Draft</span>
-                        {% endif %}
-                    </div>
-                    <h2 class="text-lg font-semibold text-content mb-1.5 group-hover:text-accent transition-colors leading-snug tracking-tight">{{ post.title }}</h2>
-                    <p class="text-content-secondary text-sm leading-relaxed line-clamp-2 mb-3">{{ post.excerpt }}</p>
-                    <div class="flex items-center justify-between">
-                        <div class="flex gap-1.5 flex-wrap">
-                            {% for tag in post.tags %}
-                            <span class="text-[0.6875rem] px-2 py-0.5 rounded bg-surface-2 text-content-muted">{{ tag }}</span>
-                            {% endfor %}
-                        </div>
-                        <svg class="text-accent opacity-0 group-hover:opacity-100 transition-opacity flex-shrink-0 ml-3" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="5" y1="12" x2="19" y2="12"/><polyline points="12 5 19 12 12 19"/></svg>
-                    </div>
+                <h2 class="head">{{ post.title }}</h2>
+                <p class="blurb">{{ post.excerpt }}</p>
+                <div class="tag-row">
+                    {% for tag in post.tags|slice:":3" %}
+                    <span class="tag">{{ tag }}</span>
+                    {% endfor %}
                 </div>
-            </article>
+            </div>
+            {% if post.image %}
+            <div class="polaroid">
+                <img src="{% static post.image %}" alt=""
+                     loading="{% if forloop.first %}eager{% else %}lazy{% endif %}">
+            </div>
+            {% endif %}
         </a>
+        {% endwith %}
         {% endfor %}
     </div>
-
     {% else %}
-    <div class="text-center py-20 text-content-muted">
-        <p class="text-lg">{% if search_query %}No posts matching "{{ search_query }}"{% else %}No posts yet. Check back soon!{% endif %}</p>
-    </div>
+    <p class="text-content-muted py-20 text-center font-serif italic" style="margin-top: 2rem;">
+        {% if search_query %}No essays matching "{{ search_query }}".{% else %}No essays yet — check back soon.{% endif %}
+    </p>
     {% endif %}
 </section>
 
 <script>
-// Build tag dropdown rows dynamically. Runs before Alpine (which loads
-// with `defer`), so the x-on:click and :class attrs are present on
-// first-paint and Alpine binds them in its initial walk — no
-// Alpine.initTree() needed. Sorted by post count, then alphabetically.
 (function() {
-    var cards = document.querySelectorAll('.blog-card-link');
+    // Populate the tag dropdown options. Built before Alpine's defer
+    // loads so the bindings are present on first paint and Alpine binds
+    // them in its initial walk.
     var counts = {};
-    cards.forEach(function(card) {
+    document.querySelectorAll('.blog-card[data-tags]').forEach(function(card) {
         card.dataset.tags.split(',').forEach(function(t) {
             if (t) counts[t] = (counts[t] || 0) + 1;
         });
     });
-    var container = document.getElementById('blog-filter-tags-list');
-    if (!container) return;
-    Object.keys(counts).sort(function(a, b) {
-        return counts[b] - counts[a] || a.localeCompare(b);
-    }).forEach(function(tag) {
-        var btn = document.createElement('button');
-        btn.setAttribute('x-on:click', "activeTag = '" + tag.replace(/'/g, "\\'") + "'; filterOpen = false");
-        btn.setAttribute(':class', "activeTag === '" + tag.replace(/'/g, "\\'") + "' ? 'bg-accent/10 text-accent' : 'text-content-secondary hover:text-content hover:bg-surface-2'");
-        btn.className = 'w-full text-left px-3 py-1.5 rounded-md text-sm flex items-center justify-between gap-4 transition-colors';
-        btn.innerHTML = '<span></span><span class="text-xs text-content-muted tabular-nums"></span>';
-        btn.firstChild.textContent = tag;
-        btn.lastChild.textContent = counts[tag];
-        container.appendChild(btn);
-    });
+    var optionsMount = document.getElementById('blog-tag-options');
+    if (optionsMount) {
+        Object.keys(counts).sort(function(a, b) {
+            return counts[b] - counts[a] || a.localeCompare(b);
+        }).forEach(function(tag) {
+            var safe = tag.replace(/'/g, "\\'");
+            var btn = document.createElement('button');
+            btn.setAttribute('x-on:click', "activeTag = (activeTag === '" + safe + "' ? '' : '" + safe + "'); filterOpen = false");
+            btn.setAttribute(':class', "activeTag === '" + safe + "' ? 'tag-option active' : 'tag-option'");
+            btn.className = 'tag-option';
+            btn.innerHTML = '<span class="tag-option-label"></span><span class="tag-option-count"></span>';
+            btn.querySelector('.tag-option-label').textContent = tag;
+            btn.querySelector('.tag-option-count').textContent = counts[tag];
+            optionsMount.appendChild(btn);
+        });
+    }
+
+    // No localStorage auto-redirect: it raced with the click handler,
+    // forcing users to click "grid" twice to actually get back to grid.
+    // The toggle is right next to the heading on every blog page, so a
+    // returning reader can flip in one click anyway.
 })();
 </script>
 {% endblock %}

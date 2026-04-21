@@ -1,0 +1,127 @@
+{% extends "portfolio/blog_base.html" %}
+{% load static %}
+
+{% block title %}dl.blog — Index Card{% endblock %}
+
+{% block og_meta %}<meta name="robots" content="noindex,nofollow">{% endblock %}
+
+{% block content %}
+{% comment %}Index Card experiment — Letterboxd / library catalog pattern.
+   - Compact rows: ~96px square cover thumbnail at left, title + excerpt
+     + meta on the right.
+   - High information density without losing image richness.
+   - Reads like a library catalogue or a Letterboxd diary; great for
+     people scanning a long list quickly.
+   - One-line eyebrow + tagline up top, no big H1 chrome.
+{% endcomment %}
+<section class="max-w-blog mx-auto px-6 pt-16 pb-24" x-data="{ activeTag: '{{ active_tag|default:'' }}' }">
+
+    <header class="mb-10 max-w-2xl">
+        <p class="text-[0.6875rem] uppercase tracking-[0.22em] text-content-muted font-mono mb-3">dl.blog · {{ posts|length }} {{ posts|length|pluralize:'entry,entries' }}</p>
+        <h1 class="text-3xl md:text-4xl font-bold text-content tracking-tight mb-3">All entries</h1>
+        <p class="text-base text-content-secondary leading-relaxed">
+            A scannable index of everything I've written. Cover · title · summary · tags.
+        </p>
+    </header>
+
+    <!-- Search + filter inline strip -->
+    <div class="flex flex-col sm:flex-row gap-3 mb-8 sm:items-center">
+        <form action="{% url 'blog_experiment' 'indexcard' %}" method="get" class="flex-1">
+            <div class="flex items-center gap-3 px-4 py-2 bg-surface-1 border border-border rounded-lg focus-within:border-accent/60 transition-colors">
+                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" class="text-content-muted flex-shrink-0"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
+                <input type="text" name="q" value="{{ search_query|default:'' }}" placeholder="Filter by title, tag, or excerpt…" autocomplete="off"
+                       class="flex-1 bg-transparent border-none outline-none text-content placeholder:text-content-muted text-sm">
+            </div>
+        </form>
+        <div x-cloak x-data="{ filterOpen: false }" @keydown.escape.window="filterOpen = false">
+            <div class="relative">
+                <button @click="filterOpen = !filterOpen"
+                        :class="activeTag ? 'border-accent/60 text-content' : 'border-border text-content-secondary'"
+                        class="inline-flex items-center gap-2 px-4 py-2 rounded-lg bg-surface-1 border hover:border-accent/40 transition-colors text-sm font-medium w-full sm:w-auto">
+                    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="text-content-muted"><polygon points="22 3 2 3 10 12.46 10 19 14 21 14 12.46 22 3"/></svg>
+                    <span x-text="activeTag || 'All tags'"></span>
+                    <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" :class="filterOpen ? 'rotate-180' : ''" class="transition-transform text-content-muted"><polyline points="6 9 12 15 18 9"/></svg>
+                </button>
+                <div x-show="filterOpen" x-cloak @click.outside="filterOpen = false"
+                     x-transition:enter="transition ease-out duration-150"
+                     x-transition:enter-start="opacity-0 -translate-y-1"
+                     x-transition:enter-end="opacity-100 translate-y-0"
+                     class="absolute right-0 top-full mt-2 z-30 min-w-[220px] max-h-80 overflow-y-auto bg-surface-1 border border-border rounded-lg p-1.5 shadow-xl">
+                    <button @click="activeTag = ''; filterOpen = false"
+                            :class="activeTag === '' ? 'bg-accent/10 text-accent' : 'text-content-secondary hover:text-content hover:bg-surface-2'"
+                            class="w-full text-left px-3 py-1.5 rounded-md text-sm flex items-center justify-between gap-4 transition-colors">
+                        <span>All tags</span>
+                        <span class="text-xs text-content-muted tabular-nums">{{ posts|length }}</span>
+                    </button>
+                    <div id="indexcard-filter-tags-list"></div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    {% if posts %}
+    <ul class="divide-y divide-border/60 border-y border-border/60" id="indexcard-list">
+        {% for post in posts %}
+        <li x-show="activeTag === '' || '{{ post.tags|join:',' }}'.split(',').includes(activeTag)"
+            data-tags="{{ post.tags|join:',' }}"
+            class="indexcard-row">
+            <a href="{% url 'blog_post' post.slug %}" class="block group py-4 px-2 -mx-2 rounded-lg hover:bg-surface-1/70 transition-colors">
+                <div class="flex items-start gap-4 md:gap-5">
+                    {% if post.image %}
+                    <div class="overflow-hidden rounded-md border border-border/70 flex-shrink-0">
+                        <img src="{% static post.image %}" alt="" loading="lazy"
+                             class="w-20 h-20 md:w-24 md:h-24 object-cover">
+                    </div>
+                    {% else %}
+                    <div class="w-20 h-20 md:w-24 md:h-24 rounded-md border border-border/70 bg-surface-2/40 grid place-items-center text-content-muted/50 font-mono text-xs flex-shrink-0">—</div>
+                    {% endif %}
+                    <div class="flex-1 min-w-0">
+                        <div class="flex items-center gap-2 text-[0.6875rem] uppercase tracking-wider text-content-muted font-mono mb-1.5 flex-wrap">
+                            <time datetime="{{ post.date|date:'Y-m-d' }}">{{ post.date|date:'Y · M j' }}</time>
+                            <span>·</span>
+                            <span>{{ post.reading_time }} min</span>
+                            {% if post.draft %}<span class="text-yellow-600">· Draft</span>{% endif %}
+                        </div>
+                        <h2 class="text-base md:text-lg font-semibold text-content mb-1 leading-snug tracking-tight group-hover:text-accent transition-colors">{{ post.title }}</h2>
+                        <p class="text-sm text-content-secondary leading-snug line-clamp-2 mb-2">{{ post.excerpt }}</p>
+                        <div class="flex gap-1.5 flex-wrap">
+                            {% for tag in post.tags %}
+                            <span class="text-[0.65rem] px-1.5 py-0.5 rounded bg-surface-2/60 text-content-muted">{{ tag }}</span>
+                            {% endfor %}
+                        </div>
+                    </div>
+                </div>
+            </a>
+        </li>
+        {% endfor %}
+    </ul>
+    {% else %}
+    <p class="text-content-muted text-lg py-20 text-center">{% if search_query %}No entries matching "{{ search_query }}".{% else %}No entries yet.{% endif %}</p>
+    {% endif %}
+</section>
+
+<script>
+(function() {
+    var counts = {};
+    document.querySelectorAll('.indexcard-row').forEach(function(card) {
+        card.dataset.tags.split(',').forEach(function(t) {
+            if (t) counts[t] = (counts[t] || 0) + 1;
+        });
+    });
+    var container = document.getElementById('indexcard-filter-tags-list');
+    if (!container) return;
+    Object.keys(counts).sort(function(a, b) {
+        return counts[b] - counts[a] || a.localeCompare(b);
+    }).forEach(function(tag) {
+        var btn = document.createElement('button');
+        btn.setAttribute('x-on:click', "activeTag = '" + tag.replace(/'/g, "\\'") + "'; filterOpen = false");
+        btn.setAttribute(':class', "activeTag === '" + tag.replace(/'/g, "\\'") + "' ? 'bg-accent/10 text-accent' : 'text-content-secondary hover:text-content hover:bg-surface-2'");
+        btn.className = 'w-full text-left px-3 py-1.5 rounded-md text-sm flex items-center justify-between gap-4 transition-colors';
+        btn.innerHTML = '<span></span><span class="text-xs text-content-muted tabular-nums"></span>';
+        btn.firstChild.textContent = tag;
+        btn.lastChild.textContent = counts[tag];
+        container.appendChild(btn);
+    });
+})();
+</script>
+{% endblock %}

@@ -1,14 +1,14 @@
 from django.contrib import admin
 from django.utils.html import format_html
 
-from portfolio.models import Post, Pageview, DailySalt
+from portfolio.models import Post, Pageview, DailySalt, Reading
 
 
 @admin.register(Post)
 class PostAdmin(admin.ModelAdmin):
-    list_display = ['title', 'date', 'draft', 'is_explainer', 'is_paper_companion', 'maturity', 'tag_list']
-    list_filter = ['draft', 'is_explainer', 'is_paper_companion', 'maturity', 'date', 'tags']
-    list_editable = ['draft', 'is_explainer', 'is_paper_companion', 'maturity']
+    list_display = ['title', 'kind', 'date', 'draft', 'is_explainer', 'is_paper_companion', 'maturity', 'tag_list']
+    list_filter = ['kind', 'draft', 'is_explainer', 'is_paper_companion', 'maturity', 'date', 'tags']
+    list_editable = ['kind', 'draft', 'is_explainer', 'is_paper_companion', 'maturity']
     search_fields = ['title', 'body', 'excerpt']
     prepopulated_fields = {'slug': ('title',)}
     date_hierarchy = 'date'
@@ -29,8 +29,8 @@ class PostAdmin(admin.ModelAdmin):
             ),
         }),
         ('Display', {
-            'fields': ('image', 'tags', 'is_explainer', 'is_paper_companion', 'maturity', 'draft'),
-            'description': 'is_explainer = Distill register (sidenotes + citations + wide canvas). is_paper_companion = Asterisk/Works in Progress register (single column, drop cap, real footnotes, pull-quotes). Mutually exclusive in practice.',
+            'fields': ('kind', 'image', 'tags', 'is_explainer', 'is_paper_companion', 'maturity', 'draft'),
+            'description': 'kind routes the post: essay → /blog/, lab_note → /notebook/. is_explainer = Distill register (sidenotes + citations + wide canvas). is_paper_companion = Asterisk/Works in Progress register (single column, drop cap, real footnotes, pull-quotes). Mutually exclusive in practice.',
         }),
         ('Series + external', {
             'fields': ('series', 'series_order', 'medium_url'),
@@ -84,6 +84,30 @@ class PageviewAdmin(admin.ModelAdmin):
         n = queryset.update(is_bot=True)
         self.message_user(request, f'Marked {n} pageview(s) as bot.')
     mark_as_bot.short_description = 'Mark selected as bot (excluded from dashboard)'
+
+
+@admin.register(Reading)
+class ReadingAdmin(admin.ModelAdmin):
+    """Curated reading list shown at /reading/. Stored in the DB so you
+    can edit on the go from /admin/ without a redeploy."""
+    list_display = ['title', 'venue', 'year', 'status', 'order', 'modified_at']
+    list_filter = ['status', 'year']
+    list_editable = ['status', 'order']
+    search_fields = ['title', 'venue', 'annotation']
+    save_on_top = True
+    fieldsets = (
+        ('Reference', {
+            'fields': ('title', 'venue', 'year', 'url'),
+        }),
+        ('Annotation', {
+            'fields': ('annotation',),
+            'description': 'One-line note in your own voice. Italic on the page; keep it short.',
+        }),
+        ('Surface', {
+            'fields': ('status', 'order'),
+            'description': 'this_week shows top, chewing shows below, archived hides from /reading/. Lower order = higher in its bucket.',
+        }),
+    )
 
 
 @admin.register(DailySalt)

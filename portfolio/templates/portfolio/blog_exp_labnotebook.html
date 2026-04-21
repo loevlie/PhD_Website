@@ -1,0 +1,190 @@
+{% extends "portfolio/blog_base.html" %}
+{% load static %}
+
+{% block title %}dl.blog — lab notebook{% endblock %}
+
+{% block og_meta %}<meta name="robots" content="noindex,nofollow">{% endblock %}
+
+{% block content %}
+{% comment %}Open Lab Notebook — researcher-honest, ELLIS-PhD-flavored.
+
+   - No hero. Top is a 2-line `currently:` block (sticky beneath masthead).
+   - Each row: status pill (open/iterating/parked/wrapped) · serif title
+     · dual-date column on the right (started · last edited).
+   - Status is mapped from existing `maturity` field as a stand-in:
+       seedling → open       (just started, half-formed)
+       budding  → iterating  (actively being developed)
+       evergreen → wrapped   (settled, no longer changing)
+       (none)   → open       (default)
+     A real version would have a dedicated status field; mapping today
+     means the prototype works without a migration.
+{% endcomment %}
+<style>
+    .lab-page { font-family: var(--font-serif, 'IBM Plex Serif', Georgia, serif); }
+
+    .lab-masthead {
+        font-family: var(--font-mono, monospace);
+        font-size: 0.7rem;
+        text-transform: uppercase;
+        letter-spacing: 0.22em;
+        color: var(--ctp-overlay1, #7f849c);
+        margin-bottom: 0.5rem;
+    }
+    .lab-h1 {
+        font-family: var(--font-serif, 'IBM Plex Serif', Georgia, serif);
+        font-size: 2rem;
+        line-height: 1.1;
+        color: var(--ctp-text, #cdd6f4);
+        font-weight: 600;
+        margin-bottom: 1.5rem;
+        letter-spacing: -0.01em;
+    }
+
+    .lab-currently {
+        position: sticky; top: 4rem; z-index: 10;
+        background: color-mix(in oklch, var(--ctp-mantle, #181825) 92%, transparent);
+        backdrop-filter: blur(8px);
+        -webkit-backdrop-filter: blur(8px);
+        border: 1px solid var(--ctp-surface0, #313244);
+        border-radius: 10px;
+        padding: 0.875rem 1.125rem;
+        margin: 0 0 2.5rem;
+        display: grid;
+        grid-template-columns: auto 1fr;
+        gap: 0.75rem 1rem;
+        align-items: baseline;
+        font-family: var(--font-serif, serif);
+    }
+    .lab-currently .lbl {
+        font-family: var(--font-mono, monospace);
+        font-size: 0.65rem;
+        text-transform: uppercase;
+        letter-spacing: 0.18em;
+        color: var(--ctp-overlay1, #7f849c);
+        white-space: nowrap;
+    }
+    .lab-currently .val {
+        font-family: var(--font-serif, serif);
+        font-size: 0.9375rem;
+        line-height: 1.55;
+        color: var(--ctp-subtext1, #bac2de);
+    }
+
+    .lab-row {
+        display: grid;
+        grid-template-columns: 7rem 1fr 9rem;
+        gap: 1.25rem;
+        align-items: start;
+        padding: 1rem 0;
+        border-bottom: 1px solid color-mix(in oklch, var(--ctp-surface0, #313244) 35%, transparent);
+        text-decoration: none !important;
+        transition: background-color 150ms ease;
+    }
+    .lab-row:hover { background: color-mix(in oklch, var(--ctp-surface0, #313244) 18%, transparent); }
+    .lab-row .pill {
+        display: inline-flex; align-items: center; gap: 0.4rem;
+        padding: 0.2rem 0.55rem;
+        border-radius: 999px;
+        border: 1px solid;
+        font-family: var(--font-mono, monospace);
+        font-size: 0.65rem;
+        text-transform: uppercase;
+        letter-spacing: 0.06em;
+        white-space: nowrap;
+        align-self: start;
+        margin-top: 0.4rem;
+    }
+    .lab-row .pill::before {
+        content: ''; width: 0.4rem; height: 0.4rem; border-radius: 999px;
+        background: currentColor;
+    }
+    .pill-open      { color: #c084fc; border-color: rgba(192, 132, 252, 0.3); background: rgba(192, 132, 252, 0.08); }
+    .pill-iterating { color: #fb923c; border-color: rgba(251, 146, 60, 0.3);  background: rgba(251, 146, 60, 0.08); }
+    .pill-parked    { color: #94a3b8; border-color: rgba(148, 163, 184, 0.3); background: rgba(148, 163, 184, 0.08); }
+    .pill-wrapped   { color: #4ade80; border-color: rgba(74, 222, 128, 0.3);  background: rgba(74, 222, 128, 0.08); }
+
+    .lab-row .head {
+        font-family: var(--font-serif, serif);
+        font-size: 1.1875rem;
+        line-height: 1.35;
+        color: var(--ctp-text, #cdd6f4);
+        font-weight: 500;
+        margin-bottom: 0.3rem;
+        transition: color 150ms ease;
+    }
+    .lab-row:hover .head { color: var(--ctp-lavender, #7287fd); }
+    .lab-row .blurb {
+        font-family: var(--font-serif, serif);
+        font-size: 0.9rem;
+        line-height: 1.55;
+        color: var(--ctp-subtext0, #a6adc8);
+        margin: 0;
+    }
+    .lab-row .dates {
+        font-family: var(--font-mono, monospace);
+        font-size: 0.7rem;
+        color: var(--ctp-overlay1, #7f849c);
+        text-transform: uppercase;
+        letter-spacing: 0.06em;
+        text-align: right;
+        line-height: 1.6;
+        padding-top: 0.5rem;
+    }
+    .lab-row .dates .lbl {
+        color: var(--ctp-overlay0, #6c7086);
+        margin-right: 0.4rem;
+    }
+
+    @media (max-width: 640px) {
+        .lab-row { grid-template-columns: 1fr; gap: 0.5rem; }
+        .lab-row .dates { text-align: left; padding-top: 0; }
+    }
+</style>
+
+<section class="max-w-blog mx-auto px-6 pt-12 pb-24 lab-page">
+
+    <p class="lab-masthead">dennisloevlie.com / lab notebook</p>
+    <h1 class="lab-h1">Open notebook</h1>
+    <p class="font-serif text-[1rem] leading-[1.7] text-content-secondary mb-8 max-w-xl">
+        Working in public. Each entry shows when I started it and when
+        I last touched it; the status describes what I'm <em>doing</em>
+        with it, not how confident I am about it.
+    </p>
+
+    <!-- `currently:` sticky strip — single line of what I'm thinking about right now -->
+    <div class="lab-currently">
+        <span class="lbl">currently</span>
+        <span class="val">
+            Pre-training a small SAE on Pythia-410M. Re-reading the
+            <em>μP</em> paper. Writing an explainer on multiple-instance
+            learning for non-medical-imaging readers.
+        </span>
+    </div>
+
+    {% if posts %}
+    {% for post in posts %}
+    {# Map maturity → status; sane default of "open" so blank-maturity posts have a pill #}
+    {% with status_class='open' status_label='open' %}
+        {% if post.maturity == 'seedling' %}{% with status_class='open' status_label='open' %}{% endwith %}
+        {% elif post.maturity == 'budding' %}{% with status_class='iterating' status_label='iterating' %}{% endwith %}
+        {% elif post.maturity == 'evergreen' %}{% with status_class='wrapped' status_label='wrapped' %}{% endwith %}
+        {% endif %}
+        {# Above with-blocks just establish the right values; render below #}
+    {% endwith %}
+
+    {# We have to use a single resolved branch for the actual render #}
+    {% if post.maturity == 'evergreen' %}
+        {% include "portfolio/_lab_row.html" with status_class='wrapped' status_label='wrapped' %}
+    {% elif post.maturity == 'budding' %}
+        {% include "portfolio/_lab_row.html" with status_class='iterating' status_label='iterating' %}
+    {% elif post.maturity == 'seedling' %}
+        {% include "portfolio/_lab_row.html" with status_class='open' status_label='open' %}
+    {% else %}
+        {% include "portfolio/_lab_row.html" with status_class='open' status_label='open' %}
+    {% endif %}
+    {% endfor %}
+    {% else %}
+    <p class="text-content-muted py-20 text-center font-serif italic">No entries yet.</p>
+    {% endif %}
+</section>
+{% endblock %}

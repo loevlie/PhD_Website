@@ -1,0 +1,141 @@
+{% extends "portfolio/blog_base.html" %}
+{% load static %}
+
+{% block title %}dl.blog — Magazine{% endblock %}
+
+{% block og_meta %}<meta name="robots" content="noindex,nofollow">{% endblock %}
+
+{% block content %}
+{% comment %}Magazine experiment — Stripe/Vercel blog pattern.
+   - Eyebrow + tight intro at top
+   - Newest post becomes a hero card: large cover image taking ~half the width,
+     title + excerpt + meta on the other half. Asymmetric, magazine-feeling.
+   - Remaining posts as a 2-column grid of smaller image-led cards.
+   - Tag filter chip strip below the hero (back to chips since we have plenty
+     of space here and they double as visual rhythm).
+{% endcomment %}
+<section class="max-w-blog mx-auto px-6 pt-16 pb-24" x-data="{ activeTag: '{{ active_tag|default:'' }}' }">
+
+    <header class="mb-10 max-w-2xl">
+        <p class="text-[0.6875rem] uppercase tracking-[0.22em] text-content-muted font-mono mb-3">Issue 01</p>
+        <h1 class="text-4xl md:text-5xl font-bold text-content tracking-tight mb-4 leading-[1.1]">The Blog</h1>
+        <p class="text-base md:text-lg text-content-secondary leading-relaxed">
+            Long-form pieces on machine-learning research, with the occasional
+            aside about Amsterdam, side projects, and whatever else holds my
+            attention long enough to write down.
+        </p>
+    </header>
+
+    <!-- Quiet search -->
+    <form action="{% url 'blog_experiment' 'magazine' %}" method="get" class="mb-6">
+        <div class="flex items-center gap-3 px-4 py-2 bg-surface-1 border border-border rounded-full focus-within:border-accent/60 transition-colors max-w-sm">
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" class="text-content-muted flex-shrink-0"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
+            <input type="text" name="q" value="{{ search_query|default:'' }}" placeholder="Search…" autocomplete="off"
+                   class="flex-1 bg-transparent border-none outline-none text-content placeholder:text-content-muted text-sm">
+        </div>
+    </form>
+
+    {% if posts %}
+        {% with hero=posts.0 %}
+        <!-- Hero card — newest post -->
+        <a href="{% url 'blog_post' hero.slug %}" class="block group mb-12 mt-4"
+           data-tags="{{ hero.tags|join:',' }}"
+           x-show="activeTag === '' || '{{ hero.tags|join:',' }}'.split(',').includes(activeTag)">
+            <article class="grid md:grid-cols-2 gap-6 md:gap-10 items-center">
+                {% if hero.image %}
+                <div class="overflow-hidden rounded-2xl border border-border md:order-2">
+                    <img src="{% static hero.image %}" alt="" loading="lazy"
+                         class="w-full aspect-[4/3] md:aspect-[5/4] object-cover transition-transform duration-500 group-hover:scale-[1.03]">
+                </div>
+                {% endif %}
+                <div class="md:order-1 min-w-0">
+                    <div class="flex items-center gap-2 text-[0.6875rem] uppercase tracking-wider text-content-muted font-mono mb-3">
+                        <span class="text-accent">Featured</span>
+                        <span>·</span>
+                        <time datetime="{{ hero.date|date:'Y-m-d' }}">{{ hero.date|date:'F j, Y' }}</time>
+                    </div>
+                    <h2 class="text-2xl md:text-3xl lg:text-4xl font-bold text-content mb-3 leading-tight tracking-tight group-hover:text-accent transition-colors">{{ hero.title }}</h2>
+                    <p class="text-base md:text-lg text-content-secondary leading-relaxed mb-4 line-clamp-3">{{ hero.excerpt }}</p>
+                    <div class="flex items-center gap-3 text-xs text-content-muted">
+                        <span>{{ hero.reading_time }} min read</span>
+                        {% for tag in hero.tags|slice:":3" %}
+                        <span class="px-2 py-0.5 rounded-full bg-surface-2 text-content-muted">{{ tag }}</span>
+                        {% endfor %}
+                    </div>
+                </div>
+            </article>
+        </a>
+
+        <!-- Divider -->
+        <div class="h-px bg-gradient-to-r from-transparent via-border to-transparent mb-12"></div>
+
+        {% comment %}Tag filter chips — chips work here because the magazine layout
+           gives them room to breathe. Built dynamically so we don't repeat the data.{% endcomment %}
+        <div x-cloak class="flex gap-2 flex-wrap mb-10 items-center" id="magazine-filter-chips">
+            <span class="text-[0.6875rem] uppercase tracking-wider text-content-muted font-mono mr-1">Filter:</span>
+            <button @click="activeTag = ''"
+                    :class="activeTag === '' ? 'bg-accent text-white border-accent' : 'bg-transparent text-content-secondary border-border hover:border-accent/40'"
+                    class="px-3 py-1 rounded-full text-xs font-medium border transition-colors">All</button>
+        </div>
+
+        <!-- Grid of remaining posts -->
+        <div class="grid md:grid-cols-2 gap-8" id="magazine-grid">
+            {% for post in posts|slice:"1:" %}
+            <a href="{% url 'blog_post' post.slug %}" class="block group magazine-card"
+               data-tags="{{ post.tags|join:',' }}"
+               x-show="activeTag === '' || '{{ post.tags|join:',' }}'.split(',').includes(activeTag)">
+                <article>
+                    {% if post.image %}
+                    <div class="overflow-hidden rounded-xl border border-border mb-4">
+                        <img src="{% static post.image %}" alt="" loading="lazy"
+                             class="w-full aspect-[16/10] object-cover transition-transform duration-300 group-hover:scale-[1.02]">
+                    </div>
+                    {% endif %}
+                    <div class="flex items-center gap-2 text-[0.6875rem] uppercase tracking-wider text-content-muted font-mono mb-2">
+                        <time datetime="{{ post.date|date:'Y-m-d' }}">{{ post.date|date:'M j, Y' }}</time>
+                        <span>·</span>
+                        <span>{{ post.reading_time }} min</span>
+                        {% if post.draft %}<span class="text-yellow-600">· Draft</span>{% endif %}
+                    </div>
+                    <h2 class="text-xl md:text-2xl font-semibold text-content mb-2 leading-snug tracking-tight group-hover:text-accent transition-colors">{{ post.title }}</h2>
+                    <p class="text-content-secondary leading-relaxed line-clamp-2 mb-3">{{ post.excerpt }}</p>
+                    <div class="flex gap-1.5 flex-wrap">
+                        {% for tag in post.tags %}
+                        <span class="text-[0.6875rem] px-2 py-0.5 rounded bg-surface-2 text-content-muted">{{ tag }}</span>
+                        {% endfor %}
+                    </div>
+                </article>
+            </a>
+            {% endfor %}
+        </div>
+        {% endwith %}
+    {% else %}
+    <p class="text-content-muted text-lg py-20 text-center">{% if search_query %}No posts matching "{{ search_query }}".{% else %}No posts yet.{% endif %}</p>
+    {% endif %}
+</section>
+
+<script>
+// Build tag filter chips dynamically — same data-tags pattern as /blog/.
+(function() {
+    var counts = {};
+    document.querySelectorAll('.magazine-card, [data-tags]').forEach(function(card) {
+        if (!card.dataset.tags) return;
+        card.dataset.tags.split(',').forEach(function(t) {
+            if (t) counts[t] = (counts[t] || 0) + 1;
+        });
+    });
+    var container = document.getElementById('magazine-filter-chips');
+    if (!container) return;
+    Object.keys(counts).sort(function(a, b) {
+        return counts[b] - counts[a] || a.localeCompare(b);
+    }).forEach(function(tag) {
+        var btn = document.createElement('button');
+        btn.setAttribute('x-on:click', "activeTag = '" + tag.replace(/'/g, "\\'") + "'");
+        btn.setAttribute(':class', "activeTag === '" + tag.replace(/'/g, "\\'") + "' ? 'bg-accent text-white border-accent' : 'bg-transparent text-content-secondary border-border hover:border-accent/40'");
+        btn.className = 'px-3 py-1 rounded-full text-xs font-medium border transition-colors';
+        btn.textContent = tag;
+        container.appendChild(btn);
+    });
+})();
+</script>
+{% endblock %}

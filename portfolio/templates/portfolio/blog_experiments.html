@@ -1,0 +1,42 @@
+{% extends "portfolio/blog_base.html" %}
+{% load static %}
+
+{% block title %}Blog landing experiments{% endblock %}
+
+{% block og_meta %}<meta name="robots" content="noindex,nofollow">{% endblock %}
+
+{% block content %}
+<section class="max-w-blog mx-auto px-6 pt-16 pb-24">
+    <div class="mb-10">
+        <p class="text-xs uppercase tracking-[0.18em] text-content-muted font-mono mb-3">Local preview</p>
+        <h1 class="text-3xl md:text-4xl font-bold text-content tracking-tight mb-3">Blog landing experiments</h1>
+        <p class="text-base text-content-secondary max-w-xl leading-relaxed">
+            A/B-feel a redesign before promoting one to <a href="{% url 'blog' %}" class="underline decoration-content-muted/40 hover:decoration-accent">/blog/</a>.
+            Same posts, same data — different chrome.
+        </p>
+    </div>
+
+    <ul class="space-y-3">
+        {% for slug, label, blurb in experiments %}
+        <li>
+            <a href="{% url 'blog_experiment' slug %}" class="block bg-surface-1 border border-border rounded-xl p-5 hover:border-accent/40 transition-colors group">
+                <div class="flex items-baseline gap-3 mb-1">
+                    <span class="text-xs font-mono uppercase tracking-wider text-content-muted">/blog/exp/{{ slug }}/</span>
+                    <h2 class="text-lg font-semibold text-content group-hover:text-accent transition-colors">{{ label }}</h2>
+                </div>
+                <p class="text-sm text-content-secondary leading-relaxed">{{ blurb }}</p>
+            </a>
+        </li>
+        {% endfor %}
+        <li>
+            <a href="{% url 'blog' %}" class="block bg-surface-1 border border-border border-dashed rounded-xl p-5 hover:border-accent/40 transition-colors group">
+                <div class="flex items-baseline gap-3 mb-1">
+                    <span class="text-xs font-mono uppercase tracking-wider text-content-muted">/blog/</span>
+                    <h2 class="text-lg font-semibold text-content group-hover:text-accent transition-colors">Current</h2>
+                </div>
+                <p class="text-sm text-content-secondary leading-relaxed">What's live now, for comparison.</p>
+            </a>
+        </li>
+    </ul>
+</section>
+{% endblock %}

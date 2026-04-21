@@ -1,0 +1,180 @@
+{% extends "portfolio/blog_base.html" %}
+{% load static %}
+
+{% block title %}dl.blog — Garden{% endblock %}
+
+{% block og_meta %}<meta name="robots" content="noindex,nofollow">{% endblock %}
+
+{% block content %}
+{% comment %}Garden experiment — Maggie-Appleton-warm. Differs from /blog/:
+   - personal voice paragraph instead of one-line tagline
+   - maturity badge prominent on each card (🌱 / 🌿 / 🌳)
+   - soft, generously-padded cards with serif body
+   - "last tended" sort (modified_at) so editing-in-place feels alive
+   - tag chips warmer + clickable
+   - hover-card preview on internal links (deferred — pitched as next step)
+{% endcomment %}
+<section class="max-w-blog mx-auto px-6 pt-16 pb-24" x-data="{ activeTag: '{{ active_tag|default:'' }}' }">
+
+    <!-- Personal-voice header -->
+    <header class="mb-14 max-w-2xl">
+        <p class="text-[0.6875rem] uppercase tracking-[0.22em] text-content-muted font-mono mb-4">A digital garden</p>
+        <h1 class="font-serif text-4xl md:text-[2.75rem] leading-[1.15] text-content tracking-tight mb-6">
+            Notes from a PhD in machine learning.
+        </h1>
+        <p class="font-serif text-[1.0625rem] leading-[1.7] text-content-secondary mb-3">
+            This is less a blog than a working notebook. I write here when something
+            I've been thinking about reaches the point of "I should explain this to
+            myself" — usually about ML research, sometimes about life in Amsterdam,
+            occasionally about whatever else won't leave me alone.
+        </p>
+        <p class="font-serif text-[1.0625rem] leading-[1.7] text-content-secondary">
+            Each note has a maturity tag — <span class="inline-flex items-baseline gap-1.5"><span aria-hidden="true">🌱</span><span class="font-mono text-xs uppercase tracking-wider text-content-muted">seedling</span></span>
+            for half-formed ideas, <span class="inline-flex items-baseline gap-1.5"><span aria-hidden="true">🌿</span><span class="font-mono text-xs uppercase tracking-wider text-content-muted">budding</span></span>
+            for ideas being developed, and <span class="inline-flex items-baseline gap-1.5"><span aria-hidden="true">🌳</span><span class="font-mono text-xs uppercase tracking-wider text-content-muted">evergreen</span></span>
+            for things I'm comfortable standing behind. They get tended over time.
+        </p>
+    </header>
+
+    <!-- Search + filter strip -->
+    <div class="flex flex-col sm:flex-row gap-3 mb-10">
+        <form action="{% url 'blog_experiment' 'garden' %}" method="get" class="flex-1">
+            <div class="flex items-center gap-3 px-4 py-2.5 bg-surface-1 border border-border rounded-lg focus-within:border-accent/60 transition-colors">
+                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" class="text-content-muted flex-shrink-0"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
+                <input type="text" name="q" value="{{ search_query|default:'' }}" placeholder="Search the garden…" autocomplete="off"
+                       class="flex-1 bg-transparent border-none outline-none text-content placeholder:text-content-muted text-sm">
+            </div>
+        </form>
+        <div x-cloak x-data="{ filterOpen: false }" @keydown.escape.window="filterOpen = false">
+            <div class="relative">
+                <button @click="filterOpen = !filterOpen"
+                        :class="activeTag ? 'border-accent/60 text-content' : 'border-border text-content-secondary'"
+                        class="inline-flex items-center gap-2 px-4 py-2.5 rounded-lg bg-surface-1 border hover:border-accent/40 transition-colors text-sm font-medium w-full sm:w-auto">
+                    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="text-content-muted"><polygon points="22 3 2 3 10 12.46 10 19 14 21 14 12.46 22 3"/></svg>
+                    <span x-text="activeTag || 'All notes'"></span>
+                    <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" :class="filterOpen ? 'rotate-180' : ''" class="transition-transform text-content-muted"><polyline points="6 9 12 15 18 9"/></svg>
+                </button>
+                <div x-show="filterOpen" x-cloak @click.outside="filterOpen = false"
+                     x-transition:enter="transition ease-out duration-150"
+                     x-transition:enter-start="opacity-0 -translate-y-1"
+                     x-transition:enter-end="opacity-100 translate-y-0"
+                     class="absolute right-0 top-full mt-2 z-30 min-w-[220px] max-h-80 overflow-y-auto bg-surface-1 border border-border rounded-lg p-1.5 shadow-xl">
+                    <button @click="activeTag = ''; filterOpen = false"
+                            :class="activeTag === '' ? 'bg-accent/10 text-accent' : 'text-content-secondary hover:text-content hover:bg-surface-2'"
+                            class="w-full text-left px-3 py-1.5 rounded-md text-sm flex items-center justify-between gap-4 transition-colors">
+                        <span>All notes</span>
+                        <span class="text-xs text-content-muted tabular-nums">{{ posts|length }}</span>
+                    </button>
+                    <div id="garden-filter-tags-list"></div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    {% if posts %}
+    <!-- Note cards — sorted "last tended" via JS so we don't have to push it through the view yet -->
+    <div class="grid gap-4" id="garden-grid">
+        {% for post in posts %}
+        <a href="{% url 'blog_post' post.slug %}" class="garden-card-link group block"
+           data-tags="{{ post.tags|join:',' }}"
+           data-modified="{{ post.updated|date:'Y-m-d'|default:post.date|date:'Y-m-d' }}"
+           x-show="activeTag === '' || '{{ post.tags|join:',' }}'.split(',').includes(activeTag)">
+            <article class="bg-surface-1/60 border border-border rounded-2xl overflow-hidden transition-all duration-200 hover:border-accent/40 hover:bg-surface-1 hover:-translate-y-0.5 hover:shadow-lg hover:shadow-accent/[0.04]">
+                {% if post.image %}
+                {% comment %}Cover image as a soft banner inside the card. Constrained
+                   height keeps the grid balanced regardless of original aspect ratio,
+                   and `group-hover:scale-[1.02]` mirrors the regular blog cards so
+                   the warmth doesn't lose the existing micro-interaction.{% endcomment %}
+                <div class="overflow-hidden border-b border-border/60">
+                    <img src="{% static post.image %}" alt="" loading="lazy"
+                         class="w-full h-44 md:h-56 object-cover transition-transform duration-300 group-hover:scale-[1.02]">
+                </div>
+                {% endif %}
+                <div class="p-6 md:p-7">
+                <!-- Top row: maturity + last-tended date + reading time -->
+                <div class="flex items-center gap-3 text-[0.75rem] mb-3 flex-wrap">
+                    {% if post.maturity == 'seedling' %}
+                    <span class="inline-flex items-center gap-1.5 px-2 py-0.5 rounded-full bg-emerald-500/[0.08] text-emerald-600 dark:text-emerald-400 border border-emerald-500/20" title="Seedling — half-formed">
+                        <span aria-hidden="true">🌱</span>
+                        <span class="font-mono uppercase tracking-wider text-[0.65rem]">Seedling</span>
+                    </span>
+                    {% elif post.maturity == 'budding' %}
+                    <span class="inline-flex items-center gap-1.5 px-2 py-0.5 rounded-full bg-teal-500/[0.08] text-teal-600 dark:text-teal-400 border border-teal-500/20" title="Budding — being developed">
+                        <span aria-hidden="true">🌿</span>
+                        <span class="font-mono uppercase tracking-wider text-[0.65rem]">Budding</span>
+                    </span>
+                    {% elif post.maturity == 'evergreen' %}
+                    <span class="inline-flex items-center gap-1.5 px-2 py-0.5 rounded-full bg-green-600/[0.08] text-green-700 dark:text-green-400 border border-green-600/20" title="Evergreen — settled">
+                        <span aria-hidden="true">🌳</span>
+                        <span class="font-mono uppercase tracking-wider text-[0.65rem]">Evergreen</span>
+                    </span>
+                    {% endif %}
+                    <span class="text-content-muted">
+                        Tended <time datetime="{{ post.updated|date:'Y-m-d'|default:post.date|date:'Y-m-d' }}">{% if post.updated %}{{ post.updated|date:'M j, Y' }}{% else %}{{ post.date|date:'M j, Y' }}{% endif %}</time>
+                    </span>
+                    <span class="w-1 h-1 rounded-full bg-content-muted/40"></span>
+                    <span class="text-content-muted">{{ post.reading_time }} min</span>
+                    {% if post.draft %}
+                    <span class="ml-auto px-2 py-0.5 rounded font-mono text-[0.65rem] tracking-wide uppercase bg-yellow-500/10 text-yellow-600 border border-yellow-500/30">Draft</span>
+                    {% endif %}
+                </div>
+
+                <h2 class="font-serif text-[1.5rem] md:text-[1.625rem] leading-tight text-content group-hover:text-accent transition-colors mb-2 tracking-tight">{{ post.title }}</h2>
+                <p class="font-serif text-[1.0625rem] leading-[1.65] text-content-secondary mb-4">{{ post.excerpt }}</p>
+
+                <!-- Tag chips — soft + warm -->
+                <div class="flex gap-1.5 flex-wrap">
+                    {% for tag in post.tags %}
+                    <span class="text-[0.7rem] px-2.5 py-0.5 rounded-full bg-surface-2/60 text-content-muted border border-border/60 group-hover:border-accent/20 transition-colors">{{ tag }}</span>
+                    {% endfor %}
+                </div>
+                </div>{# /padding wrapper #}
+            </article>
+        </a>
+        {% endfor %}
+    </div>
+    {% else %}
+    <div class="text-center py-20 text-content-muted font-serif text-lg">
+        {% if search_query %}Nothing in the garden matches "{{ search_query }}".{% else %}No notes yet — they're growing.{% endif %}
+    </div>
+    {% endif %}
+</section>
+
+<script>
+// Sort cards by data-modified desc ("recently tended"), then build the
+// tag dropdown — same pattern as /blog/.
+(function() {
+    var grid = document.getElementById('garden-grid');
+    if (grid) {
+        var cards = Array.prototype.slice.call(grid.children);
+        cards.sort(function(a, b) {
+            var da = a.dataset.modified || '';
+            var db = b.dataset.modified || '';
+            return db.localeCompare(da);
+        });
+        cards.forEach(function(c) { grid.appendChild(c); });
+    }
+
+    var counts = {};
+    document.querySelectorAll('.garden-card-link').forEach(function(card) {
+        card.dataset.tags.split(',').forEach(function(t) {
+            if (t) counts[t] = (counts[t] || 0) + 1;
+        });
+    });
+    var container = document.getElementById('garden-filter-tags-list');
+    if (!container) return;
+    Object.keys(counts).sort(function(a, b) {
+        return counts[b] - counts[a] || a.localeCompare(b);
+    }).forEach(function(tag) {
+        var btn = document.createElement('button');
+        btn.setAttribute('x-on:click', "activeTag = '" + tag.replace(/'/g, "\\'") + "'; filterOpen = false");
+        btn.setAttribute(':class', "activeTag === '" + tag.replace(/'/g, "\\'") + "' ? 'bg-accent/10 text-accent' : 'text-content-secondary hover:text-content hover:bg-surface-2'");
+        btn.className = 'w-full text-left px-3 py-1.5 rounded-md text-sm flex items-center justify-between gap-4 transition-colors';
+        btn.innerHTML = '<span></span><span class="text-xs text-content-muted tabular-nums"></span>';
+        btn.firstChild.textContent = tag;
+        btn.lastChild.textContent = counts[tag];
+        container.appendChild(btn);
+    });
+})();
+</script>
+{% endblock %}

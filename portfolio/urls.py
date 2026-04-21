@@ -18,6 +18,10 @@ urlpatterns = [
     path('recipes/', views.recipes, name='recipes'),
     path('recipes/<slug:slug>/', views.recipe_detail, name='recipe_detail'),
     path('blog/', views.blog, name='blog'),
+    # Experimental blog landing variants — see views.blog_experiment.
+    # Local preview before promoting one to /blog/.
+    path('blog/exp/', views.blog_experiments_index, name='blog_experiments'),
+    path('blog/exp/<slug:name>/', views.blog_experiment, name='blog_experiment'),
     path('blog/feed/', BlogFeed(), name='blog_feed'),
     path('blog/new/', views.blog_new, name='blog_new'),
     path('blog/preview/', views.blog_preview, name='blog_preview'),
@@ -25,6 +29,8 @@ urlpatterns = [
     path('blog/<slug:slug>/', views.blog_post, name='blog_post'),
     path('blog/<slug:slug>/edit/', views.blog_edit, name='blog_edit'),
     path('blog/<slug:slug>/autosave/', views.blog_autosave, name='blog_autosave'),
+    path('notebook/', views.notebook, name='notebook'),
+    path('reading/', views.reading, name='reading'),
     path('publications/', views.publications, name='publications'),
     path('projects/', views.projects, name='projects'),
     path('demos/', views.demos, name='demos'),

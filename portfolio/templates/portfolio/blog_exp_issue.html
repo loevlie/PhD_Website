@@ -1,0 +1,290 @@
+{% extends "portfolio/blog_base.html" %}
+{% load static %}
+
+{% block title %}dl.blog — Field Notes{% endblock %}
+
+{% block og_meta %}<meta name="robots" content="noindex,nofollow">{% endblock %}
+
+{% block content %}
+{% comment %}Issue-Based — Asterisk / Works-in-Progress register.
+
+   - Top half: current issue masthead (big Plex Serif numerals + theme word
+     + italic editor's note + TOC of entries with serial numbers 07.1, 07.2).
+   - Below: prior issues as one-line spines you can expand.
+   - No global feed — you enter through a *bound volume*.
+
+   Issues are bucketed by year (we'd want to bucket by quarter or by theme
+   on the real version, but year is the cleanest auto-grouping for the
+   prototype).
+{% endcomment %}
+<style>
+    .issue-page { font-family: var(--font-serif, 'IBM Plex Serif', Georgia, serif); }
+
+    .issue-masthead {
+        display: grid;
+        grid-template-columns: minmax(8rem, 12rem) 1fr;
+        gap: 2.5rem;
+        align-items: start;
+        padding: 2rem 0 3rem;
+        border-bottom: 2px solid var(--ctp-text, #cdd6f4);
+    }
+    .issue-numeral {
+        font-family: var(--font-serif, 'IBM Plex Serif', Georgia, serif);
+        font-size: clamp(7rem, 18vw, 11rem);
+        line-height: 0.85;
+        font-weight: 700;
+        color: var(--ctp-text, #cdd6f4);
+        letter-spacing: -0.04em;
+        font-variant-numeric: oldstyle-nums;
+    }
+    .issue-flag {
+        font-family: var(--font-mono, 'JetBrains Mono', monospace);
+        font-size: 0.7rem;
+        text-transform: uppercase;
+        letter-spacing: 0.22em;
+        color: var(--ctp-overlay1, #7f849c);
+        margin-bottom: 0.75rem;
+    }
+    .issue-theme {
+        font-family: var(--font-serif, 'IBM Plex Serif', Georgia, serif);
+        font-size: clamp(2rem, 4vw, 3rem);
+        line-height: 1.05;
+        color: var(--ctp-text, #cdd6f4);
+        margin-bottom: 1.25rem;
+        font-weight: 600;
+        letter-spacing: -0.02em;
+    }
+    .issue-note {
+        font-family: var(--font-serif, 'IBM Plex Serif', Georgia, serif);
+        font-style: italic;
+        font-size: 1.0625rem;
+        line-height: 1.7;
+        color: var(--ctp-subtext1, #bac2de);
+        max-width: 38rem;
+    }
+    .issue-toc {
+        margin-top: 2rem;
+        list-style: none; padding: 0;
+    }
+    .issue-toc li {
+        display: grid;
+        grid-template-columns: 4.5rem 1fr auto;
+        gap: 1.5rem;
+        align-items: baseline;
+        padding: 1.25rem 0;
+        border-bottom: 1px solid color-mix(in oklch, var(--ctp-surface0, #313244) 50%, transparent);
+    }
+    .issue-toc li:last-child { border-bottom: none; }
+    .issue-toc a {
+        text-decoration: none !important;
+        color: inherit;
+        display: contents;
+    }
+    .issue-toc .num {
+        font-family: var(--font-mono, monospace);
+        font-size: 0.78rem;
+        color: var(--ctp-overlay0, #6c7086);
+        font-variant-numeric: tabular-nums;
+        padding-top: 0.25rem;
+    }
+    .issue-toc .head {
+        font-family: var(--font-serif, 'IBM Plex Serif', Georgia, serif);
+        font-size: 1.375rem;
+        line-height: 1.25;
+        color: var(--ctp-text, #cdd6f4);
+        font-weight: 500;
+        margin-bottom: 0.4rem;
+        transition: color 150ms ease;
+    }
+    .issue-toc a:hover .head { color: var(--ctp-lavender, #7287fd); }
+    .issue-toc .blurb {
+        font-family: var(--font-serif, serif);
+        font-size: 0.95rem;
+        line-height: 1.55;
+        color: var(--ctp-subtext0, #a6adc8);
+        margin: 0;
+    }
+    .issue-toc .when {
+        font-family: var(--font-mono, monospace);
+        font-size: 0.7rem;
+        color: var(--ctp-overlay1, #7f849c);
+        text-transform: uppercase;
+        letter-spacing: 0.06em;
+        white-space: nowrap;
+    }
+
+    .priors-h {
+        font-family: var(--font-mono, monospace);
+        font-size: 0.7rem;
+        text-transform: uppercase;
+        letter-spacing: 0.22em;
+        color: var(--ctp-overlay1, #7f849c);
+        margin: 4rem 0 1.5rem;
+        padding-bottom: 0.5rem;
+        border-bottom: 1px solid var(--ctp-surface0, #313244);
+    }
+    .priors-spine {
+        display: grid;
+        grid-template-columns: 4.5rem 1fr auto;
+        gap: 1rem;
+        align-items: baseline;
+        padding: 0.875rem 0;
+        border-bottom: 1px solid color-mix(in oklch, var(--ctp-surface0, #313244) 35%, transparent);
+        font-family: var(--font-serif, serif);
+        font-size: 1rem;
+        color: var(--ctp-subtext1, #bac2de);
+        cursor: pointer;
+    }
+    .priors-spine:hover { color: var(--ctp-text, #cdd6f4); }
+    .priors-spine .pnum {
+        font-family: var(--font-mono, monospace);
+        font-size: 0.75rem;
+        color: var(--ctp-overlay0, #6c7086);
+        font-variant-numeric: tabular-nums;
+    }
+    .priors-spine .pmeta {
+        font-family: var(--font-mono, monospace);
+        font-size: 0.7rem;
+        color: var(--ctp-overlay1, #7f849c);
+        text-transform: uppercase;
+        letter-spacing: 0.06em;
+    }
+    .priors-list {
+        margin: 0.5rem 0 1.5rem 4.5rem;
+        padding: 0; list-style: none;
+        display: none;
+    }
+    .priors-list.open { display: block; }
+    .priors-list li { padding: 0.4rem 0; }
+    .priors-list a {
+        font-family: var(--font-serif, serif);
+        font-size: 0.95rem;
+        color: var(--ctp-subtext0, #a6adc8);
+        text-decoration: none;
+    }
+    .priors-list a:hover { color: var(--ctp-lavender, #7287fd); }
+    .priors-list .pdate {
+        font-family: var(--font-mono, monospace);
+        font-size: 0.65rem;
+        color: var(--ctp-overlay1, #7f849c);
+        text-transform: uppercase;
+        letter-spacing: 0.06em;
+        margin-left: 0.5rem;
+    }
+</style>
+
+<section class="max-w-blog mx-auto px-6 pt-12 pb-24 issue-page">
+
+    <p class="font-mono text-[0.7rem] uppercase tracking-[0.22em] text-content-muted">
+        dl &middot; field notes &middot; an irregular journal
+    </p>
+
+    {% if posts %}
+    <div id="issue-bound-volume"></div>
+    <!-- Hidden post data, the JS bucketizes by year and renders the masthead + priors -->
+    <script id="issue-data" type="application/json">
+    [
+    {% for p in posts %}{
+        "slug": "{{ p.slug|escapejs }}",
+        "title": "{{ p.title|escapejs }}",
+        "excerpt": "{{ p.excerpt|escapejs }}",
+        "date": "{{ p.date|date:'Y-m-d' }}",
+        "year": "{{ p.date|date:'Y' }}",
+        "url": "{% url 'blog_post' p.slug %}",
+        "reading_time": {{ p.reading_time }}
+    }{% if not forloop.last %},{% endif %}{% endfor %}
+    ]
+    </script>
+    {% else %}
+    <p class="text-content-muted py-20 text-center font-serif italic">No issues bound yet.</p>
+    {% endif %}
+</section>
+
+<script>
+(function() {
+    var dataEl = document.getElementById('issue-data');
+    if (!dataEl) return;
+    var posts = JSON.parse(dataEl.textContent);
+    if (!posts.length) return;
+
+    // Bucket by year, newest year first
+    var byYear = {};
+    posts.forEach(function(p) { (byYear[p.year] = byYear[p.year] || []).push(p); });
+    var years = Object.keys(byYear).sort(function(a, b) { return b.localeCompare(a); });
+
+    // Each year becomes an "issue", numbered v01..vNN starting from oldest
+    // so the most recent post lands in the highest-numbered issue.
+    var totalIssues = years.length;
+    var currentYear = years[0];
+    var currentIssue = totalIssues;
+    var currentEntries = byYear[currentYear].sort(function(a, b) { return b.date.localeCompare(a.date); });
+
+    var theme = document.createElement('div');
+    theme.className = 'issue-masthead';
+    theme.innerHTML =
+        '<div class="issue-numeral">' + String(currentIssue).padStart(2, '0') + '</div>' +
+        '<div>' +
+          '<div class="issue-flag">Issue · ' + currentYear + '</div>' +
+          '<div class="issue-theme">Currently in motion</div>' +
+          '<p class="issue-note">' +
+            'Pieces I shipped or kept actively touching this year. ' +
+            (currentEntries.length === 1
+              ? 'One entry below.'
+              : currentEntries.length + ' entries below, newest first.') +
+          '</p>' +
+        '</div>';
+
+    var toc = document.createElement('ol');
+    toc.className = 'issue-toc';
+    currentEntries.forEach(function(p, i) {
+        var li = document.createElement('li');
+        li.innerHTML =
+            '<a href="' + p.url + '">' +
+              '<span class="num">' + String(currentIssue).padStart(2, '0') + '.' + (i + 1) + '</span>' +
+              '<div>' +
+                '<div class="head">' + p.title + '</div>' +
+                '<p class="blurb">' + p.excerpt + '</p>' +
+              '</div>' +
+              '<span class="when">' + p.date + ' · ' + p.reading_time + ' min</span>' +
+            '</a>';
+        toc.appendChild(li);
+    });
+
+    var mount = document.getElementById('issue-bound-volume');
+    mount.appendChild(theme);
+    mount.appendChild(toc);
+
+    // Prior issues
+    if (years.length > 1) {
+        var ph = document.createElement('div');
+        ph.className = 'priors-h';
+        ph.textContent = 'Prior issues';
+        mount.appendChild(ph);
+
+        years.slice(1).forEach(function(y, i) {
+            var issueNum = totalIssues - 1 - i;
+            var entries = byYear[y].sort(function(a, b) { return b.date.localeCompare(a.date); });
+            var spine = document.createElement('div');
+            spine.className = 'priors-spine';
+            spine.innerHTML =
+                '<span class="pnum">' + String(issueNum).padStart(2, '0') + '</span>' +
+                '<span>' + y + ' &mdash; ' + entries.length + ' entr' + (entries.length === 1 ? 'y' : 'ies') + '</span>' +
+                '<span class="pmeta">expand</span>';
+            var list = document.createElement('ul');
+            list.className = 'priors-list';
+            entries.forEach(function(p, j) {
+                var li = document.createElement('li');
+                li.innerHTML = '<a href="' + p.url + '">' + String(issueNum).padStart(2, '0') + '.' + (j + 1) + ' &middot; ' + p.title + '<span class="pdate">' + p.date + '</span></a>';
+                list.appendChild(li);
+            });
+            spine.addEventListener('click', function() {
+                list.classList.toggle('open');
+                spine.querySelector('.pmeta').textContent = list.classList.contains('open') ? 'collapse' : 'expand';
+            });
+            mount.appendChild(spine);
+            mount.appendChild(list);
+        });
+    }
+})();
+</script>
+{% endblock %}

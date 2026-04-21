@@ -519,11 +519,13 @@ def _post_to_dict(post_obj, render_html=True):
         'is_explainer': is_explainer,
         'is_paper_companion': is_paper_companion,
         'maturity': getattr(post_obj, 'maturity', ''),
+        'kind': getattr(post_obj, 'kind', '') or 'essay',
         'body': post_obj.body,
         'reading_time': estimate_reading_time(post_obj.body),
         'content_html': content_html,
         'toc_html': toc_html,
         'word_count': len(post_obj.body.split()),
+        'modified_at': getattr(post_obj, 'modified_at', None),
     }
 
 
@@ -564,11 +566,13 @@ def _parse_file_post(filepath, render_html=True):
         'is_explainer': is_explainer,
         'is_paper_companion': is_paper_companion,
         'maturity': post.get('maturity', ''),
+        'kind': post.get('kind', '') or 'essay',
         'body': raw_content,
         'reading_time': reading_time,
         'content_html': content_html,
         'toc_html': toc_html,
         'word_count': len(raw_content.split()),
+        'modified_at': None,
     }
 
 

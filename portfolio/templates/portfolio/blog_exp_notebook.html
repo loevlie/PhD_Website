@@ -1,0 +1,211 @@
+{% extends "portfolio/blog_base.html" %}
+{% load static %}
+
+{% block title %}dl.blog — Notebook{% endblock %}
+
+{% block og_meta %}<meta name="robots" content="noindex,nofollow">{% endblock %}
+
+{% block content %}
+{% comment %}Notebook experiment — calm typographic. Differs from /blog/:
+   - one-sentence intro, no big H1 chrome
+   - no card backgrounds — pure type list
+   - year headers grouping posts (Comeau / Karpathy pattern)
+   - small square cover thumbnail at left of each row (post.image)
+   - filter UI demoted to a quiet bar; cmd-K does most of the work
+
+   Hover-preview popover removed: the prototype showed the same info that
+   was already on the row, so it added decoration without information. If
+   we want a richer preview later, it should pull post.body's first paragraph
+   (different from the listing excerpt) — not what's already visible.
+{% endcomment %}
+<section class="max-w-blog mx-auto px-6 pt-24 pb-32" x-data="{ activeTag: '{{ active_tag|default:'' }}' }">
+
+    <!-- Tight intro: one sentence, no headline -->
+    <header class="mb-16 max-w-2xl">
+        <p class="font-serif text-[1.0625rem] leading-[1.7] text-content-secondary">
+            A working notebook of notes on machine-learning research, with the
+            occasional aside about life in Amsterdam.
+            <span class="text-content-muted"> &middot; </span>
+            <a href="{% url 'blog_feed' %}" class="text-content-muted hover:text-accent transition-colors">RSS</a>
+            <span class="text-content-muted"> &middot; </span>
+            <button type="button" class="text-content-muted hover:text-accent transition-colors"
+                    onclick="document.getElementById('notebook-filter').focus()">filter</button>
+        </p>
+    </header>
+
+    <!-- Quiet filter row — only visible when in use -->
+    <form action="{% url 'blog_experiment' 'notebook' %}" method="get" class="mb-12">
+        <div class="flex items-center gap-2 text-sm">
+            <input type="text" id="notebook-filter" name="q" value="{{ search_query|default:'' }}"
+                   placeholder="search…" autocomplete="off"
+                   class="bg-transparent border-b border-border/60 focus:border-accent outline-none px-1 py-1 text-content placeholder:text-content-muted/60 w-48 transition-colors">
+            {% if search_query %}<a href="{% url 'blog_experiment' 'notebook' %}" class="text-content-muted hover:text-accent text-xs">clear</a>{% endif %}
+        </div>
+    </form>
+
+    {% if posts %}
+    <!-- Year-grouped flat list -->
+    <div id="notebook-list" class="space-y-12"></div>
+    {% else %}
+    <p class="text-content-muted font-serif text-lg">{% if search_query %}Nothing for "{{ search_query }}".{% else %}No notes yet.{% endif %}</p>
+    {% endif %}
+</section>
+
+<!-- Hidden post data, consumed by the JS that builds the list -->
+<script id="notebook-posts" type="application/json">
+[
+{% for post in posts %}
+    {
+        "slug": "{{ post.slug|escapejs }}",
+        "title": "{{ post.title|escapejs }}",
+        "excerpt": "{{ post.excerpt|escapejs }}",
+        "date": "{{ post.date|date:'Y-m-d' }}",
+        "year": "{{ post.date|date:'Y' }}",
+        "month": "{{ post.date|date:'M' }}",
+        "day": "{{ post.date|date:'j' }}",
+        "reading_time": {{ post.reading_time }},
+        "tags": [{% for t in post.tags %}"{{ t|escapejs }}"{% if not forloop.last %},{% endif %}{% endfor %}],
+        "image": "{% if post.image %}{% load static %}{% static post.image %}{% endif %}",
+        "url": "{% url 'blog_post' post.slug %}",
+        "draft": {% if post.draft %}true{% else %}false{% endif %}
+    }{% if not forloop.last %},{% endif %}
+{% endfor %}
+]
+</script>
+
+<style>
+    /* Notebook-specific styles. Inline so the experiment is self-contained
+       and doesn't touch the shared blog.css until/unless it gets promoted. */
+    .notebook-row {
+        display: grid;
+        /* date · thumb · body */
+        grid-template-columns: 4rem 4rem 1fr;
+        gap: 1.25rem;
+        align-items: start;
+        padding: 0.875rem 0;
+        border-bottom: 1px solid color-mix(in oklch, var(--ctp-surface0, #313244) 50%, transparent);
+        text-decoration: none !important;
+        transition: background-color 150ms ease;
+    }
+    .notebook-row:last-child { border-bottom: none; }
+    .notebook-row:hover { background: color-mix(in oklch, var(--ctp-surface0, #313244) 18%, transparent); }
+    .notebook-row .notebook-date {
+        font-family: var(--font-mono, 'JetBrains Mono', monospace);
+        font-size: 0.75rem;
+        color: var(--ctp-overlay1, #7f849c);
+        text-transform: uppercase;
+        letter-spacing: 0.05em;
+        white-space: nowrap;
+        padding-top: 0.25rem;
+    }
+    .notebook-row .notebook-thumb {
+        width: 4rem; height: 4rem;
+        border-radius: 8px;
+        object-fit: cover;
+        background: color-mix(in oklch, var(--ctp-surface0, #313244) 60%, transparent);
+    }
+    .notebook-row .notebook-thumb-placeholder {
+        width: 4rem; height: 4rem;
+        border-radius: 8px;
+        background: color-mix(in oklch, var(--ctp-surface0, #313244) 30%, transparent);
+        display: grid; place-items: center;
+        color: var(--ctp-overlay1, #7f849c);
+        font-family: var(--font-mono, monospace);
+        font-size: 0.7rem;
+    }
+    .notebook-row .notebook-body { min-width: 0; }
+    .notebook-row .notebook-title {
+        font-family: var(--font-serif, 'IBM Plex Serif', Georgia, serif);
+        font-size: 1.25rem;
+        line-height: 1.35;
+        color: var(--ctp-text, #cdd6f4);
+        font-weight: 500;
+        margin-bottom: 0.25rem;
+        transition: color 150ms ease;
+    }
+    .notebook-row:hover .notebook-title { color: var(--ctp-lavender, #7287fd); }
+    .notebook-row .notebook-excerpt {
+        font-family: var(--font-serif, 'IBM Plex Serif', Georgia, serif);
+        font-size: 0.9375rem;
+        line-height: 1.55;
+        color: var(--ctp-subtext0, #a6adc8);
+        margin: 0;
+    }
+    .notebook-row .notebook-meta {
+        display: flex; gap: 0.5rem; align-items: center; flex-wrap: wrap;
+        margin-top: 0.5rem;
+        font-size: 0.7rem;
+        color: var(--ctp-overlay1, #7f849c);
+        font-family: var(--font-mono, 'JetBrains Mono', monospace);
+        text-transform: uppercase;
+        letter-spacing: 0.05em;
+    }
+    .notebook-year {
+        font-family: var(--font-mono, 'JetBrains Mono', monospace);
+        font-size: 0.7rem;
+        color: var(--ctp-overlay1, #7f849c);
+        text-transform: uppercase;
+        letter-spacing: 0.18em;
+        margin-bottom: 1rem;
+    }
+    @media (max-width: 640px) {
+        .notebook-row {
+            grid-template-columns: 4rem 1fr;
+            gap: 0.875rem;
+            align-items: start;
+        }
+        .notebook-row .notebook-date {
+            grid-column: 1 / -1;
+            font-size: 0.7rem;
+        }
+        /* Reorder so date sits above thumb+body on mobile */
+        .notebook-row .notebook-date { order: -1; }
+    }
+</style>
+
+<script>
+(function() {
+    var data = JSON.parse(document.getElementById('notebook-posts').textContent);
+    var listEl = document.getElementById('notebook-list');
+    if (!listEl) return;
+
+    // Group by year, newest first
+    var byYear = {};
+    data.forEach(function(p) {
+        (byYear[p.year] = byYear[p.year] || []).push(p);
+    });
+    var years = Object.keys(byYear).sort(function(a, b) { return b.localeCompare(a); });
+
+    years.forEach(function(year) {
+        var section = document.createElement('section');
+        section.innerHTML =
+            '<h2 class="notebook-year">' + year + '</h2>' +
+            '<div class="notebook-rows"></div>';
+        var rows = section.querySelector('.notebook-rows');
+
+        byYear[year].sort(function(a, b) { return b.date.localeCompare(a.date); }).forEach(function(p) {
+            var row = document.createElement('a');
+            row.href = p.url;
+            row.className = 'notebook-row notebook-link';
+            row.dataset.slug = p.slug;
+            var thumbHtml = p.image
+                ? '<img class="notebook-thumb" src="' + p.image + '" alt="" loading="lazy">'
+                : '<span class="notebook-thumb-placeholder">—</span>';
+            row.innerHTML =
+                '<span class="notebook-date">' + p.month + ' ' + p.day + '</span>' +
+                thumbHtml +
+                '<div class="notebook-body">' +
+                  '<div class="notebook-title">' + p.title + (p.draft ? ' <span style="opacity:.5;font-style:italic;font-size:.8em">(draft)</span>' : '') + '</div>' +
+                  '<p class="notebook-excerpt">' + p.excerpt + '</p>' +
+                  '<div class="notebook-meta">' +
+                    '<span>' + p.reading_time + ' min</span>' +
+                    p.tags.map(function(t) { return '<span>· ' + t + '</span>'; }).join('') +
+                  '</div>' +
+                '</div>';
+            rows.appendChild(row);
+        });
+        listEl.appendChild(section);
+    });
+})();
+</script>
+{% endblock %}

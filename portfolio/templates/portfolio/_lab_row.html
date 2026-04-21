@@ -1,0 +1,17 @@
+{% comment %}Single Lab Notebook entry row. Receives `post`, `status_class`, `status_label`.
+   Kept as its own template so the parent doesn't need to repeat the markup
+   four times across the maturity branches (Django {% with %} doesn't
+   propagate cleanly across {% if %} arms).{% endcomment %}
+<a href="{% url 'blog_post' post.slug %}" class="lab-row group">
+    <span class="pill pill-{{ status_class }}">{{ status_label }}</span>
+    <div>
+        <div class="head">{{ post.title }}</div>
+        <p class="blurb">{{ post.excerpt }}</p>
+    </div>
+    <div class="dates">
+        <div><span class="lbl">started</span><time datetime="{{ post.date|date:'Y-m-d' }}">{{ post.date|date:'Y · m · d' }}</time></div>
+        {% if post.updated %}
+        <div><span class="lbl">edited</span><time datetime="{{ post.updated|date:'Y-m-d' }}">{{ post.updated|date:'Y · m · d' }}</time></div>
+        {% endif %}
+    </div>
+</a>

@@ -1,0 +1,228 @@
+{% extends "portfolio/blog_base.html" %}
+{% load static %}
+
+{% block title %}dl.blog · v3{% endblock %}
+
+{% block og_meta %}<meta name="robots" content="noindex,nofollow">{% endblock %}
+
+{% block content %}
+{% comment %}Numbered Notes — running #NNNN counter as the spine. Robin Rendle
+   v19 / Patrick Collison register. The page reads as one unbroken record
+   rather than an archive divided by year.
+
+   - Mono left-gutter counter (#0241, #0242 …) at 14px in JetBrains Mono.
+   - Plex Serif titles dominate the row.
+   - Mono right-aligned dates.
+   - One hero block at top for the newest post — number + title + a single
+     paragraph teaser + a small intrinsic-size cover (NOT a banner).
+   - Sticky tag chips strip along the top edge.
+{% endcomment %}
+<style>
+    .numbered-page {
+        font-family: var(--font-serif, 'IBM Plex Serif', Georgia, serif);
+    }
+    .numbered-spine {
+        display: grid;
+        grid-template-columns: 4.5rem 1fr auto;
+        gap: 1.5rem;
+        align-items: baseline;
+        padding: 0.75rem 0;
+        border-bottom: 1px solid color-mix(in oklch, var(--ctp-surface0, #313244) 35%, transparent);
+        text-decoration: none !important;
+        transition: padding-left 180ms ease;
+    }
+    .numbered-spine:hover { padding-left: 0.5rem; }
+    .numbered-spine .num {
+        font-family: var(--font-mono, 'JetBrains Mono', monospace);
+        font-size: 0.78rem;
+        color: var(--ctp-overlay0, #6c7086);
+        font-variant-numeric: tabular-nums;
+        letter-spacing: 0.02em;
+    }
+    .numbered-spine .title {
+        font-family: var(--font-serif, 'IBM Plex Serif', Georgia, serif);
+        font-size: 1.125rem;
+        line-height: 1.4;
+        color: var(--ctp-text, #cdd6f4);
+        font-weight: 500;
+        transition: color 150ms ease;
+    }
+    .numbered-spine:hover .title { color: var(--ctp-lavender, #7287fd); }
+    .numbered-spine .when {
+        font-family: var(--font-mono, 'JetBrains Mono', monospace);
+        font-size: 0.7rem;
+        color: var(--ctp-overlay1, #7f849c);
+        text-transform: uppercase;
+        letter-spacing: 0.06em;
+        white-space: nowrap;
+    }
+    .numbered-hero {
+        display: grid;
+        grid-template-columns: 4.5rem 1fr;
+        gap: 1.5rem;
+        padding: 2rem 0 2.5rem;
+        border-top: 1px solid var(--ctp-surface0, #313244);
+        border-bottom: 1px solid var(--ctp-surface0, #313244);
+        margin-bottom: 2rem;
+    }
+    .numbered-hero .num {
+        font-family: var(--font-mono, 'JetBrains Mono', monospace);
+        font-size: 0.78rem;
+        color: var(--ctp-overlay0, #6c7086);
+        padding-top: 0.4rem;
+    }
+    .numbered-hero .title {
+        font-family: var(--font-serif, 'IBM Plex Serif', Georgia, serif);
+        font-size: 2rem;
+        line-height: 1.15;
+        color: var(--ctp-text, #cdd6f4);
+        font-weight: 600;
+        margin-bottom: 0.75rem;
+        letter-spacing: -0.01em;
+    }
+    .numbered-hero .lede {
+        font-family: var(--font-serif, 'IBM Plex Serif', Georgia, serif);
+        font-size: 1.0625rem;
+        line-height: 1.65;
+        color: var(--ctp-subtext1, #bac2de);
+        margin-bottom: 1rem;
+    }
+    .numbered-hero .meta {
+        display: flex; gap: 0.75rem; align-items: center;
+        font-family: var(--font-mono, monospace);
+        font-size: 0.7rem;
+        color: var(--ctp-overlay1, #7f849c);
+        text-transform: uppercase; letter-spacing: 0.06em;
+    }
+    .numbered-hero .cover {
+        width: 240px; max-width: 100%;
+        border-radius: 6px; border: 1px solid var(--ctp-surface0, #313244);
+        margin-top: 1rem;
+    }
+    .numbered-tags {
+        position: sticky; top: 4rem; z-index: 10;
+        background: color-mix(in oklch, var(--ctp-base, #1e1e2e) 92%, transparent);
+        backdrop-filter: blur(8px);
+        -webkit-backdrop-filter: blur(8px);
+        margin: 0 -1.5rem 1.5rem;
+        padding: 0.75rem 1.5rem;
+        border-bottom: 1px solid color-mix(in oklch, var(--ctp-surface0, #313244) 50%, transparent);
+        display: flex; gap: 0.4rem; flex-wrap: wrap; align-items: center;
+    }
+    .numbered-tags .label {
+        font-family: var(--font-mono, monospace);
+        font-size: 0.65rem;
+        color: var(--ctp-overlay1, #7f849c);
+        text-transform: uppercase;
+        letter-spacing: 0.1em;
+        margin-right: 0.5rem;
+    }
+    .numbered-tags button {
+        font-family: var(--font-mono, monospace);
+        font-size: 0.7rem;
+        text-transform: lowercase;
+        letter-spacing: 0.02em;
+        padding: 0.15rem 0.6rem;
+        border-radius: 999px;
+        border: 1px solid var(--ctp-surface0, #313244);
+        background: transparent;
+        color: var(--ctp-subtext0, #a6adc8);
+        cursor: pointer;
+        transition: all 120ms ease;
+    }
+    .numbered-tags button:hover { color: var(--ctp-lavender, #7287fd); border-color: var(--ctp-lavender, #7287fd); }
+    .numbered-tags button.active { background: var(--ctp-lavender, #7287fd); color: white; border-color: var(--ctp-lavender, #7287fd); }
+</style>
+
+<section class="max-w-blog mx-auto px-6 pt-12 pb-24 numbered-page" x-data="{ activeTag: '{{ active_tag|default:'' }}' }">
+
+    <header class="mb-2">
+        <p class="font-mono text-[0.7rem] uppercase tracking-[0.18em] text-content-muted">
+            dennisloevlie.com / blog · <span class="text-accent">v3</span>
+        </p>
+    </header>
+    <p class="font-serif text-[1.0625rem] leading-[1.7] text-content-secondary mb-12 max-w-xl">
+        A running record of notes on machine-learning research and whatever
+        else I keep coming back to. Every entry is numbered, in the order
+        I started caring about it.
+    </p>
+
+    {% if posts %}
+    <!-- Sticky tag chips -->
+    <div class="numbered-tags" x-cloak id="numbered-tags">
+        <span class="label">Filter</span>
+        <button @click="activeTag = ''" :class="activeTag === '' ? 'active' : ''">all</button>
+    </div>
+
+        {% with hero=posts.0 total=posts|length %}
+        <!-- Hero block — newest post -->
+        <a href="{% url 'blog_post' hero.slug %}" class="numbered-hero block group"
+           data-tags="{{ hero.tags|join:',' }}"
+           x-show="activeTag === '' || '{{ hero.tags|join:',' }}'.split(',').includes(activeTag)">
+            <span class="num">#{{ total|stringformat:"04d" }}</span>
+            <div>
+                <h2 class="title group-hover:text-accent transition-colors">{{ hero.title }}</h2>
+                <p class="lede">{{ hero.excerpt }}</p>
+                <div class="meta">
+                    <time datetime="{{ hero.date|date:'Y-m-d' }}">{{ hero.date|date:'Y · m · d' }}</time>
+                    <span>·</span>
+                    <span>{{ hero.reading_time }} min</span>
+                </div>
+                {% if hero.image %}
+                <img src="{% static hero.image %}" alt="" class="cover" loading="lazy">
+                {% endif %}
+            </div>
+        </a>
+
+        <!-- Spine list -->
+        <div id="numbered-list">
+            {% for post in posts|slice:"1:" %}
+            {% with i=forloop.counter %}
+            <a href="{% url 'blog_post' post.slug %}" class="numbered-spine group"
+               data-tags="{{ post.tags|join:',' }}"
+               x-show="activeTag === '' || '{{ post.tags|join:',' }}'.split(',').includes(activeTag)">
+                {# Compute descending number: total - forloop.counter (since hero is #total, then total-1, total-2…) #}
+                <span class="num">#{{ post.number|default:'' }}{% if not post.number %}{% widthratio total 1 1 %}{% endif %}</span>
+                <span class="title">{{ post.title }}</span>
+                <time class="when" datetime="{{ post.date|date:'Y-m-d' }}">{{ post.date|date:'Y · m · d' }}</time>
+            </a>
+            {% endwith %}
+            {% endfor %}
+        </div>
+        {% endwith %}
+    {% else %}
+    <p class="text-content-muted py-20 text-center font-serif">{% if search_query %}Nothing matches “{{ search_query }}”.{% else %}No notes yet.{% endif %}</p>
+    {% endif %}
+</section>
+
+<script>
+// Re-stamp the spine numbers in pure descending order — Django template
+// math is fiddly across loop branches, so we do it client-side. Hero is
+// #total, the next is #total-1, and so on.
+(function() {
+    var spines = document.querySelectorAll('#numbered-list .numbered-spine');
+    var hero = document.querySelector('.numbered-hero .num');
+    var total = (hero ? 1 : 0) + spines.length;
+    if (hero) hero.textContent = '#' + String(total).padStart(4, '0');
+    spines.forEach(function(row, i) {
+        row.querySelector('.num').textContent = '#' + String(total - 1 - i).padStart(4, '0');
+    });
+
+    // Build tag chips
+    var counts = {};
+    document.querySelectorAll('[data-tags]').forEach(function(el) {
+        if (!el.dataset.tags) return;
+        el.dataset.tags.split(',').forEach(function(t) { if (t) counts[t] = (counts[t] || 0) + 1; });
+    });
+    var bar = document.getElementById('numbered-tags');
+    Object.keys(counts).sort(function(a, b) { return counts[b] - counts[a] || a.localeCompare(b); })
+      .forEach(function(tag) {
+        var btn = document.createElement('button');
+        btn.setAttribute('x-on:click', "activeTag = '" + tag.replace(/'/g, "\\'") + "'");
+        btn.setAttribute(':class', "activeTag === '" + tag.replace(/'/g, "\\'") + "' ? 'active' : ''");
+        btn.textContent = tag.toLowerCase();
+        bar.appendChild(btn);
+    });
+})();
+</script>
+{% endblock %}

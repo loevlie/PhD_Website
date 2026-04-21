@@ -1,0 +1,234 @@
+{% extends "portfolio/blog_base.html" %}
+{% load static %}
+
+{% block title %}dl.blog — Reading log{% endblock %}
+
+{% block og_meta %}<meta name="robots" content="noindex,nofollow">{% endblock %}
+
+{% block content %}
+{% comment %}Reading-Log Hybrid — papers above posts, then the newest essay
+   transcluded (real first paragraph + figure, not just an excerpt), then
+   a quiet list. Surfaces taste, not just output.
+
+   The "papers I'm chewing on" data is hardcoded sample content for the
+   prototype. A real version would read from a dedicated model/JSON file
+   (similar to portfolio/data.py NEWS) so it's editable without touching
+   templates.
+{% endcomment %}
+<style>
+    .reading-page { font-family: var(--font-serif, 'IBM Plex Serif', Georgia, serif); }
+    .reading-h1 {
+        font-family: var(--font-serif, serif);
+        font-size: 2rem; line-height: 1.1; font-weight: 600;
+        color: var(--ctp-text, #cdd6f4);
+        margin-bottom: 0.5rem; letter-spacing: -0.01em;
+    }
+    .reading-flag {
+        font-family: var(--font-mono, monospace);
+        font-size: 0.7rem; text-transform: uppercase; letter-spacing: 0.22em;
+        color: var(--ctp-overlay1, #7f849c);
+        margin-bottom: 0.4rem;
+    }
+    .reading-section-h {
+        font-family: var(--font-mono, monospace);
+        font-size: 0.7rem; text-transform: uppercase; letter-spacing: 0.22em;
+        color: var(--ctp-overlay1, #7f849c);
+        padding-bottom: 0.5rem; margin-bottom: 1rem;
+        border-bottom: 1px solid var(--ctp-surface0, #313244);
+    }
+
+    .papers-grid {
+        display: grid;
+        grid-template-columns: 1fr;
+        gap: 2.25rem;
+        margin: 1.5rem 0 3rem;
+    }
+    @media (min-width: 720px) {
+        .papers-grid { grid-template-columns: 1fr 1fr; gap: 2.5rem; }
+    }
+    .papers-col h3 {
+        font-family: var(--font-mono, monospace);
+        font-size: 0.65rem;
+        text-transform: uppercase; letter-spacing: 0.18em;
+        color: var(--ctp-overlay1, #7f849c);
+        margin-bottom: 0.875rem;
+    }
+    .papers-col ul { list-style: none; padding: 0; margin: 0; }
+    .papers-col li {
+        padding: 0.625rem 0;
+        border-bottom: 1px solid color-mix(in oklch, var(--ctp-surface0, #313244) 30%, transparent);
+    }
+    .papers-col li:last-child { border-bottom: none; }
+    .papers-col .ptitle {
+        font-family: var(--font-mono, monospace);
+        font-size: 0.875rem; line-height: 1.4;
+        color: var(--ctp-subtext1, #bac2de);
+        font-weight: 500;
+        display: block;
+        text-decoration: none;
+    }
+    .papers-col .ptitle:hover { color: var(--ctp-lavender, #7287fd); }
+    .papers-col .pnote {
+        font-family: var(--font-serif, serif);
+        font-style: italic;
+        font-size: 0.875rem; line-height: 1.55;
+        color: var(--ctp-overlay0, #6c7086);
+        margin-top: 0.25rem;
+    }
+
+    .transclusion {
+        background: color-mix(in oklch, var(--ctp-surface0, #313244) 25%, transparent);
+        border-left: 3px solid var(--ctp-lavender, #7287fd);
+        border-radius: 0 12px 12px 0;
+        padding: 1.75rem 1.875rem;
+        margin: 1.5rem 0 3rem;
+    }
+    .transclusion .meta {
+        font-family: var(--font-mono, monospace);
+        font-size: 0.65rem; text-transform: uppercase; letter-spacing: 0.18em;
+        color: var(--ctp-overlay1, #7f849c);
+        margin-bottom: 0.75rem;
+    }
+    .transclusion h2 {
+        font-family: var(--font-serif, serif);
+        font-size: 1.875rem; line-height: 1.15; font-weight: 600;
+        color: var(--ctp-text, #cdd6f4);
+        margin-bottom: 1rem; letter-spacing: -0.01em;
+    }
+    .transclusion h2 a { color: inherit; text-decoration: none; }
+    .transclusion h2 a:hover { color: var(--ctp-lavender, #7287fd); }
+    .transclusion p {
+        font-family: var(--font-serif, serif);
+        font-size: 1.0625rem; line-height: 1.7;
+        color: var(--ctp-subtext1, #bac2de);
+        margin-bottom: 1rem;
+    }
+    .transclusion .figure {
+        margin: 1rem 0;
+        max-width: 18rem;
+        border-radius: 8px;
+        overflow: hidden;
+        border: 1px solid var(--ctp-surface0, #313244);
+        float: right;
+        margin-left: 1.5rem;
+    }
+    .transclusion .figure img { display: block; width: 100%; height: auto; }
+    .transclusion .more {
+        display: inline-flex; align-items: center; gap: 0.4rem;
+        font-family: var(--font-mono, monospace);
+        font-size: 0.75rem; text-transform: uppercase; letter-spacing: 0.08em;
+        color: var(--ctp-lavender, #7287fd);
+        text-decoration: none;
+        margin-top: 0.5rem;
+    }
+    .transclusion .more:hover { color: var(--ctp-mauve, #cba6f7); }
+    .transclusion::after { content: ''; display: table; clear: both; }
+
+    .quiet-list { list-style: none; padding: 0; margin: 0; }
+    .quiet-list li {
+        display: grid;
+        grid-template-columns: 1fr auto;
+        gap: 1rem;
+        padding: 0.75rem 0;
+        border-bottom: 1px solid color-mix(in oklch, var(--ctp-surface0, #313244) 30%, transparent);
+        align-items: baseline;
+    }
+    .quiet-list a {
+        font-family: var(--font-serif, serif);
+        font-size: 1rem;
+        color: var(--ctp-subtext1, #bac2de);
+        text-decoration: none;
+    }
+    .quiet-list a:hover { color: var(--ctp-lavender, #7287fd); }
+    .quiet-list .when {
+        font-family: var(--font-mono, monospace);
+        font-size: 0.7rem;
+        color: var(--ctp-overlay1, #7f849c);
+        text-transform: uppercase; letter-spacing: 0.06em; white-space: nowrap;
+    }
+</style>
+
+<section class="max-w-blog mx-auto px-6 pt-12 pb-24 reading-page">
+
+    <p class="reading-flag">dl.blog · reading log</p>
+    <h1 class="reading-h1">What I'm reading and writing</h1>
+    <p class="font-serif text-[1rem] leading-[1.7] text-content-secondary mb-2 max-w-xl">
+        Top: papers I'm chewing on. Middle: the latest essay, in full
+        until you scroll. Bottom: everything older, quietly.
+    </p>
+
+    <!-- Papers I'm reading -->
+    <h2 class="reading-section-h" style="margin-top: 2.5rem;">Reading</h2>
+    <div class="papers-grid">
+        <div class="papers-col">
+            <h3>This week</h3>
+            <ul>
+                <li>
+                    <a href="https://arxiv.org/abs/2503.16302" class="ptitle" target="_blank" rel="noopener">muP: Maximal Update Parametrization &nbsp;·&nbsp; arXiv 2503.16302</a>
+                    <p class="pnote">Re-reading after Greg's tutorial; the trust-region intuition still does not feel right.</p>
+                </li>
+                <li>
+                    <a href="https://arxiv.org/abs/2402.05749" class="ptitle" target="_blank" rel="noopener">Towards Monosemanticity &nbsp;·&nbsp; Anthropic 2024</a>
+                    <p class="pnote">For the SAE work; section 4 is the only honest dictionary-size discussion in the literature.</p>
+                </li>
+                <li>
+                    <a href="https://arxiv.org/abs/2401.04081" class="ptitle" target="_blank" rel="noopener">Mixture-of-Depths &nbsp;·&nbsp; DeepMind 2024</a>
+                    <p class="pnote">Unsure if it generalizes off the toy benchmark. Looking for a replication.</p>
+                </li>
+            </ul>
+        </div>
+        <div class="papers-col">
+            <h3>Older but still chewing</h3>
+            <ul>
+                <li>
+                    <a href="https://arxiv.org/abs/1706.03762" class="ptitle" target="_blank" rel="noopener">Attention Is All You Need &nbsp;·&nbsp; Vaswani et al. 2017</a>
+                    <p class="pnote">Re-read every six months; spotted something new in the positional-encoding section last time.</p>
+                </li>
+                <li>
+                    <a href="https://distill.pub/2020/circuits/zoom-in/" class="ptitle" target="_blank" rel="noopener">Zoom In: An Introduction to Circuits &nbsp;·&nbsp; Distill 2020</a>
+                    <p class="pnote">Still the cleanest framing for what mechanistic interpretability is trying to do.</p>
+                </li>
+            </ul>
+        </div>
+    </div>
+    <p class="font-mono text-[0.65rem] text-content-muted/60 italic" style="margin-top:-1.5rem;">Sample content for the prototype — wired to a real list later.</p>
+
+    {% if posts %}
+    {% with latest=posts.0 %}
+    <!-- Latest essay, transcluded -->
+    <h2 class="reading-section-h" style="margin-top: 3rem;">Latest essay</h2>
+    <div class="transclusion">
+        <p class="meta"><time datetime="{{ latest.date|date:'Y-m-d' }}">{{ latest.date|date:'F j, Y' }}</time> · {{ latest.reading_time }} min read</p>
+        {% if latest.image %}
+        <div class="figure">
+            <img src="{% static latest.image %}" alt="" loading="lazy">
+        </div>
+        {% endif %}
+        <h2><a href="{% url 'blog_post' latest.slug %}">{{ latest.title }}</a></h2>
+        <p>{{ latest.excerpt }}</p>
+        <a href="{% url 'blog_post' latest.slug %}" class="more">
+            Continue reading
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="5" y1="12" x2="19" y2="12"/><polyline points="12 5 19 12 12 19"/></svg>
+        </a>
+    </div>
+    {% endwith %}
+
+    <!-- Quiet list -->
+    <h2 class="reading-section-h" style="margin-top: 3rem;">Older essays</h2>
+    {% if posts|slice:"1:" %}
+    <ul class="quiet-list">
+        {% for post in posts|slice:"1:" %}
+        <li>
+            <a href="{% url 'blog_post' post.slug %}">{{ post.title }}</a>
+            <span class="when"><time datetime="{{ post.date|date:'Y-m-d' }}">{{ post.date|date:'Y · m · d' }}</time></span>
+        </li>
+        {% endfor %}
+    </ul>
+    {% else %}
+    <p class="text-content-muted font-serif italic" style="padding: 1rem 0;">Just the one essay so far.</p>
+    {% endif %}
+    {% else %}
+    <p class="text-content-muted py-20 text-center font-serif italic">No essays yet.</p>
+    {% endif %}
+</section>
+{% endblock %}

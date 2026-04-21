@@ -1,0 +1,125 @@
+{% extends "portfolio/blog_base.html" %}
+{% load static %}
+
+{% block title %}dl.reading{% endblock %}
+
+{% block og_meta %}
+<meta property="og:title" content="Reading — Dennis Loevlie">
+<meta property="og:description" content="Papers I'm chewing on, with one-line annotations.">
+<meta property="og:type" content="website">
+{% endblock %}
+
+{% block content %}
+{% comment %}/reading/ — curated paper recommendations. Pulls from the
+   Reading model (admin-editable). Staff can manage entries at /admin/portfolio/reading/.{% endcomment %}
+<style>
+    .reading-page { font-family: var(--font-serif, 'IBM Plex Serif', Georgia, serif); }
+    .reading-flag {
+        font-family: var(--font-mono, monospace);
+        font-size: 0.7rem; text-transform: uppercase; letter-spacing: 0.22em;
+        color: var(--ctp-overlay1, #7f849c);
+        margin-bottom: 0.5rem;
+    }
+    .reading-h1 {
+        font-family: var(--font-serif, serif);
+        font-size: 2rem; line-height: 1.1; font-weight: 600;
+        color: var(--ctp-text, #cdd6f4);
+        margin-bottom: 0.5rem; letter-spacing: -0.01em;
+    }
+    .reading-section-h {
+        font-family: var(--font-mono, monospace);
+        font-size: 0.7rem; text-transform: uppercase; letter-spacing: 0.22em;
+        color: var(--ctp-overlay1, #7f849c);
+        padding-bottom: 0.5rem;
+        border-bottom: 1px solid var(--ctp-surface0, #313244);
+        margin: 2.5rem 0 1.25rem;
+    }
+    .reading-list { list-style: none; padding: 0; margin: 0; }
+    .reading-list li {
+        padding: 0.875rem 0;
+        border-bottom: 1px solid color-mix(in oklch, var(--ctp-surface0, #313244) 30%, transparent);
+    }
+    .reading-list li:last-child { border-bottom: none; }
+    .reading-list .ptitle {
+        font-family: var(--font-mono, monospace);
+        font-size: 0.875rem; line-height: 1.4;
+        color: var(--ctp-subtext1, #bac2de);
+        font-weight: 500;
+        text-decoration: none;
+        display: block;
+    }
+    .reading-list .ptitle:hover { color: var(--ctp-lavender, #7287fd); }
+    .reading-list .pmeta {
+        font-family: var(--font-mono, monospace);
+        font-size: 0.65rem;
+        color: var(--ctp-overlay0, #6c7086);
+        text-transform: uppercase; letter-spacing: 0.06em;
+        margin-top: 0.25rem;
+    }
+    .reading-list .pnote {
+        font-family: var(--font-serif, serif);
+        font-style: italic;
+        font-size: 0.9rem; line-height: 1.55;
+        color: var(--ctp-subtext0, #a6adc8);
+        margin-top: 0.4rem;
+    }
+</style>
+
+<section class="max-w-blog mx-auto px-6 pt-12 pb-24 reading-page">
+
+    <p class="reading-flag">dl.reading · papers I'm chewing on</p>
+    <h1 class="reading-h1">Reading list</h1>
+    <p class="font-serif text-[1rem] leading-[1.7] text-content-secondary mb-2 max-w-xl">
+        A curated list of papers I'm actively reading or keep coming back
+        to. Each note is what makes the piece interesting to me right now,
+        not a summary. Updated when something earns a slot.
+    </p>
+
+    {% if total %}
+    {% if this_week %}
+    <h2 class="reading-section-h">This week</h2>
+    <ul class="reading-list">
+        {% for r in this_week %}
+        <li>
+            {% if r.url %}
+            <a class="ptitle" href="{{ r.url }}" target="_blank" rel="noopener">{{ r.title }}</a>
+            {% else %}
+            <span class="ptitle" style="cursor: default;">{{ r.title }}</span>
+            {% endif %}
+            {% if r.venue or r.year %}
+            <div class="pmeta">{{ r.venue }}{% if r.venue and r.year %} · {% endif %}{% if r.year %}{{ r.year }}{% endif %}</div>
+            {% endif %}
+            {% if r.annotation %}<p class="pnote">{{ r.annotation }}</p>{% endif %}
+        </li>
+        {% endfor %}
+    </ul>
+    {% endif %}
+
+    {% if chewing %}
+    <h2 class="reading-section-h">Older but still chewing</h2>
+    <ul class="reading-list">
+        {% for r in chewing %}
+        <li>
+            {% if r.url %}
+            <a class="ptitle" href="{{ r.url }}" target="_blank" rel="noopener">{{ r.title }}</a>
+            {% else %}
+            <span class="ptitle" style="cursor: default;">{{ r.title }}</span>
+            {% endif %}
+            {% if r.venue or r.year %}
+            <div class="pmeta">{{ r.venue }}{% if r.venue and r.year %} · {% endif %}{% if r.year %}{{ r.year }}{% endif %}</div>
+            {% endif %}
+            {% if r.annotation %}<p class="pnote">{{ r.annotation }}</p>{% endif %}
+        </li>
+        {% endfor %}
+    </ul>
+    {% endif %}
+    {% else %}
+    <div class="text-center py-24 mt-8" style="border: 1px dashed var(--ctp-surface0); border-radius: 12px;">
+        <p class="font-serif text-content-muted text-lg italic mb-2">Reading list is empty.</p>
+        <p class="font-mono text-[0.7rem] text-content-muted/60 uppercase tracking-wider">
+            Add entries at <a href="/admin/portfolio/reading/" class="underline">/admin/portfolio/reading/</a>.
+        </p>
+    </div>
+    {% endif %}
+</section>
+{% endblock %}

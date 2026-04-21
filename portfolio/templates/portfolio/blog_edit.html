@@ -438,6 +438,14 @@
                 <span class="fm-help">Comma-separated.</span>
             </div>
             <div class="fm-field">
+                <label for="fm-kind">Surface</label>
+                <select id="fm-kind" name="kind">
+                    <option value="essay" {% if not post.kind or post.kind == 'essay' %}selected{% endif %}>Essay → /blog/</option>
+                    <option value="lab_note" {% if post.kind == 'lab_note' %}selected{% endif %}>Lab note → /notebook/</option>
+                </select>
+                <span class="fm-help">Where this post lives. Garden is orthogonal (set via Maturity below).</span>
+            </div>
+            <div class="fm-field">
                 <label for="fm-maturity">Maturity</label>
                 <select id="fm-maturity" name="maturity">
                     <option value="" {% if not post.maturity %}selected{% endif %}>Unmarked</option>

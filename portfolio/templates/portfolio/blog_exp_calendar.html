@@ -1,0 +1,193 @@
+{% extends "portfolio/blog_base.html" %}
+{% load static %}
+
+{% block title %}dl.blog — Calendar{% endblock %}
+
+{% block og_meta %}<meta name="robots" content="noindex,nofollow">{% endblock %}
+
+{% block content %}
+{% comment %}Calendar Block — one row per month from earliest post to today.
+   Empty months render as `2026 / MAR  · · ·` so the silence is visible.
+   Reads like a heart-rate strip; busy months feel earned, quiet ones honest.
+
+   Built client-side so we don't have to push month-bucketing through the
+   view layer; same data already exposed via posts JSON.
+{% endcomment %}
+<style>
+    .cal-page { font-family: var(--font-serif, 'IBM Plex Serif', Georgia, serif); max-width: 720px; }
+
+    .cal-h1 {
+        font-family: var(--font-serif, serif);
+        font-size: 2.25rem; line-height: 1.1; font-weight: 600;
+        color: var(--ctp-text, #cdd6f4);
+        margin-bottom: 0.5rem; letter-spacing: -0.01em;
+    }
+    .cal-flag {
+        font-family: var(--font-mono, monospace);
+        font-size: 0.7rem; text-transform: uppercase; letter-spacing: 0.22em;
+        color: var(--ctp-overlay1, #7f849c);
+        margin-bottom: 0.5rem;
+    }
+
+    .cal-row {
+        display: grid;
+        grid-template-columns: 6.5rem 1fr;
+        gap: 1.5rem;
+        padding: 1rem 0;
+        border-bottom: 1px dashed color-mix(in oklch, var(--ctp-surface0, #313244) 30%, transparent);
+        align-items: start;
+        min-height: 3.5rem;
+    }
+    .cal-row.year-break { border-top: 1px solid var(--ctp-surface0, #313244); margin-top: 1rem; padding-top: 2rem; }
+
+    .cal-when {
+        font-family: var(--font-mono, monospace);
+        font-size: 0.875rem;
+        color: var(--ctp-overlay1, #7f849c);
+        letter-spacing: 0.05em;
+        text-transform: uppercase;
+        font-variant-numeric: tabular-nums;
+        padding-top: 0.1rem;
+    }
+    .cal-when .y { color: var(--ctp-overlay0, #6c7086); }
+    .cal-when .sep { color: var(--ctp-overlay0, #6c7086); margin: 0 0.3rem; }
+
+    .cal-entries { display: flex; flex-direction: column; gap: 0.625rem; }
+    .cal-entry {
+        display: grid;
+        grid-template-columns: 1.5rem 1fr auto;
+        gap: 0.75rem;
+        align-items: baseline;
+        text-decoration: none !important;
+        font-family: var(--font-serif, serif);
+    }
+    .cal-entry .day {
+        font-family: var(--font-mono, monospace);
+        font-size: 0.7rem;
+        color: var(--ctp-overlay0, #6c7086);
+        font-variant-numeric: tabular-nums;
+        text-align: right;
+    }
+    .cal-entry .head {
+        font-size: 1rem;
+        line-height: 1.4;
+        color: var(--ctp-subtext1, #bac2de);
+        transition: color 150ms ease;
+    }
+    .cal-entry:hover .head { color: var(--ctp-lavender, #7287fd); }
+    .cal-entry .tag {
+        font-family: var(--font-mono, monospace);
+        font-size: 0.65rem;
+        color: var(--ctp-overlay1, #7f849c);
+        text-transform: lowercase;
+        letter-spacing: 0.04em;
+    }
+
+    .cal-empty {
+        font-family: var(--font-mono, monospace);
+        font-size: 0.875rem;
+        color: var(--ctp-overlay0, #6c7086);
+        letter-spacing: 0.4em;
+        padding-top: 0.4rem;
+    }
+</style>
+
+<section class="mx-auto px-6 pt-12 pb-24 cal-page">
+
+    <p class="cal-flag">dl.blog · calendar view</p>
+    <h1 class="cal-h1">Pace</h1>
+    <p class="font-serif text-[1rem] leading-[1.7] text-content-secondary mb-12 max-w-md">
+        Every month from the first post to now. Quiet months show their
+        silence; busy months earn their density.
+    </p>
+
+    {% if posts %}
+    <div id="cal-strip"></div>
+    <script id="cal-data" type="application/json">
+    [
+    {% for p in posts %}{
+        "slug": "{{ p.slug|escapejs }}",
+        "title": "{{ p.title|escapejs }}",
+        "date": "{{ p.date|date:'Y-m-d' }}",
+        "year": "{{ p.date|date:'Y' }}",
+        "month": "{{ p.date|date:'n' }}",
+        "month_label": "{{ p.date|date:'M' }}",
+        "day": "{{ p.date|date:'j' }}",
+        "tag": "{% if p.tags %}{{ p.tags.0|escapejs }}{% endif %}",
+        "url": "{% url 'blog_post' p.slug %}"
+    }{% if not forloop.last %},{% endif %}{% endfor %}
+    ]
+    </script>
+    {% else %}
+    <p class="text-content-muted font-serif italic">No posts yet — the calendar is empty.</p>
+    {% endif %}
+</section>
+
+<script>
+(function() {
+    var dataEl = document.getElementById('cal-data');
+    if (!dataEl) return;
+    var posts = JSON.parse(dataEl.textContent);
+    if (!posts.length) return;
+
+    // Bucket posts by year-month (YYYY-M as integers, M = 1..12)
+    var byMonth = {};
+    posts.forEach(function(p) {
+        var key = p.year + '-' + String(p.month).padStart(2, '0');
+        (byMonth[key] = byMonth[key] || []).push(p);
+    });
+
+    // Walk every month from earliest post → "now" (most recent post date),
+    // newest first. Empty months render as a quiet `· · ·` placeholder.
+    var allKeys = Object.keys(byMonth).sort();
+    var earliest = allKeys[0].split('-');
+    var latest = allKeys[allKeys.length - 1].split('-');
+    var startY = parseInt(earliest[0], 10), startM = parseInt(earliest[1], 10);
+    var endY = parseInt(latest[0], 10), endM = parseInt(latest[1], 10);
+
+    var months = [];
+    var y = endY, m = endM;
+    while (y > startY || (y === startY && m >= startM)) {
+        months.push({ y: y, m: m, key: y + '-' + String(m).padStart(2, '0') });
+        m -= 1;
+        if (m === 0) { m = 12; y -= 1; }
+    }
+
+    var monthLabels = ['JAN','FEB','MAR','APR','MAY','JUN','JUL','AUG','SEP','OCT','NOV','DEC'];
+
+    var strip = document.getElementById('cal-strip');
+    var lastYear = null;
+    months.forEach(function(slot) {
+        var entries = byMonth[slot.key] || [];
+        // Sort entries descending within the month (newest first)
+        entries.sort(function(a, b) { return b.date.localeCompare(a.date); });
+
+        var row = document.createElement('div');
+        row.className = 'cal-row';
+        if (lastYear !== null && lastYear !== slot.y) {
+            row.classList.add('year-break');
+        }
+        lastYear = slot.y;
+
+        var when = '<div class="cal-when"><span class="y">' + slot.y + '</span><span class="sep">/</span>' + monthLabels[slot.m - 1] + '</div>';
+
+        if (entries.length === 0) {
+            row.innerHTML = when + '<div class="cal-empty">· · ·</div>';
+        } else {
+            var html = when + '<div class="cal-entries">';
+            entries.forEach(function(p) {
+                html +=
+                    '<a href="' + p.url + '" class="cal-entry">' +
+                      '<span class="day">' + p.day + '</span>' +
+                      '<span class="head">' + p.title + '</span>' +
+                      '<span class="tag">' + (p.tag ? '· ' + p.tag.toLowerCase() : '') + '</span>' +
+                    '</a>';
+            });
+            html += '</div>';
+            row.innerHTML = html;
+        }
+        strip.appendChild(row);
+    });
+})();
+</script>
+{% endblock %}

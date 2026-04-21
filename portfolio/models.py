@@ -89,6 +89,20 @@ class Post(models.Model):
         max_length=12, choices=MATURITY_CHOICES, blank=True, default='',
         help_text="Optional digital-garden maturity badge. Sets reader expectations and lets unfinished thinking ship without 'blog-post-as-final-statement' cost.",
     )
+
+    # Routes the post to the right surface:
+    #   essay     → /blog/      (polished long-form)
+    #   lab_note  → /notebook/  (open research log, status-tagged)
+    # Garden is orthogonal (filters by `maturity`, not `kind`), so a post
+    # can be both a lab_note AND seedling without conflict.
+    KIND_CHOICES = [
+        ('essay', 'Essay (long-form, /blog/)'),
+        ('lab_note', 'Lab note (open log, /notebook/)'),
+    ]
+    kind = models.CharField(
+        max_length=16, choices=KIND_CHOICES, default='essay',
+        help_text="Which surface this post belongs to. Essays go to /blog/; lab notes go to /notebook/. Garden is orthogonal.",
+    )
     created_at = models.DateTimeField(auto_now_add=True)
     modified_at = models.DateTimeField(auto_now=True)
 
@@ -111,3 +125,43 @@ class Post(models.Model):
 
     def get_absolute_url(self):
         return reverse('blog_post', args=[self.slug])
+
+
+class Reading(models.Model):
+    """A paper / essay / book Dennis is recommending. Drives the /reading/
+    page. Independent from Post — these are external recommendations, not
+    his own writing. Edit via the Django admin (no in-browser editor for
+    these yet — they're rare enough that admin is fine)."""
+    STATUS_CHOICES = [
+        ('this_week', 'This week — actively reading'),
+        ('chewing', 'Older but still chewing on'),
+        ('archived', 'Archived (hidden from /reading/)'),
+    ]
+    title = models.CharField(max_length=300)
+    venue = models.CharField(
+        max_length=200, blank=True,
+        help_text="Where it was published — arXiv id, conference, journal, magazine, etc.",
+    )
+    year = models.PositiveSmallIntegerField(null=True, blank=True)
+    url = models.URLField(blank=True, help_text="Canonical link (arXiv, blog post, etc.)")
+    annotation = models.TextField(
+        blank=True,
+        help_text="One-line note in your own voice — what makes it interesting to you right now.",
+    )
+    status = models.CharField(max_length=16, choices=STATUS_CHOICES, default='this_week')
+    # Manual sort within a status bucket so you can promote a particular
+    # paper to the top without re-dating it.
+    order = models.IntegerField(
+        default=0,
+        help_text="Lower = higher in the list within its status bucket. Ties broken by created_at desc.",
+    )
+    created_at = models.DateTimeField(auto_now_add=True)
+    modified_at = models.DateTimeField(auto_now=True)
+
+    class Meta:
+        ordering = ['order', '-created_at']
+        verbose_name = 'Reading entry'
+        verbose_name_plural = 'Reading entries'
+
+    def __str__(self):
+        return self.title
