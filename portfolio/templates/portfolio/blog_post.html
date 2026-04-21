@@ -585,17 +585,17 @@ If a post has an explicit cover (post.image), that takes precedence.
 {% endblock %}
 
 {% block scripts %}
-{% comment %}Interactive demos — each is gated on the presence of its target
-   div in the rendered post HTML, so a post only pulls the JS it actually
-   uses. brain-slices.js is the heaviest (three.js module import) so the
-   biggest win is keeping it off non-MIL posts.{% endcomment %}
-{% if 'lr-interactive-demo' in post.content_html %}
+{% comment %}Interactive demos. Gates check post.body (markdown source) AND
+   post.content_html (rendered) — body is the source of truth and never
+   stale, but content_html can have rendered transformations. If either
+   contains the marker the script loads.{% endcomment %}
+{% if 'lr-interactive-demo' in post.body or 'lr-interactive-demo' in post.content_html %}
 <script src="{% static 'portfolio/js/lr-demo.js' %}"></script>
 {% endif %}
-{% if 'mil-interactive-demo' in post.content_html %}
+{% if 'mil-interactive-demo' in post.body or 'mil-interactive-demo' in post.content_html %}
 <script src="{% static 'portfolio/js/mil-demo.js' %}"></script>
 {% endif %}
-{% if 'brain-slice-demo' in post.content_html %}
+{% if 'brain-slice-demo' in post.body or 'brain-slice-demo' in post.content_html %}
 {% comment %}three.js bare-specifier resolver. Must be parsed before the
    consuming module script — both live in this same gated block so they
    stay co-located with the only post that needs three.js.{% endcomment %}
@@ -609,7 +609,7 @@ If a post has an explicit cover (post.image), that takes precedence.
 </script>
 <script type="module" src="{% static 'portfolio/js/brain-slices.js' %}"></script>
 {% endif %}
-{% if 'mil-pipeline-demo' in post.content_html %}
+{% if 'mil-pipeline-demo' in post.body or 'mil-pipeline-demo' in post.content_html %}
 <script src="{% static 'portfolio/js/mil-pipeline.js' %}"></script>
 {% endif %}
 <!-- Hover-citation popovers (active wherever <cite class="ref" data-key="..."> appears) -->

@@ -158,6 +158,12 @@ class Reading(models.Model):
     created_at = models.DateTimeField(auto_now_add=True)
     modified_at = models.DateTimeField(auto_now=True)
 
+    # If this entry was synced from a Mind Mapper note, the MM note id.
+    # Lets `sync_reading` upsert (match-by-id) instead of duplicating, and
+    # lets us prune local rows whose MM source has been deleted.
+    # NULL = manually-added entry, never touched by sync.
+    mind_mapper_note_id = models.PositiveIntegerField(null=True, blank=True, unique=True, db_index=True)
+
     class Meta:
         ordering = ['order', '-created_at']
         verbose_name = 'Reading entry'
