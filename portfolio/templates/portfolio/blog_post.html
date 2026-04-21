@@ -42,6 +42,13 @@ If a post has an explicit cover (post.image), that takes precedence.
 {% block extra_head %}
 <link rel="stylesheet" href="{% static 'portfolio/css/pygments.css' %}">
 <link rel="stylesheet" href="{% static 'portfolio/vendor/katex/katex.min.css' %}">
+{% comment %}Demo embeds. Any post with a `<div data-demo="…">` marker
+   gets the self-contained demo stylesheet. The per-demo JS modules are
+   gated at the bottom in {% block scripts %} so the download matches
+   what the body actually embeds.{% endcomment %}
+{% if 'data-demo=' in post.body or 'data-demo=' in post.content_html %}
+<link rel="stylesheet" href="{% static 'portfolio/css/demos-embed.css' %}">
+{% endif %}
 {% endblock %}
 
 {% block content %}
@@ -611,6 +618,28 @@ If a post has an explicit cover (post.image), that takes precedence.
 {% endif %}
 {% if 'mil-pipeline-demo' in post.body or 'mil-pipeline-demo' in post.content_html %}
 <script src="{% static 'portfolio/js/mil-pipeline.js' %}"></script>
+{% endif %}
+{% comment %}Portfolio demo embeds via <div data-demo="slug"></div> markers.
+   Each block loads only when its slug is present in the body. For the
+   nanoparticle viewer we also declare the three.js importmap — mirrors
+   demo_detail.html. frozen-forecaster and depth-estimation are pure
+   modules / classic scripts so no importmap needed.{% endcomment %}
+{% if 'data-demo="frozen-forecaster"' in post.body or 'data-demo="frozen-forecaster"' in post.content_html %}
+<script src="{% static 'portfolio/js/frozen-forecaster.js' %}" defer></script>
+{% endif %}
+{% if 'data-demo="nanoparticle-viewer"' in post.body or 'data-demo="nanoparticle-viewer"' in post.content_html %}
+<script type="importmap">
+{
+    "imports": {
+        "three": "https://unpkg.com/three@0.160.0/build/three.module.js",
+        "three/addons/": "https://unpkg.com/three@0.160.0/examples/jsm/"
+    }
+}
+</script>
+<script type="module" src="{% static 'portfolio/js/nanoparticle.js' %}"></script>
+{% endif %}
+{% if 'data-demo="depth-estimation"' in post.body or 'data-demo="depth-estimation"' in post.content_html %}
+<script type="module" src="{% static 'portfolio/js/depth-demo.js' %}"></script>
 {% endif %}
 <!-- Hover-citation popovers (active wherever <cite class="ref" data-key="..."> appears) -->
 <script defer src="{% static 'portfolio/js/citations.js' %}"></script>

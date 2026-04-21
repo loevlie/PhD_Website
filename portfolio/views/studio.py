@@ -19,6 +19,7 @@ def studio(request):
     # Quick counts to make the tiles feel alive. Cheap queries; the
     # dashboard is expected to be visited rarely.
     from portfolio.models import Post, Reading
+    from portfolio.content.demos import DEMOS
     essays = Post.objects.filter(kind='essay')
     lab_notes = Post.objects.filter(kind='lab_note')
     return render(request, 'portfolio/studio.html', {
@@ -33,4 +34,8 @@ def studio(request):
         'recent_essays': essays.order_by('-modified_at')[:5],
         'recent_lab_notes': lab_notes.order_by('-modified_at')[:5],
         'recent_reading': Reading.objects.exclude(status='archived').order_by('-modified_at')[:5],
+        # Demo-writeup picker: one tile per demo in DEMOS that links
+        # straight to `/blog/new/?template=demo&demo=<slug>` so the
+        # new draft already embeds the live widget.
+        'demos': DEMOS,
     })

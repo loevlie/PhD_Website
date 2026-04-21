@@ -362,6 +362,76 @@ def _transform_footnotes_to_sidenotes(html):
     return html
 
 
+# ──────────────────────────────────────────────────────────────────────
+# Interactive demo embedding
+# ──────────────────────────────────────────────────────────────────────
+#
+# Posts can embed a portfolio demo (see portfolio/content/demos.py) by
+# dropping this placeholder anywhere in the markdown body:
+#
+#     <div data-demo="frozen-forecaster"></div>
+#
+# Before markdown conversion, `_expand_demo_embeds` swaps the placeholder
+# for the rendered contents of `portfolio/templates/portfolio/demos/
+# embed_<slug>.html` wrapped in `.demo-embed-root`. blog_post.html also
+# scans the body for the marker and conditionally loads the matching JS
+# module + demos-embed.css so the widget actually runs on the blog page.
+# Unknown slugs render as an inline error block (so a typo isn't silent).
+
+_DEMO_MARKER_RE = re.compile(
+    r'<div\s+data-demo=["\']([a-z0-9\-]+)["\'][^>]*>\s*</div>',
+    re.IGNORECASE,
+)
+
+
+def _expand_demo_embeds(content):
+    """Replace `<div data-demo="slug"></div>` markers with the rendered
+    embed template for that demo, wrapped in `.demo-embed-root` so the
+    embed inherits blog-side CSS variables."""
+    if 'data-demo=' not in content:
+        return content  # fast-path: most posts don't embed demos
+
+    # Deferred imports: this module is imported very early and Django
+    # settings may not be configured yet when blog/__init__.py is loaded
+    # at admin-migration time.
+    from django.template.loader import render_to_string, TemplateDoesNotExist
+    from portfolio.content.demos import DEMOS
+
+    demos_by_slug = {d['slug']: d for d in DEMOS}
+
+    def _replace(m):
+        slug = m.group(1)
+        demo = demos_by_slug.get(slug)
+        if demo is None:
+            return (
+                f'<div class="demo-embed-error">Unknown demo slug: '
+                f'<code>{slug}</code>. Add it to portfolio/content/demos.py '
+                f'or pick an existing slug.</div>'
+            )
+        embed_template = f'portfolio/demos/{demo["embed"]}'
+        try:
+            embed_html = render_to_string(embed_template)
+        except TemplateDoesNotExist:
+            return (
+                f'<div class="demo-embed-error">Missing embed template '
+                f'<code>{embed_template}</code> for demo '
+                f'<code>{slug}</code>.</div>'
+            )
+        footer = (
+            f'<div class="demo-embed-footer">'
+            f'<span>{demo["title"]}</span>'
+            f'<a href="/demos/{slug}/">Open full demo →</a>'
+            f'</div>'
+        )
+        return (
+            f'<div class="demo-embed-root" data-demo="{slug}">'
+            f'{embed_html}{footer}'
+            f'</div>'
+        )
+
+    return _DEMO_MARKER_RE.sub(_replace, content)
+
+
 def render_markdown(content, is_explainer=False, post_slug=None, errors_out=None):
     """Convert markdown string to HTML with syntax highlighting, ToC, and
     (for explainer posts) Tufte-style sidenotes from footnote markup.
@@ -383,6 +453,9 @@ def render_markdown(content, is_explainer=False, post_slug=None, errors_out=None
     # an inline figure (SVG or base64 PNG), so subsequent passes treat
     # them as ordinary images.
     content = _process_pyfig_blocks(content, post_slug=post_slug, errors_out=errors_out)
+    # Expand <div data-demo="slug"></div> placeholders to their full
+    # embed HTML before markdown conversion. See _expand_demo_embeds.
+    content = _expand_demo_embeds(content)
     content, latex_placeholders = _protect_latex(content)
 
     md = markdown.Markdown(extensions=[

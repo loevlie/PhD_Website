@@ -187,12 +187,15 @@ _POST_TEMPLATES = {
     },
     'demo': {
         'label': 'Demo writeup',
-        'desc': 'Embed an interactive demo + writeup explaining what it shows.',
+        'desc': (
+            'Embed a live demo + writeup explaining what it shows. '
+            'Append <code>?demo=&lt;slug&gt;</code> to pre-fill from a specific demo.'
+        ),
         'title': 'Demo: <name>',
         'body': (
             '# Demo: <name>\n\n'
             'One sentence on what the demo shows.\n\n'
-            '<aside class="callout"><strong>Try it →</strong> Move the slider and watch the boundary change.</aside>\n\n'
+            '<div data-demo="<slug>"></div>\n\n'
             '## What you\'re seeing\n\n'
             'Plain-English explanation of the underlying mechanism.\n\n'
             '## What surprised me\n\n'
@@ -238,7 +241,31 @@ def blog_new(request):
 
     tmpl = _POST_TEMPLATES[template_key]
     from portfolio.models import Post
+    body = tmpl['body']
     base_title = request.GET.get('title') or tmpl['title']
+
+    # For the `demo` template, a ?demo=<slug> param pre-fills the title
+    # and the data-demo marker from the chosen DEMOS entry so the
+    # resulting post renders the live widget out of the box.
+    if template_key == 'demo':
+        demo_slug = (request.GET.get('demo') or '').strip()
+        if demo_slug:
+            from portfolio.content.demos import DEMOS
+            demo = next((d for d in DEMOS if d['slug'] == demo_slug), None)
+            if demo:
+                base_title = request.GET.get('title') or f'Demo: {demo["title"]}'
+                body = (
+                    f'# {demo["title"]}\n\n'
+                    f'{demo["summary"]}\n\n'
+                    f'<div data-demo="{demo_slug}"></div>\n\n'
+                    '## What you\'re seeing\n\n'
+                    'Plain-English explanation of the underlying mechanism.\n\n'
+                    '## What surprised me\n\n'
+                    'The non-obvious thing the demo made clear.\n\n'
+                    '## Caveats\n\n'
+                    'What the demo *isn\'t* showing.\n'
+                )
+
     base_slug = slugify(base_title) or 'untitled-draft'
     slug = base_slug
     n = 1
@@ -250,7 +277,7 @@ def blog_new(request):
     p = Post.objects.create(
         slug=slug,
         title=base_title,
-        body=tmpl['body'],
+        body=body,
         date=date_cls.today(),
         draft=True,
         kind=kind,

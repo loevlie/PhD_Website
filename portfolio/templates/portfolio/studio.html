@@ -38,7 +38,7 @@
         {# ── Top row: write something new ───────────────────────────── #}
         <section class="studio-section">
             <h2 class="studio-section-title">Write something new</h2>
-            <div class="studio-grid studio-grid--3">
+            <div class="studio-grid studio-grid--4">
                 <a class="studio-card studio-card--primary" href="/blog/new/">
                     <div class="studio-card-icon">✒️</div>
                     <h3 class="studio-card-title">New blog post</h3>
@@ -51,6 +51,24 @@
                     <p class="studio-card-desc">Dated, status-tagged entry for /notebook/.</p>
                     <div class="studio-card-meta">{{ counts.lab_notes }} published · {{ counts.lab_note_drafts }} draft{{ counts.lab_note_drafts|pluralize }}</div>
                 </a>
+                <details class="studio-card studio-card--form">
+                    <summary>
+                        <div class="studio-card-icon">🎛️</div>
+                        <h3 class="studio-card-title">New demo writeup</h3>
+                        <p class="studio-card-desc">Essay that embeds a live demo. Pick the demo to pre-fill.</p>
+                        <div class="studio-card-meta">{{ demos|length }} demo{{ demos|length|pluralize }} available</div>
+                    </summary>
+                    <div class="studio-quickform">
+                        {% for d in demos %}
+                        <a href="/blog/new/?template=demo&demo={{ d.slug }}" class="studio-btn studio-btn--ghost" style="justify-content:flex-start">
+                            {{ d.title }}
+                        </a>
+                        {% endfor %}
+                        <a href="/blog/new/?template=demo" class="studio-btn" style="justify-content:flex-start">
+                            Blank demo writeup (pick slug yourself)
+                        </a>
+                    </div>
+                </details>
                 <details class="studio-card studio-card--form">
                     <summary>
                         <div class="studio-card-icon">📚</div>
