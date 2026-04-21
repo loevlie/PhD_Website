@@ -95,10 +95,10 @@
     </ul>
     {% endif %}
 
-    {% if chewing %}
-    <h2 class="reading-section-h">Older but still chewing</h2>
+    {% if lingering %}
+    <h2 class="reading-section-h">Older but still lingering</h2>
     <ul class="reading-list">
-        {% for r in chewing %}
+        {% for r in lingering %}
         <li>
             {% if r.url %}
             <a class="ptitle" href="{{ r.url }}" target="_blank" rel="noopener">{{ r.title }}</a>

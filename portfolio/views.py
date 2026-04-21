@@ -50,15 +50,15 @@ def notebook(request):
 def reading(request):
     """Curated reading list at /reading/. Pulls from the Reading model
     (admin-editable). Hides archived entries; this_week sits above
-    chewing."""
+    lingering."""
     from portfolio.models import Reading
     entries = Reading.objects.exclude(status='archived').order_by('order', '-created_at')
     this_week = [r for r in entries if r.status == 'this_week']
-    chewing = [r for r in entries if r.status == 'chewing']
+    lingering = [r for r in entries if r.status == 'lingering']
     return render(request, 'portfolio/reading.html', {
         'this_week': this_week,
-        'chewing': chewing,
-        'total': len(this_week) + len(chewing),
+        'lingering': lingering,
+        'total': len(this_week) + len(lingering),
     })
 
 

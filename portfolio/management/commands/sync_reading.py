@@ -26,7 +26,7 @@ Note format (one per Mind Mapper note in the Reading project):
     venue: arXiv 2503.16302
     year: 2025
     url: https://arxiv.org/abs/2503.16302
-    status: this_week        # this_week | chewing | archived
+    status: this_week        # this_week | lingering | archived
     order: 10                # lower = higher in its bucket; optional
     ---
     One-line italic annotation in your own voice — what makes this
@@ -101,10 +101,14 @@ def _parse_note(note_detail):
             except (TypeError, ValueError):
                 errors.append(f'invalid year: {raw_year!r}')
         raw_status = str(meta.get('status', 'this_week') or 'this_week').strip().lower().replace('-', '_')
-        if raw_status in {'this_week', 'chewing', 'archived'}:
+        # Accept legacy `chewing` as an alias for `lingering` so old MM
+        # notes don't break sync if you forget to update the frontmatter.
+        if raw_status == 'chewing':
+            raw_status = 'lingering'
+        if raw_status in {'this_week', 'lingering', 'archived'}:
             status = raw_status
         else:
-            errors.append(f'invalid status: {raw_status!r} (must be this_week|chewing|archived)')
+            errors.append(f'invalid status: {raw_status!r} (must be this_week|lingering|archived)')
         try:
             order = int(meta.get('order', 0) or 0)
         except (TypeError, ValueError):

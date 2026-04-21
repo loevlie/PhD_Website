@@ -134,7 +134,7 @@ class Reading(models.Model):
     these yet — they're rare enough that admin is fine)."""
     STATUS_CHOICES = [
         ('this_week', 'This week — actively reading'),
-        ('chewing', 'Older but still chewing on'),
+        ('lingering', 'Older but still lingering'),
         ('archived', 'Archived (hidden from /reading/)'),
     ]
     title = models.CharField(max_length=300)
