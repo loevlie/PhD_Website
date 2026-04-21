@@ -6,6 +6,9 @@
    Form posts to the custom admin URL we registered in ReadingAdmin.{% endcomment %}
 
 {% block object-tools-items %}
+    {% comment %}URLs are hardcoded (not via {% url %} tag) because the
+       admin custom URL resolver was a suspected culprit for a prod 500
+       on this changelist; static URLs eliminate that risk.{% endcomment %}
     <li>
         <a href="https://mind-mapper-x1zt.onrender.com/projects/15/" target="_blank" rel="noopener"
            class="addlink"
@@ -15,7 +18,7 @@
         </a>
     </li>
     <li>
-        <form method="post" action="{% url 'admin:portfolio_reading_sync_mm' %}" style="display:inline">
+        <form method="post" action="/admin/portfolio/reading/sync-mm/" style="display:inline">
             {% csrf_token %}
             <button type="submit"
                     class="addlink"
@@ -26,7 +29,7 @@
         </form>
     </li>
     <li>
-        <form method="post" action="{% url 'admin:portfolio_reading_sync_mm' %}" style="display:inline"
+        <form method="post" action="/admin/portfolio/reading/sync-mm/" style="display:inline"
               onsubmit="return confirm('Sync + prune will DELETE Reading rows whose Mind Mapper note has been removed. Continue?');">
             {% csrf_token %}
             <input type="hidden" name="prune" value="1">

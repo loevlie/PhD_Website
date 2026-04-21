@@ -96,9 +96,9 @@ class ReadingAdmin(admin.ModelAdmin):
     changelist runs `python manage.py sync_reading` from the admin so
     you don't need the Render shell."""
     list_display = ['title_with_mm_link', 'venue', 'year', 'status', 'order', 'source', 'modified_at']
+    list_display_links = ['title_with_mm_link']
     list_filter = ['status', 'year']
     list_editable = ['status', 'order']
-    list_display_links = None  # title is its own link via title_with_mm_link
     search_fields = ['title', 'venue', 'annotation']
     save_on_top = True
     actions = ['mark_this_week', 'mark_lingering', 'mark_archived']
