@@ -1,8 +1,6 @@
-// Backward-compatible shim: existing <script src=".../theme.js"> tags
-// keep working. The canonical module moved to ./theme/portfolio.js
-// (see ./theme/README.md for the full theme-handling vocabulary).
-// Inlining here instead of an @import/document.write to avoid a
-// second network round-trip on the critical path.
+// Portfolio theme toggle (light/dark). See ./README.md for the full
+// vocabulary — localStorage key `theme`, html class `dark-mode`, and
+// the companion pre-paint script that runs in the <head>.
 (function () {
     var toggles = document.querySelectorAll('.theme-toggle');
     if (!toggles.length) return;
@@ -12,6 +10,8 @@
         document.querySelectorAll('.theme-toggle').forEach(function (t) {
             var moon = t.querySelector('.icon-moon');
             var sun = t.querySelector('.icon-sun');
+            // Moon icon means "switch TO dark" — show in light mode.
+            // Sun icon means "switch TO light" — show in dark mode.
             if (moon) moon.style.setProperty('display', isDark ? 'none' : 'block', 'important');
             if (sun) sun.style.setProperty('display', isDark ? 'block' : 'none', 'important');
         });
