@@ -184,20 +184,54 @@ class Command(BaseCommand):
                     f'  WARN  note {note_id} "{defaults["title"][:40]}": {"; ".join(errors)}'
                 ))
 
+            # Resolve which local row this MM note corresponds to:
+            #   1. Existing row with this exact mind_mapper_note_id  -> update
+            #   2. Manual row (no MM id) with matching url           -> claim
+            #   3. Manual row (no MM id) with matching title (case-i) -> claim
+            #   4. None of the above                                 -> create
+            existing = Reading.objects.filter(mind_mapper_note_id=int(note_id)).first()
+            claimed = None
+            if existing is None:
+                if defaults.get('url'):
+                    claimed = Reading.objects.filter(
+                        mind_mapper_note_id__isnull=True,
+                        url=defaults['url'],
+                    ).first()
+                if claimed is None:
+                    claimed = Reading.objects.filter(
+                        mind_mapper_note_id__isnull=True,
+                        title__iexact=defaults['title'],
+                    ).first()
+
             if dry_run:
-                self.stdout.write(f'  DRY   note {note_id}: {defaults["title"][:50]} -> status={defaults["status"]} order={defaults["order"]}')
+                if existing:
+                    self.stdout.write(f'  DRY   UPD note {note_id}: {defaults["title"][:50]}')
+                elif claimed:
+                    self.stdout.write(f'  DRY   CLAIM existing manual entry "{claimed.title[:40]}" for note {note_id}')
+                else:
+                    self.stdout.write(f'  DRY   NEW note {note_id}: {defaults["title"][:50]}')
                 continue
 
-            obj, was_created = Reading.objects.update_or_create(
-                mind_mapper_note_id=int(note_id),
-                defaults=defaults,
-            )
-            if was_created:
+            if existing:
+                for k, v in defaults.items():
+                    setattr(existing, k, v)
+                existing.save()
+                updated += 1
+                self.stdout.write(f'  UPD   {existing.title[:60]}')
+            elif claimed:
+                for k, v in defaults.items():
+                    setattr(claimed, k, v)
+                claimed.mind_mapper_note_id = int(note_id)
+                claimed.save()
+                updated += 1
+                self.stdout.write(self.style.SUCCESS(f'  CLAIM {claimed.title[:60]} (was manual; now sourced from MM #{note_id})'))
+            else:
+                obj = Reading.objects.create(
+                    mind_mapper_note_id=int(note_id),
+                    **defaults,
+                )
                 created += 1
                 self.stdout.write(self.style.SUCCESS(f'  NEW   {obj.title[:60]}'))
-            else:
-                updated += 1
-                self.stdout.write(f'  UPD   {obj.title[:60]}')
 
         pruned = 0
         if prune and not dry_run:
