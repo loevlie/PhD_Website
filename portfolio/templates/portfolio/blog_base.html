@@ -6,7 +6,13 @@
           get isDark() { return this.flavor !== 'latte' }
       }"
       x-init="$watch('flavor', val => { localStorage.setItem('ctp-flavor', val) })"
-      :class="flavor">
+      {% comment %}Object form — Alpine actively removes the inactive flavor
+         classes and adds the current one. A string-form :class="flavor"
+         won't remove a class it didn't add itself, so the pre-paint
+         anti-FOUC class stuck around and every flavor stacked on top;
+         `mocha` (last in the stylesheet) always won visually until a
+         hard refresh.{% endcomment %}
+      :class="{ latte: flavor === 'latte', frappe: flavor === 'frappe', macchiato: flavor === 'macchiato', mocha: flavor === 'mocha' }">
 <head>
     {% comment %}Anti-FOUC: apply the saved Catppuccin flavor BEFORE first paint.
        Without this, the page paints with no flavor class for the few

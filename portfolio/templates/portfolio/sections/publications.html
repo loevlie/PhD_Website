@@ -5,15 +5,24 @@
         <div class="pub-selected fade-in-group">
             {% for pub in publications %}
             {% if pub.selected %}
+            {% comment %}Pick the first "Paper" link, else the first link at all,
+               so the featured image links to the artifact the reader is
+               probably after. None-case (no links) falls back to a plain
+               div so we don't render an empty <a>.{% endcomment %}
+            {% with paper_link=pub.links.0 %}
             <div class="pub-featured card">
+                {% if paper_link %}
+                <a class="pub-featured-image" href="{{ paper_link.url }}" target="_blank" rel="noopener" aria-label="Open paper: {{ pub.title }}">
+                {% else %}
                 <div class="pub-featured-image">
+                {% endif %}
                     {% comment %}Blur-up backdrop pattern (Apple/Spotify): contained foreground over a same-image blurred backdrop, so figures + screenshots fill the 16:9 frame without crop loss. Backdrop is decorative; aria-hidden.{% endcomment %}
                     <img class="pub-featured-backdrop" src="{% static pub.image %}" alt="" aria-hidden="true">
                     <img class="pub-featured-foreground" src="{% static pub.image %}" alt="{{ pub.title }}">
                     {% if pub.image_credit %}
                     <span class="pub-image-credit">{{ pub.image_credit }}</span>
                     {% endif %}
-                </div>
+                {% if paper_link %}</a>{% else %}</div>{% endif %}
                 <div class="pub-featured-body">
                     <div class="pub-featured-meta">
                         <span class="pub-cat-tag">{{ pub.type }}</span>
@@ -36,6 +45,7 @@
                     {% endif %}
                 </div>
             </div>
+            {% endwith %}
             {% if pub.bibtex %}
             <dialog class="cite-dialog" id="cite-{{ forloop.counter }}">
                 <div class="cite-dialog-inner">

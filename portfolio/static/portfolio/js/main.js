@@ -34,23 +34,10 @@ function updateActiveLink() {
 window.addEventListener('scroll', updateActiveLink);
 updateActiveLink();
 
-// Mobile hamburger menu
-const hamburger = document.getElementById('hamburger');
-const mobileMenu = document.getElementById('mobile-menu');
-
-hamburger.addEventListener('click', () => {
-    hamburger.classList.toggle('active');
-    mobileMenu.classList.toggle('open');
-    document.body.style.overflow = mobileMenu.classList.contains('open') ? 'hidden' : '';
-});
-
-document.querySelectorAll('.mobile-nav-link').forEach(link => {
-    link.addEventListener('click', () => {
-        hamburger.classList.remove('active');
-        mobileMenu.classList.remove('open');
-        document.body.style.overflow = '';
-    });
-});
+// Mobile hamburger menu — see nav.html for the canonical handler. The
+// earlier duplicate here bound to a stale `#mobile-menu` id and double-
+// toggled the hamburger's `.active` class on every click, leaving the
+// icon stuck as an X once the two listeners drifted out of sync.
 
 // Scroll-triggered fade-in with IntersectionObserver
 const fadeObserver = new IntersectionObserver(

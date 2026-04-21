@@ -450,11 +450,14 @@
    reads as a soft brand-colored halo instead of empty matte. */
 .pub-featured-image {
     position: relative;
+    display: block;                /* works whether the element is <div> or <a> */
     overflow: hidden;
     border-radius: 20px;
     background: var(--bg-tertiary);
     aspect-ratio: 16 / 9;
     isolation: isolate;            /* containment for blurred child */
+    color: inherit;                /* anchor fallback: inherit text color */
+    text-decoration: none;         /* anchor fallback: no underline */
     box-shadow:
         0 1px 2px rgba(10, 37, 64, 0.06),
         0 8px 24px -8px rgba(10, 37, 64, 0.18),
@@ -463,6 +466,7 @@
         transform 0.5s cubic-bezier(0.25, 0.46, 0.45, 0.94),
         box-shadow 0.5s cubic-bezier(0.25, 0.46, 0.45, 0.94);
 }
+a.pub-featured-image { cursor: pointer; }
 
 .pub-featured:hover .pub-featured-image {
     transform: translateY(-4px);
