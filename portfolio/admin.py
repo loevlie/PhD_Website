@@ -89,25 +89,110 @@ class PageviewAdmin(admin.ModelAdmin):
 @admin.register(Reading)
 class ReadingAdmin(admin.ModelAdmin):
     """Curated reading list shown at /reading/. Stored in the DB so you
-    can edit on the go from /admin/ without a redeploy."""
-    list_display = ['title', 'venue', 'year', 'status', 'order', 'modified_at']
+    can edit on the go from /admin/ without a redeploy.
+
+    Source of truth: a Mind Mapper "Reading" project (one note per
+    paper). The "Sync from Mind Mapper" button at the top of the
+    changelist runs `python manage.py sync_reading` from the admin so
+    you don't need the Render shell."""
+    list_display = ['title_with_mm_link', 'venue', 'year', 'status', 'order', 'source', 'modified_at']
     list_filter = ['status', 'year']
     list_editable = ['status', 'order']
+    list_display_links = None  # title is its own link via title_with_mm_link
     search_fields = ['title', 'venue', 'annotation']
     save_on_top = True
+    actions = ['mark_this_week', 'mark_lingering', 'mark_archived']
+    change_list_template = 'admin/portfolio/reading/change_list.html'
     fieldsets = (
         ('Reference', {
             'fields': ('title', 'venue', 'year', 'url'),
         }),
         ('Annotation', {
             'fields': ('annotation',),
-            'description': 'One-line note in your own voice. Italic on the page; keep it short.',
+            'description': 'One-line note in your own voice. Italic on the page; keep it short. Will be overwritten by the next Mind Mapper sync if mind_mapper_note_id is set, so prefer editing in MM for synced rows.',
         }),
         ('Surface', {
             'fields': ('status', 'order'),
-            'description': 'this_week shows top, chewing shows below, archived hides from /reading/. Lower order = higher in its bucket.',
+            'description': 'this_week shows top, lingering shows below, archived hides from /reading/. Lower order = higher in its bucket.',
+        }),
+        ('Provenance', {
+            'fields': ('mind_mapper_note_id',),
+            'classes': ('collapse',),
+            'description': 'NULL = manually-added (never touched by sync). An integer = synced from this Mind Mapper note id; sync will update fields from MM on each run.',
         }),
     )
+
+    def source(self, obj):
+        if obj.mind_mapper_note_id:
+            return format_html(
+                '<span style="color:#7287fd">MM #{}</span>',
+                obj.mind_mapper_note_id,
+            )
+        return format_html('<span style="color:#888">manual</span>')
+    source.short_description = 'Source'
+
+    def title_with_mm_link(self, obj):
+        edit_url = f'/admin/portfolio/reading/{obj.pk}/change/'
+        if obj.mind_mapper_note_id:
+            mm_url = f'https://mind-mapper-x1zt.onrender.com/notes/{obj.mind_mapper_note_id}/'
+            return format_html(
+                '<a href="{}">{}</a> '
+                '<a href="{}" target="_blank" rel="noopener" '
+                'title="Open in Mind Mapper" '
+                'style="margin-left:6px;font-size:0.75em;color:#7287fd;text-decoration:none">↗ MM</a>',
+                edit_url, obj.title, mm_url,
+            )
+        return format_html('<a href="{}">{}</a>', edit_url, obj.title)
+    title_with_mm_link.short_description = 'Title'
+    title_with_mm_link.admin_order_field = 'title'
+
+    def mark_this_week(self, request, queryset):
+        n = queryset.update(status='this_week')
+        self.message_user(request, f'Moved {n} entry(ies) to "This week".')
+    mark_this_week.short_description = 'Move to "This week"'
+
+    def mark_lingering(self, request, queryset):
+        n = queryset.update(status='lingering')
+        self.message_user(request, f'Moved {n} entry(ies) to "Lingering".')
+    mark_lingering.short_description = 'Move to "Lingering"'
+
+    def mark_archived(self, request, queryset):
+        n = queryset.update(status='archived')
+        self.message_user(request, f'Archived {n} entry(ies) (hidden from /reading/).')
+    mark_archived.short_description = 'Archive (hide from /reading/)'
+
+    # ── Sync-from-MM admin action wired as a custom URL + button ──
+    def get_urls(self):
+        from django.urls import path
+        urls = super().get_urls()
+        return [
+            path('sync-mm/', self.admin_site.admin_view(self.sync_from_mm),
+                 name='portfolio_reading_sync_mm'),
+        ] + urls
+
+    def sync_from_mm(self, request):
+        """Admin endpoint: runs `sync_reading` and redirects back with a
+        flash message summarizing what changed. POST-only to avoid
+        accidental double-syncs from a bookmark."""
+        from django.shortcuts import redirect
+        from django.urls import reverse
+        from django.contrib import messages
+        from django.core.management import call_command
+        from io import StringIO
+
+        if request.method != 'POST':
+            return redirect(reverse('admin:portfolio_reading_changelist'))
+
+        out = StringIO()
+        try:
+            call_command('sync_reading', stdout=out, stderr=out)
+            output = out.getvalue()
+            # Pull the final summary line from the output
+            last_line = next((ln for ln in reversed(output.splitlines()) if ln.strip()), 'sync ran')
+            messages.success(request, f'Mind Mapper sync: {last_line.strip()}')
+        except Exception as e:
+            messages.error(request, f'Mind Mapper sync failed: {e}')
+        return redirect(reverse('admin:portfolio_reading_changelist'))
 
 
 @admin.register(DailySalt)
