@@ -748,6 +748,9 @@ If a post has an explicit cover (post.image), that takes precedence.
 <script defer src="{% static 'portfolio/js/stacked-notes.js' %}"></script>
 <!-- Hover-revealed Copy button on each fenced code block. -->
 <script defer src="{% static 'portfolio/js/code-copy.js' %}"></script>
+<!-- Hover preview: tiny popover showing the destination URL when the
+     reader pauses over an external link in the post body. -->
+<script defer src="{% static 'portfolio/js/link-hover.js' %}"></script>
 <!-- embeds.js is already loaded from extra_head (line ~58). Second
      include here was a merge artifact from Batch E; removing it fixes
      the bug where every reader-tool IIFE bound click handlers twice

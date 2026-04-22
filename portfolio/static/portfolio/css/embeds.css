@@ -986,6 +986,7 @@ body.reading-mode .blog-prose { font-size: 1.1rem; line-height: 1.75; }
     tab-size: 2;
     margin: 0;
     max-width: 100%;
+    overflow-x: auto;          /* horizontal scroll on narrow viewports */
 }
 .cite-card .cite-bib code {
     display: block;
@@ -994,7 +995,14 @@ body.reading-mode .blog-prose { font-size: 1.1rem; line-height: 1.75; }
     border: 0;
     color: inherit;
     font-size: inherit;
-    white-space: pre;
+    /* `pre-wrap` + `break-word` wraps long titles / URLs inside the
+     * card instead of bleeding past the right edge. The copy button
+     * still grabs the underlying textContent, which has no injected
+     * line-breaks — BibTeX consumers get the canonical single-line
+     * fields. */
+    white-space: pre-wrap;
+    overflow-wrap: break-word;
+    word-break: break-word;
 }
 .cite-card .cite-copy {
     /* Slightly tighter than the reader-tool pills since it lives in
