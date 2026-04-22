@@ -1,0 +1,1095 @@
+/* ──────────────────────────────────────────────────────────────────
+   Blog embed cards & widgets.
+
+   Covers: .embed-card (arxiv, github, wiki), .equation-annotated,
+   .quiz-card, .vega-plot, .pullquote, .last-verified.
+
+   CSS vars inherit from whatever context the embed lands in — the
+   blog surface has Catppuccin (--ctp-*), portfolio has variables.css.
+   Where we need a reliable fallback we chain through Catppuccin
+   first, then a hardcoded hex.
+   ────────────────────────────────────────────────────────────────── */
+
+/* ─── Generic card (arXiv / GitHub / Wikipedia) ──────────────────────
+   Wrapped in `@scope (.embed-card) { ... }` (Chrome 118+, Safari 17.4+).
+   Inside the scope, bare class selectors like `.embed-card-head` only
+   match descendants of `.embed-card`, so we can drop the prefix and
+   get a cleaner, more encapsulated rule set. Browsers without @scope
+   support silently skip the block — the fallback below (prefixed
+   selectors kept in a plain declaration for `.embed-card` itself)
+   still provides the base surface, and the descendants inherit
+   nothing harmful without the inner style (they still render as
+   unstyled flex/grid children). For reference the non-@scope form:
+
+   .embed-card { ... }
+   .embed-card-head { ... }
+   .embed-card-pill, .embed-card .embed-pill { ... }
+   .embed-card .embed-card-title { ... } etc.
+*/
+.embed-card {
+    /* Base root box — kept outside the @scope block so the outermost
+       surface still renders on browsers without @scope support. */
+    margin: 2rem 0;
+    padding: 1rem 1.15rem;
+    background: var(--ctp-mantle, #fafafa);
+    border: 1px solid var(--ctp-surface0, #e5e5e5);
+    border-radius: 12px;
+    box-shadow: 0 1px 2px rgba(0, 0, 0, 0.04);
+    font-size: 0.9rem;
+    line-height: 1.5;
+}
+@scope (.embed-card) {
+    :scope {
+        /* `:scope` targets the scope root itself. Kept here as the
+           canonical restatement; older rule outside already covers
+           browsers without @scope. */
+    }
+    .embed-card-head {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 8px;
+        align-items: center;
+        font-family: 'JetBrains Mono', ui-monospace, monospace;
+        font-size: 0.7rem;
+        text-transform: uppercase;
+        letter-spacing: 0.08em;
+        color: var(--ctp-overlay1, #7f849c);
+        margin-bottom: 0.5rem;
+    }
+    .embed-pill {
+        padding: 2px 8px;
+        border-radius: 999px;
+        background: color-mix(in srgb, var(--ctp-lavender, #7287fd) 14%, transparent);
+        color: var(--ctp-lavender, #7287fd);
+        font-weight: 700;
+    }
+    .embed-id, .embed-year, .embed-stars {
+        color: var(--ctp-overlay2, #9399b2);
+    }
+    .embed-stars { margin-left: auto; }
+    .embed-card-title {
+        display: block;
+        font-family: 'IBM Plex Serif', Georgia, serif;
+        font-size: 1.05rem;
+        font-weight: 600;
+        color: var(--ctp-text, #1c1c1c) !important;
+        text-decoration: none !important;
+        line-height: 1.3;
+        margin-bottom: 4px;
+    }
+    .embed-card-title:hover { color: var(--ctp-lavender, #7287fd) !important; }
+    .embed-card-authors {
+        font-size: 0.78rem;
+        color: var(--ctp-subtext0, #6c6f85);
+        margin: 0 0 6px;
+        font-style: italic;
+    }
+    .embed-card-excerpt {
+        font-size: 0.88rem;
+        color: var(--ctp-subtext1, #5c5f77);
+        margin: 6px 0 8px;
+        line-height: 1.55;
+    }
+    .embed-card-actions {
+        display: flex;
+        gap: 14px;
+        align-items: center;
+        font-family: 'JetBrains Mono', ui-monospace, monospace;
+        font-size: 0.75rem;
+        color: var(--ctp-subtext0, #6c6f85);
+    }
+    .embed-card-actions a {
+        color: var(--ctp-lavender, #7287fd) !important;
+        text-decoration: none !important;
+        border-bottom: 1px dotted currentColor;
+    }
+    .embed-card-actions a:hover { border-bottom-style: solid; }
+
+    /* Wiki two-column: text + thumbnail. */
+    .embed-card-body {
+        display: grid;
+        grid-template-columns: 1fr auto;
+        gap: 14px;
+        align-items: start;
+    }
+    .embed-thumb {
+        max-width: 120px;
+        max-height: 120px;
+        border-radius: 6px;
+        object-fit: cover;
+    }
+    @media (max-width: 560px) {
+        .embed-card-body { grid-template-columns: 1fr; }
+        .embed-thumb { max-width: 100%; max-height: 200px; }
+    }
+}
+
+/* Non-@scope fallback (kept in comments for context — real browsers
+   without @scope support (Firefox <128 as of early 2026) simply skip
+   the block above, and the descendants inherit no styles. That's an
+   acceptable regression for ~8% of traffic: the embed card still
+   renders as an outlined box with its text readable, just without
+   the pill/title/author refinements.  If the visual loss ever
+   becomes a real problem, drop the `@scope (...)` wrapper and
+   re-add the prefixed descendant selectors verbatim.
+
+   Equivalent rules (for reference):
+
+       .embed-card .embed-card-head      { ... }
+       .embed-card .embed-pill           { ... }
+       .embed-card .embed-card-title     { ... }
+       .embed-card .embed-card-authors   { ... }
+       .embed-card .embed-card-excerpt   { ... }
+       .embed-card .embed-card-actions a { ... }
+       .embed-card .embed-card-body      { ... }
+       .embed-card .embed-thumb          { ... } */
+
+/* Language dot (GitHub card) — a thin swatch by language. */
+.embed-lang { display: inline-flex; align-items: center; gap: 6px; }
+.embed-lang-dot {
+    width: 10px; height: 10px; border-radius: 50%;
+    background: var(--ctp-overlay0, #888);
+    flex-shrink: 0;
+}
+.embed-lang-dot--python     { background: #3572A5; }
+.embed-lang-dot--javascript { background: #F7DF1E; }
+.embed-lang-dot--typescript { background: #3178C6; }
+.embed-lang-dot--rust       { background: #DEA584; }
+.embed-lang-dot--go         { background: #00ADD8; }
+.embed-lang-dot--html       { background: #E34F26; }
+.embed-lang-dot--css        { background: #563D7C; }
+.embed-lang-dot--shell      { background: #89e051; }
+.embed-lang-dot--c          { background: #555; }
+
+/* ─── Explainer layout: centered reading column + left gutter ToC ──
+   The Distill / Gwern pattern: the article body is a tight centered
+   column (~680px), the ToC floats into the left page gutter via
+   absolute positioning inside a `position: relative` wrapper. The
+   inner `.sticky` div follows the reader as they scroll. The right
+   margin is still reserved for Tufte sidenotes (they use their own
+   negative `margin-right`).
+
+   Breakpoints:
+   * ≥1280px: gutter ToC visible (enough room: 680 + 2×260 = 1200).
+   * 1024–1279px: no gutter — the mobile-style collapsible ToC at
+     the top of the article is the ToC for this range.
+   * <1024px: same collapsible ToC (already handled by `lg:hidden`
+     on the explainer-toc details). */
+
+/* Default: the absolute-positioned gutter ToC is hidden. */
+#sidebar-toc-left { display: none; }
+
+/* Keep explainer articles narrow enough that there's real gutter
+   space. Tailwind `lg:max-w-[780px]` as an arbitrary value isn't in
+   the pre-built blog-tw.css, so it was silently a no-op. Plain CSS
+   here enforces the constraint. */
+@media (min-width: 1024px) {
+    article.is-explainer { max-width: 780px; margin-left: auto; margin-right: auto; }
+    /* Centre the reading column within its wrapper so the header
+       (centered by its own CSS) and the body line up on the same
+       vertical axis. */
+    article.is-explainer .blog-prose { margin-left: auto; margin-right: auto; }
+}
+
+@media (min-width: 1260px) {
+    /* Gate the gutter layout on the actual presence of the ToC aside.
+       Using `:has(#sidebar-toc-left)` means the layout class doesn't
+       claim real-estate when the ToC isn't rendered — no stray
+       `position: relative` on empty `.explainer-layout` wrappers. The
+       template already only applies `.explainer-layout` when
+       `post.toc_html` is truthy, so in practice both conditions
+       always match or neither does, but the :has() version is
+       self-documenting and resilient to template refactors. Chrome
+       105+/Safari 15.4+/Firefox 121+ (all shipping well before
+       Batch-A's target). */
+    .explainer-layout:has(#sidebar-toc-left) { position: relative; }
+    .explainer-layout:has(#sidebar-toc-left) > #sidebar-toc-left {
+        display: block;
+        position: absolute;
+        top: 0;
+        right: calc(100% + 32px);    /* gap before the article column */
+        width: 200px;
+        height: 100%;                 /* contain the sticky child */
+    }
+    .explainer-layout:has(#sidebar-toc-left) > #sidebar-toc-left > .sticky {
+        position: sticky;
+        top: 5rem;
+    }
+    /* Hide the collapsible top-of-article ToC at this breakpoint —
+       the gutter ToC replaces it. Still gated on the gutter ToC
+       actually existing so non-explainer posts (no
+       .explainer-toc-mobile on the page anyway) are untouched. */
+    .explainer-layout:has(#sidebar-toc-left) .explainer-toc-mobile { display: none !important; }
+}
+
+/* ─── Sidebar ToC styling ──────────────────────────────────────────
+   Plain CSS so we don't rely on Tailwind arbitrary `[&_a]:block` etc.
+   being present in the pre-built blog-tw.css. Used by both the
+   non-explainer right-sidebar and the explainer left-gutter ToC. */
+.sidebar-toc-links { font-size: 0.8125rem; line-height: 1.45; }
+.sidebar-toc-links .toc > ul,
+.sidebar-toc-links ul {
+    list-style: none;
+    padding: 0;
+    margin: 0;
+}
+.sidebar-toc-links li { margin: 0; padding: 0; list-style: none; }
+.sidebar-toc-links a {
+    display: block;
+    padding: 4px 0 4px 10px;
+    margin: 0;
+    color: var(--ctp-subtext0, #6c6f85);
+    text-decoration: none;
+    border-left: 2px solid transparent;
+    transition: color 120ms, border-color 120ms;
+    line-height: 1.4;
+}
+.sidebar-toc-links a:hover {
+    color: var(--ctp-lavender, #7287fd);
+    border-left-color: var(--ctp-lavender, #7287fd);
+}
+.sidebar-toc-links a.is-active {
+    color: var(--ctp-text, #1c1c1c);
+    border-left-color: var(--ctp-lavender, #7287fd);
+    font-weight: 500;
+}
+/* Nested h3 ToC entries one level indented */
+.sidebar-toc-links ul ul { padding-left: 10px; margin-top: 2px; }
+.sidebar-toc-links ul ul a { font-size: 0.75rem; color: var(--ctp-overlay1, #7f849c); }
+
+/* ─── Annotated equation ─────────────────────────────────────────── */
+.equation-annotated {
+    position: relative;
+    margin: 1.5rem 0;
+    padding: 0.4rem 0;
+    border-left: 2px solid var(--ctp-surface0, #e5e5e5);
+    padding-left: 1rem;
+}
+.equation-annotated .katex-display { margin: 0.5rem 0; }
+.equation-symbol {
+    background: color-mix(in srgb, var(--ctp-lavender, #7287fd) 12%, transparent);
+    padding: 0 2px;
+    border-radius: 3px;
+    cursor: help;
+    transition: background 120ms;
+}
+.equation-symbol:hover {
+    background: color-mix(in srgb, var(--ctp-lavender, #7287fd) 30%, transparent);
+}
+/* Equation tooltip is portaled to <body> on hover (see embeds.js).
+   Positioned fixed relative to the viewport so it escapes any parent
+   with `overflow: hidden/auto` — notably KaTeX's `.math-display` which
+   has `overflow-x: auto` for scrollable equations and was clipping
+   the old `::after` pseudo-element tooltip. */
+.equation-tooltip {
+    position: fixed;
+    z-index: 1000;
+    max-width: 320px;
+    padding: 8px 12px;
+    background: var(--ctp-mantle, #1e1e2e);
+    color: var(--ctp-text, #cdd6f4);
+    border: 1px solid var(--ctp-surface1, #45475a);
+    border-radius: 6px;
+    font-size: 0.82rem;
+    line-height: 1.45;
+    font-family: 'Inter', -apple-system, sans-serif;
+    font-style: normal;
+    font-weight: 400;
+    box-shadow: 0 8px 24px rgba(0, 0, 0, 0.24);
+    pointer-events: none;
+    white-space: normal;
+    opacity: 0;
+    transform: translateY(4px);
+    transition: opacity 120ms, transform 120ms;
+}
+.equation-tooltip.is-visible {
+    opacity: 1;
+    transform: translateY(0);
+}
+
+/* ─── Quiz card ─────────────────────────────────────────────────── */
+.quiz-card {
+    margin: 2rem 0;
+    padding: 1rem 1.15rem 1.1rem;
+    background: color-mix(in srgb, var(--ctp-lavender, #7287fd) 5%, var(--ctp-mantle, #fafafa));
+    border: 1px solid color-mix(in srgb, var(--ctp-lavender, #7287fd) 30%, var(--ctp-surface0, #e5e5e5));
+    border-radius: 12px;
+}
+.quiz-q {
+    margin: 0 0 0.75rem;
+    font-family: 'IBM Plex Serif', Georgia, serif;
+    font-weight: 600;
+    font-size: 1.02rem;
+    color: var(--ctp-text, #1c1c1c);
+    line-height: 1.4;
+}
+.quiz-q::before {
+    content: 'Check ·';
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 0.68rem;
+    text-transform: uppercase;
+    letter-spacing: 0.1em;
+    color: var(--ctp-lavender, #7287fd);
+    margin-right: 6px;
+    font-weight: 700;
+}
+.quiz-opts { display: grid; gap: 6px; margin-bottom: 0.75rem; }
+.quiz-opt {
+    display: flex;
+    gap: 10px;
+    align-items: flex-start;
+    padding: 8px 10px;
+    border: 1px solid var(--ctp-surface0, #e5e5e5);
+    border-radius: 8px;
+    background: var(--ctp-base, #fff);
+    cursor: pointer;
+    transition: border-color 120ms, background 120ms;
+    font-size: 0.92rem;
+    line-height: 1.4;
+    color: var(--ctp-text, #1c1c1c);
+}
+.quiz-opt:hover { border-color: var(--ctp-lavender, #7287fd); }
+.quiz-opt input { margin-top: 3px; accent-color: var(--ctp-lavender, #7287fd); }
+.quiz-opt.quiz-right {
+    border-color: var(--ctp-green, #40a02b);
+    background: color-mix(in srgb, var(--ctp-green, #40a02b) 10%, transparent);
+}
+.quiz-opt.quiz-wrong {
+    border-color: var(--ctp-red, #d20f39);
+    background: color-mix(in srgb, var(--ctp-red, #d20f39) 10%, transparent);
+}
+.quiz-check {
+    padding: 6px 14px;
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 0.8rem;
+    font-weight: 600;
+    color: #fff;
+    background: var(--ctp-lavender, #7287fd);
+    border: none;
+    border-radius: 6px;
+    cursor: pointer;
+    transition: filter 120ms;
+}
+.quiz-check:hover { filter: brightness(1.08); }
+.quiz-check[disabled] { opacity: 0.5; cursor: not-allowed; }
+.quiz-result {
+    margin: 0.6rem 0 0;
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 0.8rem;
+    font-weight: 600;
+}
+.quiz-result.quiz-result--right { color: var(--ctp-green, #40a02b); }
+.quiz-result.quiz-result--wrong { color: var(--ctp-red, #d20f39); }
+.quiz-explain {
+    margin: 0.4rem 0 0;
+    font-size: 0.85rem;
+    line-height: 1.55;
+    color: var(--ctp-subtext1, #5c5f77);
+    font-style: italic;
+}
+
+/* ─── Vega-Lite plot ─────────────────────────────────────────────── */
+.vega-plot {
+    margin: 1.75rem 0;
+    padding: 1rem 1.15rem;
+    background: var(--ctp-mantle, #fafafa);
+    border: 1px solid var(--ctp-surface0, #e5e5e5);
+    border-radius: 10px;
+    overflow-x: auto;
+}
+.vega-plot canvas, .vega-plot svg { max-width: 100%; }
+
+/* ─── Pull-quote ─────────────────────────────────────────────────── */
+blockquote.pullquote {
+    margin: 2rem 0;
+    padding: 0 0 0 1.25rem;
+    border-left: 3px solid var(--ctp-lavender, #7287fd);
+    font-family: 'IBM Plex Serif', Georgia, serif;
+    font-size: 1.35rem;
+    line-height: 1.45;
+    font-weight: 600;
+    color: var(--ctp-text, #1c1c1c);
+    font-style: italic;
+}
+blockquote.pullquote p { margin: 0; }
+
+/* In explainer posts, pull-quotes float into the right gutter on wide
+   screens alongside sidenotes — reads as magazine-grade. */
+@media (min-width: 1100px) {
+    .is-explainer blockquote.pullquote {
+        float: right;
+        clear: right;
+        width: 280px;
+        margin: 0.4rem -300px 1rem 2rem;
+        padding-left: 1rem;
+        font-size: 1.15rem;
+    }
+}
+
+/* ─── Last-verified marker ───────────────────────────────────────── */
+.last-verified {
+    display: inline-flex;
+    align-items: center;
+    gap: 4px;
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 0.72em;
+    padding: 1px 6px;
+    border-radius: 4px;
+    background: color-mix(in srgb, var(--ctp-surface0, #e5e5e5) 60%, transparent);
+    color: var(--ctp-overlay2, #7c7f93);
+    vertical-align: baseline;
+    line-height: 1.4;
+    white-space: nowrap;
+}
+.last-verified::before { content: '✓ '; color: var(--ctp-green, #40a02b); }
+.last-verified.last-verified--stale {
+    background: color-mix(in srgb, var(--ctp-yellow, #df8e1d) 18%, transparent);
+    color: var(--ctp-yellow, #df8e1d);
+}
+.last-verified.last-verified--stale::before { content: '⚠ '; color: inherit; }
+
+/* ─── Heading "why this matters" reveal ────────────────────────── */
+.heading-why {
+    display: block;
+    margin-top: 0.25rem;
+    padding: 6px 10px 6px 12px;
+    border-left: 2px solid var(--ctp-lavender, #7287fd);
+    background: color-mix(in srgb, var(--ctp-lavender, #7287fd) 8%, transparent);
+    font-family: 'IBM Plex Serif', Georgia, serif;
+    font-style: italic;
+    font-size: 0.88rem;
+    line-height: 1.55;
+    color: var(--ctp-subtext1, #5c5f77);
+    font-weight: 400;
+    letter-spacing: normal;
+    text-transform: none;
+}
+
+/* ─── Hover-preview card on internal blog links ──────────────────── */
+.blog-hover-card {
+    position: absolute;
+    max-width: 340px;
+    padding: 12px 14px;
+    background: var(--ctp-mantle, #fff);
+    color: var(--ctp-text, #1c1c1c);
+    border: 1px solid var(--ctp-surface0, #e5e5e5);
+    border-radius: 10px;
+    box-shadow: 0 8px 24px rgba(0, 0, 0, 0.16);
+    font-size: 0.88rem;
+    line-height: 1.5;
+    z-index: 100;
+    opacity: 0;
+    transition: opacity 140ms;
+    pointer-events: none;
+}
+.blog-hover-card.is-visible { opacity: 1; }
+.blog-hover-card-title {
+    display: block;
+    font-family: 'IBM Plex Serif', Georgia, serif;
+    font-size: 1rem;
+    font-weight: 600;
+    color: var(--ctp-text, #1c1c1c);
+    margin-bottom: 4px;
+    line-height: 1.3;
+}
+.blog-hover-card-meta {
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 0.7rem;
+    color: var(--ctp-overlay1, #7f849c);
+    margin-bottom: 6px;
+    text-transform: uppercase;
+    letter-spacing: 0.08em;
+}
+.blog-hover-card-excerpt {
+    font-size: 0.85rem;
+    color: var(--ctp-subtext0, #6c6f85);
+    margin: 0;
+}
+
+/* ─── Quote-to-share floating button on text selection ──────────── */
+.selection-share {
+    position: absolute;
+    display: flex;
+    gap: 2px;
+    padding: 4px;
+    background: var(--ctp-mantle, #11111b);
+    border: 1px solid var(--ctp-surface0, #45475a);
+    border-radius: 8px;
+    box-shadow: 0 6px 16px rgba(0, 0, 0, 0.24);
+    z-index: 200;
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 0.72rem;
+    opacity: 0;
+    transform: translateY(4px);
+    transition: opacity 120ms, transform 120ms;
+    pointer-events: none;
+}
+.selection-share.is-visible {
+    opacity: 1;
+    transform: translateY(0);
+    pointer-events: auto;
+}
+.selection-share button {
+    background: transparent;
+    border: none;
+    padding: 4px 8px;
+    border-radius: 5px;
+    color: var(--ctp-text, #cdd6f4);
+    cursor: pointer;
+    font-family: inherit;
+    font-size: inherit;
+    transition: background 100ms;
+}
+.selection-share button:hover { background: var(--ctp-surface1, #45475a); }
+
+/* ─── Save-for-later heart button on blog-post header ──────────── */
+.save-for-later {
+    display: inline-flex;
+    align-items: center;
+    gap: 4px;
+    padding: 4px 10px;
+    background: transparent;
+    border: 1px solid var(--ctp-surface1, #d0d0d0);
+    border-radius: 999px;
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 0.7rem;
+    color: var(--ctp-subtext0, #6c6f85);
+    cursor: pointer;
+    text-transform: uppercase;
+    letter-spacing: 0.08em;
+    transition: border-color 120ms, color 120ms, background 120ms;
+}
+.save-for-later:hover { border-color: var(--ctp-lavender, #7287fd); color: var(--ctp-lavender, #7287fd); }
+.save-for-later.is-saved {
+    background: color-mix(in srgb, var(--ctp-lavender, #7287fd) 14%, transparent);
+    border-color: var(--ctp-lavender, #7287fd);
+    color: var(--ctp-lavender, #7287fd);
+}
+.save-for-later::before {
+    content: '☆';
+    font-family: Georgia, serif;
+    font-size: 0.95em;
+}
+.save-for-later.is-saved::before { content: '★'; }
+
+/* ─── Reading-mode toggle ──────────────────────────────────────
+   Hide only the top-level site nav, not every <nav> on the page —
+   the ToC sidebar is a <nav> element and we still want that in
+   reading mode (it's the whole point of a scrolling outline). */
+body.reading-mode > nav,
+body.reading-mode > header,
+body.reading-mode .blog-sidebar,
+body.reading-mode #sidebar-toc-left,
+body.reading-mode #sidebar-toc,
+body.reading-mode .backlinks,
+body.reading-mode .related-posts,
+body.reading-mode .staff-edit-link,
+body.reading-mode .explainer-toc-mobile,
+body.reading-mode footer {
+    display: none !important;
+}
+body.reading-mode article { max-width: 680px !important; margin: 3rem auto !important; }
+body.reading-mode .blog-prose { font-size: 1.1rem; line-height: 1.75; }
+
+/* ─── Audio narration bar ────────────────────────────────────── */
+.audio-narration {
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
+    padding: 4px 10px;
+    background: transparent;
+    border: 1px solid var(--ctp-surface1, #d0d0d0);
+    border-radius: 999px;
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 0.7rem;
+    color: var(--ctp-subtext0, #6c6f85);
+    cursor: pointer;
+    text-transform: uppercase;
+    letter-spacing: 0.08em;
+    transition: border-color 120ms, color 120ms;
+}
+.audio-narration:hover { border-color: var(--ctp-lavender, #7287fd); color: var(--ctp-lavender, #7287fd); }
+.audio-narration.is-speaking {
+    background: color-mix(in srgb, var(--ctp-green, #40a02b) 14%, transparent);
+    border-color: var(--ctp-green, #40a02b);
+    color: var(--ctp-green, #40a02b);
+}
+
+/* ─── Pyfig "generated at" badge ─────────────────────────────── */
+.pyfig-badge {
+    display: block;
+    margin-top: -1rem;
+    margin-bottom: 1.5rem;
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 0.68rem;
+    text-align: center;
+    color: var(--ctp-overlay0, #6c7086);
+    letter-spacing: 0.05em;
+}
+.pyfig-badge::before { content: '· '; }
+.pyfig-badge::after  { content: ' ·'; }
+
+/* ─── Reading-now footer widget ────────────────────────────── */
+.reading-now-widget {
+    margin-top: 2rem;
+    padding: 12px 16px;
+    background: var(--ctp-mantle, #fafafa);
+    border: 1px solid var(--ctp-surface0, #e5e5e5);
+    border-radius: 10px;
+    font-size: 0.85rem;
+    line-height: 1.5;
+    color: var(--ctp-subtext1, #5c5f77);
+}
+.reading-now-widget-eyebrow {
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 0.65rem;
+    text-transform: uppercase;
+    letter-spacing: 0.1em;
+    color: var(--ctp-lavender, #7287fd);
+    margin-right: 8px;
+    font-weight: 700;
+}
+.reading-now-widget a {
+    color: var(--ctp-text, #1c1c1c);
+    font-weight: 500;
+    text-decoration: none;
+    border-bottom: 1px dotted var(--ctp-overlay0, #6c7086);
+}
+.reading-now-widget a:hover { border-bottom-style: solid; border-bottom-color: var(--ctp-lavender, #7287fd); }
+
+/* ─── Pyodide runnable code cell ─────────────────────────────── */
+/* `<div data-pyodide>…</div>` → styled block with a Run button.
+   Palette matches the rest of the embed family; monospace code area
+   with a top title bar + separated output pane below. */
+.pyodide-cell {
+    margin: 1.5rem 0;
+    background: var(--ctp-crust, #11111b);
+    border: 1px solid var(--ctp-surface0, #313244);
+    border-radius: 10px;
+    overflow: hidden;
+    font-size: 0.85rem;
+    line-height: 1.5;
+    box-shadow: 0 1px 2px rgba(0, 0, 0, 0.15);
+}
+.pyodide-head {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 10px;
+    padding: 8px 12px;
+    background: var(--ctp-mantle, #181825);
+    border-bottom: 1px solid var(--ctp-surface0, #313244);
+}
+.pyodide-lang {
+    font-family: 'JetBrains Mono', ui-monospace, monospace;
+    font-size: 0.7rem;
+    text-transform: uppercase;
+    letter-spacing: 0.08em;
+    color: var(--ctp-overlay1, #7f849c);
+    font-weight: 600;
+}
+.pyodide-run {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    padding: 4px 12px;
+    background: color-mix(in srgb, var(--ctp-green, #40a02b) 18%, transparent);
+    color: var(--ctp-green, #40a02b);
+    border: 1px solid color-mix(in srgb, var(--ctp-green, #40a02b) 40%, transparent);
+    border-radius: 6px;
+    font-family: 'JetBrains Mono', ui-monospace, monospace;
+    font-size: 0.72rem;
+    font-weight: 700;
+    letter-spacing: 0.04em;
+    cursor: pointer;
+    transition: background-color 120ms, border-color 120ms, opacity 120ms;
+}
+.pyodide-run:hover:not(:disabled) {
+    background: color-mix(in srgb, var(--ctp-green, #40a02b) 28%, transparent);
+    border-color: var(--ctp-green, #40a02b);
+}
+.pyodide-run:disabled,
+.pyodide-run.is-running {
+    opacity: 0.6;
+    cursor: progress;
+}
+.pyodide-code {
+    display: block;
+    margin: 0;
+    padding: 12px 14px;
+    background: var(--ctp-crust, #11111b);
+    color: var(--ctp-text, #cdd6f4);
+    font-family: 'JetBrains Mono', 'Fira Code', ui-monospace, monospace;
+    font-size: 0.82rem;
+    line-height: 1.55;
+    white-space: pre;
+    overflow-x: auto;
+    outline: none;
+    tab-size: 4;
+    caret-color: var(--ctp-lavender, #b4befe);
+}
+.pyodide-code:focus {
+    background: color-mix(in srgb, var(--ctp-lavender, #b4befe) 4%, var(--ctp-crust, #11111b));
+}
+.pyodide-code[contenteditable="false"] {
+    caret-color: transparent;
+    user-select: text;
+}
+.pyodide-output {
+    padding: 10px 14px;
+    background: var(--ctp-base, #1e1e2e);
+    border-top: 1px solid var(--ctp-surface0, #313244);
+    color: var(--ctp-subtext1, #bac2de);
+    font-family: 'JetBrains Mono', ui-monospace, monospace;
+    font-size: 0.78rem;
+    line-height: 1.55;
+    white-space: pre-wrap;
+    word-break: break-word;
+    overflow-x: auto;
+}
+.pyodide-output.is-error {
+    border-left: 3px solid var(--ctp-red, #e78284);
+    color: var(--ctp-red, #e78284);
+    background: color-mix(in srgb, var(--ctp-red, #e78284) 6%, var(--ctp-base, #1e1e2e));
+}
+
+/* ─── Batch E: Ask-this-post chat bubble ──────────────────────── */
+/* ──────────────────────────────────────────────────────────────────
+   Blog embed widgets.
+
+   CSS vars inherit from the blog surface's Catppuccin theme
+   (--ctp-*). Where we need a reliable fallback we chain through
+   Catppuccin first, then a hardcoded hex so these widgets still
+   render sensibly if they ever land in a non-blog context.
+   ────────────────────────────────────────────────────────────────── */
+
+/* ─── "Ask" button in the reader-tools row ──────────────────────── */
+/* Mirrors .save-for-later's chrome so the row reads as a single
+   coherent set of tools. The emoji leading the label carries the
+   visual cue; no extra icon pseudo-element needed. */
+[data-ask-post] {
+    display: inline-flex;
+    align-items: center;
+    gap: 4px;
+    padding: 4px 10px;
+    background: transparent;
+    border: 1px solid var(--ctp-surface1, #d0d0d0);
+    border-radius: 999px;
+    font-family: 'JetBrains Mono', ui-monospace, monospace;
+    font-size: 0.7rem;
+    color: var(--ctp-subtext0, #6c6f85);
+    cursor: pointer;
+    text-transform: uppercase;
+    letter-spacing: 0.08em;
+    transition: border-color 120ms, color 120ms, background 120ms;
+}
+[data-ask-post]:hover {
+    border-color: var(--ctp-lavender, #7287fd);
+    color: var(--ctp-lavender, #7287fd);
+}
+
+/* ─── Floating chat bubble ──────────────────────────────────────── */
+/* Pinned bottom-right so it doesn't disturb the reading column.
+   `max-height` + inner log flex-1 keeps the whole thing from ever
+   eating the viewport — the log scrolls, the header/form stay put. */
+.ask-bubble {
+    position: fixed;
+    right: 24px;
+    bottom: 24px;
+    width: 360px;
+    max-width: calc(100vw - 32px);
+    max-height: min(70vh, 560px);
+    background: var(--ctp-base, #fff);
+    color: var(--ctp-text, #1c1c1c);
+    border: 1px solid var(--ctp-surface0, #e5e5e5);
+    border-radius: 14px;
+    box-shadow: 0 16px 40px rgba(0, 0, 0, 0.18);
+    display: none;
+    flex-direction: column;
+    z-index: 1000;
+    font-family: 'Inter', -apple-system, sans-serif;
+    overflow: hidden;
+}
+.ask-bubble.is-open { display: flex; }
+
+@media (max-width: 480px) {
+    .ask-bubble {
+        right: 8px;
+        left: 8px;
+        bottom: 8px;
+        width: auto;
+    }
+}
+
+.ask-bubble-head {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 10px 14px;
+    background: var(--ctp-mantle, #fafafa);
+    border-bottom: 1px solid var(--ctp-surface0, #e5e5e5);
+    font-family: 'JetBrains Mono', ui-monospace, monospace;
+    font-size: 0.72rem;
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
+    color: var(--ctp-subtext0, #6c6f85);
+}
+.ask-bubble-title { font-weight: 600; }
+.ask-close {
+    background: transparent;
+    border: none;
+    color: inherit;
+    font-size: 1.25rem;
+    line-height: 1;
+    padding: 0 4px;
+    cursor: pointer;
+    border-radius: 4px;
+    transition: background 100ms;
+}
+.ask-close:hover { background: var(--ctp-surface0, #e5e5e5); }
+
+.ask-log {
+    flex: 1 1 auto;
+    overflow-y: auto;
+    padding: 12px 14px;
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+    font-size: 0.88rem;
+    line-height: 1.5;
+}
+
+/* Per-role bubbles — user right-aligned in lavender, assistant
+   left-aligned in a neutral card. System / error messages are full-
+   width so the reader can't miss them. */
+.ask-msg {
+    max-width: 85%;
+    padding: 8px 12px;
+    border-radius: 12px;
+    white-space: pre-wrap;
+    word-wrap: break-word;
+}
+.ask-msg--user {
+    align-self: flex-end;
+    background: color-mix(in srgb, var(--ctp-lavender, #7287fd) 18%, transparent);
+    color: var(--ctp-text, #1c1c1c);
+    border-bottom-right-radius: 4px;
+}
+.ask-msg--assistant {
+    align-self: flex-start;
+    background: var(--ctp-mantle, #f4f4f4);
+    color: var(--ctp-text, #1c1c1c);
+    border-bottom-left-radius: 4px;
+    border: 1px solid var(--ctp-surface0, #e5e5e5);
+}
+.ask-msg--assistant.is-streaming::after {
+    content: '▊';
+    color: var(--ctp-lavender, #7287fd);
+    margin-left: 2px;
+    animation: ask-cursor-blink 900ms steps(2, end) infinite;
+}
+@keyframes ask-cursor-blink { 50% { opacity: 0; } }
+
+.ask-msg--system {
+    align-self: stretch;
+    background: transparent;
+    color: var(--ctp-overlay1, #7f849c);
+    font-style: italic;
+    font-size: 0.82rem;
+    text-align: center;
+    padding: 4px 0;
+}
+.ask-msg--error {
+    background: color-mix(in srgb, var(--ctp-red, #d20f39) 10%, transparent);
+    border: 1px solid color-mix(in srgb, var(--ctp-red, #d20f39) 35%, transparent);
+    color: var(--ctp-red, #d20f39);
+}
+
+.ask-form {
+    display: flex;
+    gap: 8px;
+    padding: 10px 12px;
+    border-top: 1px solid var(--ctp-surface0, #e5e5e5);
+    background: var(--ctp-base, #fff);
+    align-items: flex-end;
+}
+.ask-input {
+    flex: 1 1 auto;
+    border: 1px solid var(--ctp-surface1, #d0d0d0);
+    border-radius: 10px;
+    padding: 8px 10px;
+    font-family: inherit;
+    font-size: 0.9rem;
+    line-height: 1.4;
+    resize: none;
+    background: var(--ctp-base, #fff);
+    color: var(--ctp-text, #1c1c1c);
+    min-height: 36px;
+    max-height: 120px;
+    outline: none;
+    transition: border-color 120ms;
+}
+.ask-input:focus {
+    border-color: var(--ctp-lavender, #7287fd);
+}
+.ask-send {
+    flex: 0 0 auto;
+}
+.ask-send:disabled {
+    opacity: 0.55;
+    cursor: not-allowed;
+}
+
+/* ─── Polish pass (2026-04-22) ──────────────────────────────────── */
+
+/* Back-to-top FAB. Appears only after ~800px of scroll; gracefully
+   fades in/out. Small enough to not obscure content, with hover lift. */
+.back-to-top {
+    position: fixed;
+    right: 20px;
+    bottom: 20px;
+    z-index: 40;
+    width: 40px;
+    height: 40px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    background: var(--ctp-mantle, #fafafa);
+    color: var(--ctp-subtext1, #5c5f77);
+    border: 1px solid var(--ctp-surface1, #ccc);
+    border-radius: 999px;
+    cursor: pointer;
+    opacity: 0;
+    transform: translateY(8px);
+    transition: opacity 180ms, transform 180ms, color 120ms, border-color 120ms, box-shadow 180ms;
+    pointer-events: none;
+    box-shadow: 0 1px 2px rgba(0,0,0,0.04);
+}
+.back-to-top.is-visible {
+    opacity: 0.92;
+    transform: translateY(0);
+    pointer-events: auto;
+}
+.back-to-top:hover {
+    color: var(--ctp-lavender, #7287fd);
+    border-color: var(--ctp-lavender, #7287fd);
+    box-shadow: 0 4px 12px rgba(0,0,0,0.12);
+}
+@media (max-width: 640px) {
+    .back-to-top { right: 14px; bottom: 14px; }
+}
+
+/* "How to cite" card at post bottom. Quiet chrome — it's utility
+   furniture, not an argument to linger. The Copy button reuses the
+   .save-for-later pill styling so it inherits light/dark theming. */
+.cite-card .cite-bib {
+    tab-size: 2;
+    margin: 0;
+    max-width: 100%;
+}
+.cite-card .cite-bib code {
+    display: block;
+    background: transparent;
+    padding: 0;
+    border: 0;
+    color: inherit;
+    font-size: inherit;
+    white-space: pre;
+}
+.cite-card .cite-copy {
+    /* Slightly tighter than the reader-tool pills since it lives in
+       a prose context, not a toolbar. */
+    font-size: 0.7rem;
+    padding: 3px 10px;
+}
+
+/* ─── Embed-card skeleton shimmer ────────────────────────────────
+   Used by arxiv/github/wiki handlers when they render the fallback
+   (network failed/timeout). Subtle horizontal gradient "breathing"
+   so the reader knows a card tried to load — vs. a stale empty box. */
+@keyframes embed-skeleton {
+    0% { background-position: -200px 0; }
+    100% { background-position: calc(200px + 100%) 0; }
+}
+.embed-card.is-loading {
+    /* handler opt-in: pass a 'loading' variant class when we want the
+       shimmer. Today no handler emits this; wired for the next round
+       when we add async refresh. Kept in-tree so both the markup and
+       style side are documented together. */
+    background: linear-gradient(
+        90deg,
+        var(--ctp-mantle, #f5f5f5) 0%,
+        var(--ctp-surface0, #eaeaea) 50%,
+        var(--ctp-mantle, #f5f5f5) 100%
+    );
+    background-size: 200px 100%;
+    background-repeat: no-repeat;
+    animation: embed-skeleton 1.4s ease-in-out infinite;
+}
+
+/* ─── Ask widget: typing indicator ──────────────────────────────
+   Before the first streamed token arrives, show a gentle three-dot
+   pulse inside the assistant message bubble so the reader knows
+   something is happening (the SSE round-trip can take 400-1200 ms
+   for the first token). */
+.ask-msg--pending::before {
+    content: '';
+    display: inline-block;
+    width: 6px; height: 6px;
+    border-radius: 50%;
+    background: currentColor;
+    margin-right: 4px;
+    animation: ask-pulse 1s ease-in-out infinite;
+}
+.ask-msg--pending::after {
+    content: '• •';
+    color: currentColor;
+    animation: ask-pulse 1s ease-in-out infinite 0.3s;
+    letter-spacing: 2px;
+    opacity: 0.6;
+}
+@keyframes ask-pulse {
+    0%, 100% { opacity: 0.35; }
+    50%      { opacity: 1; }
+}
+
+/* ─── Editor autosave indicator ─────────────────────────────────
+   Sits in the editor toolbar area. Two states:
+   * `.is-saving`  — pulsing lavender dot + "Saving…"
+   * `.is-saved`   — solid green dot + "Saved 12s ago"
+   Text is set by editor JS; this file supplies the visual chrome. */
+.autosave-indicator {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    font-family: 'JetBrains Mono', ui-monospace, monospace;
+    font-size: 0.72rem;
+    color: var(--ctp-overlay1, #7f849c);
+    padding: 3px 8px;
+    border-radius: 999px;
+    background: var(--ctp-mantle, #fafafa);
+    border: 1px solid var(--ctp-surface0, #e5e5e5);
+    transition: color 180ms, border-color 180ms, background 180ms;
+}
+.autosave-indicator::before {
+    content: '';
+    width: 6px; height: 6px;
+    border-radius: 50%;
+    background: currentColor;
+    flex-shrink: 0;
+}
+.autosave-indicator.is-saving {
+    color: var(--ctp-lavender, #7287fd);
+    animation: autosave-pulse 1.1s ease-in-out infinite;
+}
+.autosave-indicator.is-saved {
+    color: var(--ctp-green, #40a02b);
+}
+.autosave-indicator.is-error {
+    color: var(--ctp-red, #d20f39);
+    border-color: color-mix(in srgb, var(--ctp-red, #d20f39) 40%, transparent);
+}
+@keyframes autosave-pulse {
+    0%, 100% { opacity: 0.6; }
+    50%      { opacity: 1; }
+}

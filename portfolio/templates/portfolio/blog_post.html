@@ -50,6 +50,20 @@ If a post has an explicit cover (post.image), that takes precedence.
 {% if 'data-demo=' in post.body or 'data-demo=' in post.content_html or 'class="demo-embed"' in post.body or 'class="demo-embed"' in post.content_html %}
 <link rel="stylesheet" href="{% static 'portfolio/css/demos-embed.css' %}">
 {% endif %}
+{% comment %}Shared blog-embed CSS — every blog post gets it (it's small
+   and covers arxiv/github/wiki cards, equation tooltips, quiz cards,
+   the Ask-this-post chat bubble, and more). Kept unconditional so
+   asset loading doesn't depend on which markers a given post happens
+   to use.{% endcomment %}
+<link rel="stylesheet" href="{% static 'portfolio/css/embeds.css' %}">
+<script src="{% static 'portfolio/js/embeds.js' %}" defer></script>
+{% comment %}Pyodide runnable cells — lazy-loaded only when a
+   <div data-pyodide> marker (or the already-rendered pyodide-cell
+   class) is present. The wrapper JS fetches the ~6 MB Pyodide runtime
+   from jsdelivr on the first Run click.{% endcomment %}
+{% if 'data-pyodide' in post.body or 'pyodide-cell' in post.content_html %}
+<script src="{% static 'portfolio/js/pyodide-cells.js' %}" defer></script>
+{% endif %}
 {% endblock %}
 
 {% block content %}
@@ -63,18 +77,26 @@ If a post has an explicit cover (post.image), that takes precedence.
 <div id="blog-progress" class="fixed top-0 left-0 h-0.5 z-[60] pointer-events-none transition-[width] duration-75 reading-progress-bar" style="width:0%"></div>
 
 <article class="max-w-article {% if post.is_explainer %}lg:max-w-[1200px]{% elif post.is_paper_companion %}lg:max-w-[760px]{% else %}lg:max-w-[940px]{% endif %} mx-auto px-6 pt-12 pb-16{% if post.is_explainer %} is-explainer{% endif %}{% if post.is_paper_companion %} is-paper-companion{% endif %}">
-    <!-- Back link + edit (staff only) -->
-    <div class="flex items-center justify-between mb-10">
+    {% comment %}Back link + Reading-mode + edit. The rest of the old
+       reader-tools row (Save / Listen / Ask / Print / Cite) was
+       clutter; Cite moved to a proper "How to cite" block at the end
+       of the post, the others deleted. Their backing JS/endpoints are
+       still around (see embeds.js + views/ask.py) so individual tools
+       can be re-summoned later without another implementation pass.{% endcomment %}
+    <div class="flex items-center justify-between mb-10 gap-4 flex-wrap">
         <a href="{% url 'blog' %}" class="inline-flex items-center gap-1.5 text-sm text-content-muted hover:text-accent transition-colors">
             <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="19" y1="12" x2="5" y2="12"/><polyline points="12 19 5 12 12 5"/></svg>
             All posts
         </a>
-        {% if user.is_staff %}
-        <a href="{% url 'blog_edit' post.slug %}" class="inline-flex items-center gap-1.5 text-xs text-content-muted hover:text-accent transition-colors border border-border rounded px-2 py-1 font-mono">
-            <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 20h9"/><path d="M16.5 3.5a2.121 2.121 0 0 1 3 3L7 19l-4 1 1-4L16.5 3.5z"/></svg>
-            edit
-        </a>
-        {% endif %}
+        <div class="flex items-center gap-2">
+            <button type="button" class="save-for-later" data-reading-mode-toggle>Reading mode</button>
+            {% if user.is_staff %}
+            <a href="{% url 'blog_edit' post.slug %}" class="inline-flex items-center gap-1.5 text-xs text-content-muted hover:text-accent transition-colors border border-border rounded px-2 py-1 font-mono">
+                <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 20h9"/><path d="M16.5 3.5a2.121 2.121 0 0 1 3 3L7 19l-4 1 1-4L16.5 3.5z"/></svg>
+                edit
+            </a>
+            {% endif %}
+        </div>
     </div>
 
     <!-- Series banner -->
@@ -145,7 +167,7 @@ If a post has an explicit cover (post.image), that takes precedence.
             <div class="explainer-meta-author">
                 <picture>
                     <source srcset="{% static 'portfolio/images/hero-avatar.webp' %}" type="image/webp">
-                    <img src="{% static 'portfolio/images/hero-avatar.jpg' %}" alt="{{ post.author }}" class="explainer-author-avatar" style="view-transition-name: site-avatar" width="80" height="80">
+                    <img src="{% static 'portfolio/images/hero-avatar.jpg' %}" alt="{{ post.author }}" class="explainer-author-avatar site-avatar-id" width="80" height="80">
                 </picture>
                 <div>
                     <a href="/" class="explainer-author-name">{{ post.author }}</a>
@@ -206,7 +228,7 @@ If a post has an explicit cover (post.image), that takes precedence.
         <div class="flex items-center gap-3 mt-8 pt-6 border-t border-border">
             <picture>
                 <source srcset="{% static 'portfolio/images/hero-avatar.webp' %}" type="image/webp">
-                <img src="{% static 'portfolio/images/hero-avatar.jpg' %}" alt="{{ post.author }}" class="w-10 h-10 rounded-full object-cover border border-border" style="view-transition-name: site-avatar" width="40" height="40">
+                <img src="{% static 'portfolio/images/hero-avatar.jpg' %}" alt="{{ post.author }}" class="w-10 h-10 rounded-full object-cover border border-border site-avatar-id" width="40" height="40">
             </picture>
             <div>
                 <a href="/" class="text-sm font-medium text-content hover:text-accent transition-colors">{{ post.author }}</a>
@@ -276,6 +298,24 @@ If a post has an explicit cover (post.image), that takes precedence.
     {% endif %}
 
     </div><!-- end grid -->
+
+    {% comment %}"How to cite" card. Visible at the bottom of every post
+       so anyone who wants a BibTeX entry doesn't have to leave the page
+       or open DevTools. Click Copy → copies to clipboard. The raw
+       /blog/<slug>/cite.bib endpoint still exists for readers who
+       prefer the file.{% endcomment %}
+    {% if bibtex %}
+    <aside class="cite-card mt-16 pt-8 border-t border-border">
+        <div class="flex items-baseline justify-between gap-4 mb-3 flex-wrap">
+            <div>
+                <div class="text-[0.6875rem] font-semibold text-content-muted uppercase tracking-wider">How to cite this post</div>
+                <p class="text-xs text-content-muted mt-1">Copy the BibTeX, or grab the raw file: <a href="/blog/{{ post.slug }}/cite.bib" class="underline hover:text-accent">cite.bib</a></p>
+            </div>
+            <button type="button" class="cite-copy save-for-later" data-cite-target="cite-bib-{{ post.slug }}" style="text-transform:none">Copy</button>
+        </div>
+        <pre id="cite-bib-{{ post.slug }}" class="cite-bib overflow-x-auto text-[0.8125rem] leading-[1.55] p-4 bg-surface-0 border border-border rounded-lg font-mono text-content whitespace-pre"><code>{{ bibtex }}</code></pre>
+    </aside>
+    {% endif %}
 
     <!-- Share + footer -->
     <footer class="mt-16 pt-8 border-t border-border">
@@ -545,23 +585,50 @@ If a post has an explicit cover (post.image), that takes precedence.
     </div>
 </div>
 
-<!-- JSON-LD -->
+<!-- JSON-LD
+     @type specializes by post kind so AI agents and rich-result engines
+     treat paper companions as ScholarlyArticle and explainers as
+     LearningResource. Both are tagged BlogPosting too — that's what lets
+     a generic "list my blog posts" query still pick them up.
+     `isPartOf` anchors each post to the Blog entity; `author.sameAs`
+     chains the ORCID placeholder + existing social URLs so the researcher
+     identity is disambiguable across databases. -->
 {% with site_url=request.scheme|add:"://"|add:request.get_host %}
 <script type="application/ld+json">
 [
     {
         "@context": "https://schema.org",
-        "@type": [{% if post.is_paper_companion %}"ScholarlyArticle", {% endif %}"Article", "TechArticle", "BlogPosting"],
+        "@type": [
+            {% if post.is_paper_companion %}"ScholarlyArticle"{% elif post.is_explainer %}"LearningResource"{% else %}"BlogPosting"{% endif %},
+            "Article", "TechArticle", "BlogPosting"
+        ],
         "headline": "{{ post.title }}",
         "description": "{{ post.excerpt }}",
         "url": "{{ site_url }}{% url 'blog_post' post.slug %}",
-        "author": { "@type": "Person", "name": "{{ post.author }}", "url": "{{ site_url }}/" },
+        "author": {
+            "@type": "Person",
+            "name": "{{ post.author }}",
+            "url": "{{ site_url }}/",
+            "sameAs": [
+                "https://orcid.org/0000-0000-0000-0000",
+                "https://github.com/loevlie",
+                "https://scholar.google.com/citations?user=oGkEIYkAAAAJ&hl=en",
+                "https://www.linkedin.com/in/dennisloevlie",
+                "https://bsky.app/profile/dennisloevlie.bsky.social",
+                "https://twitter.com/DennisLoevlie"
+            ]
+        },
         "datePublished": "{{ post.date|date:'Y-m-d' }}",
         {% if post.updated %}"dateModified": "{{ post.updated|date:'Y-m-d' }}",{% endif %}
         "publisher": {
             "@type": "Person",
             "name": "{{ post.author }}",
             "url": "{{ site_url }}/"
+        },
+        "isPartOf": {
+            "@type": "Blog",
+            "name": "Dennis Loevlie — Blog",
+            "url": "{{ site_url }}/blog/"
         },
         "mainEntityOfPage": { "@type": "WebPage", "@id": "{{ site_url }}{% url 'blog_post' post.slug %}" },
         {% if post.image %}"image": "{{ site_url }}/static/{{ post.image }}",{% endif %}
@@ -654,6 +721,11 @@ If a post has an explicit cover (post.image), that takes precedence.
 <script defer src="{% static 'portfolio/js/stacked-notes.js' %}"></script>
 <!-- Hover-revealed Copy button on each fenced code block. -->
 <script defer src="{% static 'portfolio/js/code-copy.js' %}"></script>
+<!-- embeds.js is already loaded from extra_head (line ~58). Second
+     include here was a merge artifact from Batch E; removing it fixes
+     the bug where every reader-tool IIFE bound click handlers twice
+     (Save toggled then untoggled, Listen started then stopped, etc.). -->
+
 {% if post.is_paper_companion %}
 <!-- Paged.js — paper-companion posts get book-grade HTML→PDF when the
      reader hits "Save as PDF" or appends ?print=1. The polyfill reads
@@ -683,10 +755,18 @@ If a post has an explicit cover (post.image), that takes precedence.
 {% endif %}
 <script>
 (function() {
-    // Reading progress
+    // Reading progress — JS fallback for browsers without native
+    // scroll-driven animations. On Chrome/Safari the bar is driven
+    // by `animation-timeline: scroll(root block)` in blog.css (no
+    // scroll listener, runs on the compositor thread). Firefox (as
+    // of early 2026) still needs this listener to set width + the
+    // --reading-progress CSS var that powers the OKLCH hue shift.
+    var hasScrollTimeline = typeof CSS !== 'undefined'
+        && typeof CSS.supports === 'function'
+        && CSS.supports('animation-timeline: scroll()');
     var bar = document.getElementById('blog-progress');
     var article = document.querySelector('article');
-    if (bar && article) {
+    if (!hasScrollTimeline && bar && article) {
         window.addEventListener('scroll', function() {
             var rect = article.getBoundingClientRect();
             var pct = Math.max(0, Math.min(100, (-rect.top / (article.offsetHeight - window.innerHeight)) * 100));

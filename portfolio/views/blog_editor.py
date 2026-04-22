@@ -222,6 +222,72 @@ _POST_TEMPLATES = {
         'is_explainer': False,
         'is_paper_companion': False,
     },
+    'deepdive': {
+        'label': 'Deep-dive',
+        'desc': 'Hero figure + TL;DR callout + chapters. For long explainer posts.',
+        'title': 'Deep dive: <topic>',
+        'body': (
+            '# Deep dive: <topic>\n\n'
+            '<aside class="callout"><strong>TL;DR</strong> — one-paragraph version.</aside>\n\n'
+            '<blockquote class="pullquote"><p>"A pull-quote from the post itself."</p></blockquote>\n\n'
+            '## The setup\n\nTwo or three sentences establishing the problem.\n\n'
+            '## What the field does today\n\nPrior art:\n\n<div data-arxiv="2502.05564"></div>\n\n'
+            '## The idea\n\n<div data-equation data-explain="theta=model parameters; x=input">\n$$\\hat{y} = f_{\\theta}(x)$$\n</div>\n\n'
+            '## What I found\n\nResults, caveats, surprises.\n\n'
+            '## Check yourself\n\n<div data-quiz>\nq: Anchor question.\noptions:\n  - First option\n  - Right answer\n  - Wrong answer\nanswer: 1\nexplain: Why.\n</div>\n\n'
+            '## Where this goes\n\nNext steps.\n'
+        ),
+        'maturity': 'budding',
+        'is_explainer': True,
+        'is_paper_companion': False,
+    },
+    'livenotes': {
+        'label': 'Live notes',
+        'desc': 'Gwern-style append-only log that grows over time with dated entries.',
+        'title': 'Live notes: <topic>',
+        'body': (
+            '# Live notes: <topic>\n\n'
+            '**Opened:** today. **Status:** thinking. Living document; I add as I learn.\n\n'
+            '---\n\n## Why keep a live note\n\nOne paragraph on the scope.\n\n'
+            '---\n\n### {{YYYY-MM-DD}} — first pass\n\nToday\'s observation.\n\n'
+            '### {{YYYY-MM-DD}} — second pass\n\nFollow-up thought.\n'
+        ),
+        'maturity': 'seedling',
+        'is_explainer': False,
+        'is_paper_companion': False,
+    },
+    'thread': {
+        'label': 'Thread',
+        'desc': 'Tweet-thread-style atomic paragraphs. Cross-posts cleanly.',
+        'title': 'Thread: <topic>',
+        'body': (
+            '# Thread: <topic>\n\n'
+            '**1/** Single-sentence hook.\n\n'
+            '**2/** Second beat — the non-obvious move.\n\n'
+            '**3/** Supporting fact:\n\n<div data-arxiv="2502.05564"></div>\n\n'
+            '**4/** What this means for the reader.\n\n'
+            '**5/** Caveat + link to the long version.\n'
+        ),
+        'maturity': 'seedling',
+        'is_explainer': False,
+        'is_paper_companion': False,
+    },
+    'arxiv': {
+        'label': 'arXiv companion',
+        'desc': 'Paper-companion with metadata pre-filled. Append ?arxiv=<id> to auto-fetch.',
+        'title': 'Paper companion: <title>',
+        'body': (
+            '# Paper companion: <title>\n\n'
+            '<div data-arxiv="<id>"></div>\n\n'
+            '## The problem\n\nWhy this paper exists.\n\n'
+            '## What we did\n\nOne-paragraph method.\n\n'
+            '## What we found\n\nThe result. Caveats.\n\n'
+            '## Where this goes\n\nOpen questions.\n'
+        ),
+        'maturity': 'evergreen',
+        'is_explainer': False,
+        'is_paper_companion': True,
+    },
 }
 
 
@@ -265,6 +331,26 @@ def blog_new(request):
                     '## Caveats\n\n'
                     'What the demo *isn\'t* showing.\n'
                 )
+
+    # For the `arxiv` template, a ?arxiv=<id> param pre-fills title + marker.
+    if template_key == 'arxiv':
+        arxiv_id = (request.GET.get('arxiv') or '').strip()
+        if arxiv_id:
+            try:
+                from portfolio.blog.embeds.arxiv import _fetch as fetch_arxiv
+                meta = fetch_arxiv(arxiv_id)
+            except Exception:
+                meta = None
+            paper_title = meta['title'] if meta else f'arXiv:{arxiv_id}'
+            base_title = request.GET.get('title') or f'Paper companion: {paper_title}'
+            body = (
+                f'# Paper companion: {paper_title}\n\n'
+                f'<div data-arxiv="{arxiv_id}"></div>\n\n'
+                '## The problem\n\nWhy this paper exists.\n\n'
+                '## What we did\n\nOne-paragraph method.\n\n'
+                '## What we found\n\nThe result. Caveats.\n\n'
+                '## Where this goes\n\nOpen questions.\n'
+            )
 
     base_slug = slugify(base_title) or 'untitled-draft'
     slug = base_slug

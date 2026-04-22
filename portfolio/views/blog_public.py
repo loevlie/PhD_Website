@@ -151,6 +151,44 @@ def blog_experiments_index(request):
     })
 
 
+# ─── /blog/map/ force-directed post graph ──────────────────────────────
+
+def blog_map(request):
+    """A force-directed graph of all published posts, linked where one's
+    body references another's slug. Obsidian-vault feel. Nodes sized by
+    incoming-link count, colored by maturity/kind."""
+    import json
+    posts = get_all_posts()
+    slugs = {p['slug']: i for i, p in enumerate(posts)}
+    nodes = [{
+        'id': p['slug'],
+        'title': p['title'],
+        'date': p.get('date').isoformat() if p.get('date') else '',
+        'kind': p.get('kind') or 'essay',
+        'maturity': p.get('maturity') or '',
+        'draft': bool(p.get('draft')),
+    } for p in posts]
+    edges = []
+    for p in posts:
+        body = p.get('body') or ''
+        for other_slug in slugs:
+            if other_slug == p['slug']:
+                continue
+            if (f'/blog/{other_slug}/' in body
+                    or f'/blog/{other_slug})' in body):
+                edges.append({'source': p['slug'], 'target': other_slug})
+    in_deg = {n['id']: 0 for n in nodes}
+    for e in edges:
+        in_deg[e['target']] = in_deg.get(e['target'], 0) + 1
+    for n in nodes:
+        n['in_degree'] = in_deg.get(n['id'], 0)
+    return render(request, 'portfolio/blog_map.html', {
+        'graph_json': json.dumps({'nodes': nodes, 'edges': edges}),
+        'post_count': len(nodes),
+        'edge_count': len(edges),
+    })
+
+
 # ─── Single post ──────────────────────────────────────────────────────
 
 def blog_post(request, slug):
@@ -198,10 +236,36 @@ def blog_post(request, slug):
         target_url = target_url.split('?', 1)[0]
     webmentions = fetch_webmentions(target_url)
 
+    # BibTeX citation shown at the bottom of the post. Inlined in context
+    # so the template can render it without a second round-trip to
+    # /blog/<slug>/cite.bib — that endpoint still exists for readers
+    # who want the raw file.
+    from portfolio.views.authoring import _citation_id
+    cite_id = _citation_id(post)
+    date_obj = post.get('date')
+    year = date_obj.year if hasattr(date_obj, 'year') else ''
+    month = date_obj.strftime('%b').lower() if hasattr(date_obj, 'strftime') else ''
+    author = post.get('author') or 'Dennis Loevlie'
+    # Use the canonical URL (strip request-scheme quirks) so the cited
+    # URL matches what's in production.
+    canonical_url = f'{request.scheme}://{request.get_host()}/blog/{slug}/'
+    bibtex = (
+        f'@misc{{{cite_id},\n'
+        f'  author       = {{{author}}},\n'
+        f'  title        = {{{{{post["title"]}}}}},\n'
+        f'  year         = {{{year}}},\n'
+        + (f'  month        = {month},\n' if month else '')
+        + f'  howpublished = {{Blog post}},\n'
+        f'  url          = {{{canonical_url}}}\n'
+        '}'
+    )
+
     return render(request, 'portfolio/blog_post.html', {
         'post': post,
         'series_posts': series_posts,
         'related_posts': related,
         'backlinks': backlinks,
         'webmentions': webmentions,
+        'bibtex': bibtex,
+        'cite_id': cite_id,
     })

@@ -39,6 +39,7 @@ from .blog_public import (
     blog_experiments_index,
     blog_experiment,
     blog_post,
+    blog_map,
 )
 from .blog_editor import (
     blog_new,
@@ -47,8 +48,13 @@ from .blog_editor import (
     blog_upload_image,
     blog_autosave,
 )
+from .authoring import (
+    blog_cite_bib,
+    regenerate_og_card,
+)
 from .studio import studio
 from .reading_quickadd import reading_quickadd
+from .ask import ask_post
 
 __all__ = [
     'index',

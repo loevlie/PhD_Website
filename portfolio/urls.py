@@ -26,9 +26,12 @@ urlpatterns = [
     path('blog/new/', views.blog_new, name='blog_new'),
     path('blog/preview/', views.blog_preview, name='blog_preview'),
     path('blog/upload-image/', views.blog_upload_image, name='blog_upload_image'),
+    path('blog/map/', views.blog_map, name='blog_map'),
     path('blog/<slug:slug>/', views.blog_post, name='blog_post'),
     path('blog/<slug:slug>/edit/', views.blog_edit, name='blog_edit'),
     path('blog/<slug:slug>/autosave/', views.blog_autosave, name='blog_autosave'),
+    path('blog/<slug:slug>/cite.bib', views.blog_cite_bib, name='blog_cite_bib'),
+    path('blog/<slug:slug>/regenerate-og/', views.regenerate_og_card, name='regenerate_og_card'),
     path('notebook/', views.notebook, name='notebook'),
     path('reading/', views.reading, name='reading'),
     path('publications/', views.publications, name='publications'),
@@ -54,6 +57,10 @@ urlpatterns = [
     path('site/reading/add/', views.reading_quickadd, name='reading_quickadd'),
     path('sitemap.xml', sitemap, {'sitemaps': sitemaps}, name='sitemap'),
     path('robots.txt', views.robots_txt, name='robots_txt'),
+    # "Ask this post" reader chat — SSE stream proxied to Claude Haiku,
+    # rate-limited per-IP. Returns 503 when ANTHROPIC_API_KEY is unset so
+    # the client can fall back to an "offline" message.
+    path('blog/<slug:slug>/ask/', views.ask_post, name='ask_post'),
     path('presentations/<slug:slug>/', views.presentation, name='presentation'),
     path('googled2e3ddb216daf4c4.html', views.google_verify, name='google_verify'),
 ]

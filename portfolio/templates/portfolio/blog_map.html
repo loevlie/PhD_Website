@@ -1,0 +1,98 @@
+{% extends "portfolio/blog_base.html" %}
+{% load static %}
+
+{% block title %}Map — Dennis Loevlie{% endblock %}
+
+{% block og_meta %}
+<meta property="og:title" content="Map — Dennis Loevlie">
+<meta property="og:description" content="Force-directed graph of every blog post + the links between them.">
+<meta name="robots" content="noindex">
+{% endblock %}
+
+{% block content %}
+<section class="max-w-blog mx-auto px-6 pt-12 pb-16">
+    <h1 class="text-3xl font-serif font-semibold text-text mb-2">Map</h1>
+    <p class="text-content-muted mb-6">
+        Force-directed graph of {{ post_count }} post{{ post_count|pluralize }}
+        and {{ edge_count }} link{{ edge_count|pluralize }} between them.
+        Nodes are larger when more posts link to them. Scroll to zoom, drag to pan.
+    </p>
+    <div id="blog-map" style="width:100%;height:70vh;min-height:480px;background:var(--ctp-mantle,#fafafa);border:1px solid var(--ctp-surface0,#e5e5e5);border-radius:12px;overflow:hidden;"></div>
+</section>
+
+<script src="https://cdn.jsdelivr.net/npm/d3@7/dist/d3.min.js" defer></script>
+<script id="blog-graph-data" type="application/json">{{ graph_json|safe }}</script>
+<script defer>
+document.addEventListener('DOMContentLoaded', function () {
+    if (typeof d3 === 'undefined') return;  // CDN failed; the element just stays empty.
+    var raw = document.getElementById('blog-graph-data').textContent;
+    var graph = JSON.parse(raw);
+    var container = document.getElementById('blog-map');
+    if (!container) return;
+    var W = container.clientWidth, H = container.clientHeight;
+
+    var svg = d3.select('#blog-map').append('svg')
+        .attr('width', W).attr('height', H)
+        .attr('viewBox', '0 0 ' + W + ' ' + H);
+
+    var g = svg.append('g');
+
+    var zoom = d3.zoom().scaleExtent([0.3, 4]).on('zoom', function (ev) {
+        g.attr('transform', ev.transform);
+    });
+    svg.call(zoom);
+
+    var link = g.append('g').attr('stroke', 'var(--ctp-surface1, #999)').attr('stroke-width', 1).attr('stroke-opacity', 0.6)
+        .selectAll('line').data(graph.edges).join('line');
+
+    var node = g.append('g')
+        .selectAll('g').data(graph.nodes).join('g')
+        .attr('class', 'map-node')
+        .style('cursor', 'pointer');
+
+    node.append('circle')
+        .attr('r', function (d) { return 6 + Math.min(14, d.in_degree * 2.5); })
+        .attr('fill', function (d) {
+            if (d.draft)             return 'var(--ctp-overlay0, #888)';
+            if (d.kind === 'lab_note') return 'var(--ctp-peach, #fab387)';
+            if (d.maturity === 'evergreen') return 'var(--ctp-green, #a6e3a1)';
+            if (d.maturity === 'budding')   return 'var(--ctp-yellow, #f9e2af)';
+            return 'var(--ctp-lavender, #7287fd)';
+        })
+        .attr('stroke', 'var(--ctp-mantle, #fff)').attr('stroke-width', 1.5);
+
+    node.append('text')
+        .text(function (d) { return d.title; })
+        .attr('x', function (d) { return 10 + Math.min(14, d.in_degree * 2.5); })
+        .attr('y', 4)
+        .style('font-family', "'Inter', sans-serif")
+        .style('font-size', '11px')
+        .style('fill', 'var(--ctp-text, #111)')
+        .style('pointer-events', 'none')
+        .style('user-select', 'none');
+
+    node.on('click', function (_ev, d) {
+        window.location.href = '/blog/' + d.id + '/';
+    });
+
+    var sim = d3.forceSimulation(graph.nodes)
+        .force('link', d3.forceLink(graph.edges).id(function (d) { return d.id; }).distance(90).strength(0.4))
+        .force('charge', d3.forceManyBody().strength(-260))
+        .force('center', d3.forceCenter(W / 2, H / 2))
+        .force('collide', d3.forceCollide(function (d) { return 12 + Math.min(14, d.in_degree * 2.5); }))
+        .on('tick', function () {
+            link
+                .attr('x1', function (d) { return d.source.x; })
+                .attr('y1', function (d) { return d.source.y; })
+                .attr('x2', function (d) { return d.target.x; })
+                .attr('y2', function (d) { return d.target.y; });
+            node.attr('transform', function (d) { return 'translate(' + d.x + ',' + d.y + ')'; });
+        });
+
+    node.call(d3.drag()
+        .on('start', function (ev, d) { if (!ev.active) sim.alphaTarget(0.25).restart(); d.fx = d.x; d.fy = d.y; })
+        .on('drag',  function (ev, d) { d.fx = ev.x; d.fy = ev.y; })
+        .on('end',   function (ev, d) { if (!ev.active) sim.alphaTarget(0); d.fx = null; d.fy = null; }));
+});
+</script>
+{% endblock %}

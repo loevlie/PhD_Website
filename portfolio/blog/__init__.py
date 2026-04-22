@@ -17,8 +17,24 @@ POSTS_DIR = Path(__file__).parent / 'posts'
 # Fenced code blocks with info-string `python pyfig` get executed
 # server-side via matplotlib. Cached by content hash so repeat renders
 # are free. This pattern matches the entire fenced block and captures
-# the inner source.
-_PYFIG_RE = re.compile(r'```python\s+pyfig\s*\n(.*?)```', re.DOTALL)
+# (1) any trailing info-string tokens (e.g. `scrolly`, `scrolly=true`)
+# and (2) the inner source.
+#
+# Info-string grammar (after `python pyfig`):
+#   ``` python pyfig                      → default behavior
+#   ``` python pyfig scrolly              → opt-in extended scroll range
+#   ``` python pyfig scrolly=true         → same as above, explicit
+#
+# TODO scrolly: multi-frame support — we currently recognize the
+# `scrolly` flag and propagate it as a `data-scrolly="true"` attribute
+# on the rendered <figure>; CSS picks that up and lengthens the reveal
+# range. A future iteration could accept multiple fenced pyfig blocks
+# keyed by frame index (e.g. `scrolly=1`, `scrolly=2`, `scrolly=3`) and
+# cross-fade them as the reader scrolls past the figure.
+_PYFIG_RE = re.compile(
+    r'```python\s+pyfig([^\n]*)\n(.*?)```',
+    re.DOTALL,
+)
 
 
 def _post_extra_deps_path(slug):
@@ -81,6 +97,28 @@ def _render_pyfig(code, alt='', timeout_s=15, post_slug=None):
     its packages are pip-installed into a per-post directory and added
     to PYTHONPATH for the subprocess. Cached by deps-file hash, so the
     install only runs once per (slug, deps-content) combo.
+
+    Scroll-driven reveal (Batch B): every <figure class="pyfig"> the
+    caller emits is animated in on scroll by pyfig-scrolly.css via the
+    native `animation-timeline: view()` primitive — no JS, no observer.
+    Authors opt into a longer "slow unveil" reveal range by passing the
+    `scrolly` flag in the fenced code-block info-string:
+
+        ``` python pyfig scrolly
+        # caption: … (usual)
+        fig, ax = plt.subplots(); ax.plot([1, 2, 3])
+        ```
+
+    …which stamps `data-scrolly="true"` onto the output <figure>. CSS
+    then widens the animation-range so the reveal spans a much larger
+    scroll swath. Both default and opt-in reveals honor
+    `prefers-reduced-motion: reduce` (the CSS is gated on
+    `prefers-reduced-motion: no-preference`).
+
+    TODO scrolly: multi-frame. Today only one figure is rendered per
+    block and the `scrolly` flag is a pure CSS hint. A future iteration
+    could accept keyed frames (`scrolly=1` … `scrolly=N`) and cross-fade
+    between them as the reader scrolls past the figure.
 
     Security note: this executes arbitrary Python. The editor that
     creates these blocks is staff-only; rendered output is persisted on
@@ -182,6 +220,38 @@ def _highlight_python(code):
     )
 
 
+def _parse_pyfig_info(info):
+    """Parse the trailing tokens in a pyfig fence info-string.
+
+    Input: the substring after `python pyfig` on the opening fence line
+    (may be empty, may be `  scrolly`, `  scrolly=true`, etc.).
+
+    Returns a dict of recognized flags. Today only `scrolly` is
+    honored — it sets CSS `data-scrolly="true"` on the output <figure>
+    and the pyfig-scrolly.css rule stretches the scroll-reveal range.
+
+    Unknown tokens are silently ignored so author-side typos don't
+    break the render.
+
+    TODO scrolly: multi-frame — recognize numeric suffixes
+    (`scrolly=1` … `scrolly=N`) keying off the block index so multiple
+    pyfigs with the same `id=` could cross-fade as the reader scrolls.
+    """
+    flags = {'scrolly': False}
+    if not info:
+        return flags
+    for tok in info.strip().split():
+        key, _, val = tok.partition('=')
+        key = key.strip().lower()
+        val = val.strip().lower()
+        if key == 'scrolly':
+            # Bare `scrolly` → True. `scrolly=false` → False.
+            # `scrolly=<anything-else>` → True (including `scrolly=1`,
+            # which prefigures the multi-frame TODO above).
+            flags['scrolly'] = True if val == '' else (val not in ('false', '0', 'no', 'off'))
+    return flags
+
+
 def _process_pyfig_blocks(content, post_slug=None, errors_out=None):
     """Replace ```python pyfig blocks with a clean <figure>:
         - inline SVG (or base64 PNG fallback) — no /media/ dependency
@@ -190,6 +260,13 @@ def _process_pyfig_blocks(content, post_slug=None, errors_out=None):
           the code highlighted by Pygments (same look as other code blocks).
 
     Optional caption via a leading `# caption: ...` line.
+
+    Info-string flags (after `python pyfig` on the opening fence):
+        `scrolly` / `scrolly=true` → stamp `data-scrolly="true"` on the
+        output <figure>. pyfig-scrolly.css uses that attribute to
+        extend the scroll-driven reveal range, giving a longer
+        "unveil" feel for hero figures. See `_parse_pyfig_info` and
+        the docstring on `_render_pyfig` for details.
 
     On error, render an inline banner with a collapsed source toggle —
     same chrome as success, so nothing leaks visibly. If `errors_out` is
@@ -200,7 +277,10 @@ def _process_pyfig_blocks(content, post_slug=None, errors_out=None):
     import html as _html
 
     def sub(m):
-        code = m.group(1)
+        info = m.group(1)
+        code = m.group(2)
+        flags = _parse_pyfig_info(info)
+        scrolly_attr = ' data-scrolly="true"' if flags['scrolly'] else ''
         # Pull an optional caption off the first comment line
         caption = ''
         lines = code.splitlines()
@@ -216,7 +296,7 @@ def _process_pyfig_blocks(content, post_slug=None, errors_out=None):
             if errors_out is not None:
                 errors_out.append(err)
             return (
-                '\n<figure class="pyfig pyfig--error">'
+                f'\n<figure class="pyfig pyfig--error"{scrolly_attr}>'
                 f'<div class="pyfig-error">Figure failed to render. <small>{_html.escape(err)}</small></div>'
                 '<figcaption class="pyfig-caption">'
                 '<details class="pyfig-source"><summary>source</summary>'
@@ -231,7 +311,7 @@ def _process_pyfig_blocks(content, post_slug=None, errors_out=None):
             if caption else ''
         )
         return (
-            '\n<figure class="pyfig">'
+            f'\n<figure class="pyfig"{scrolly_attr}>'
             # figure_html is either an inline <svg> or a base64 <img>;
             # both inline directly without an external file reference.
             f'{figure_html}'
@@ -362,91 +442,11 @@ def _transform_footnotes_to_sidenotes(html):
     return html
 
 
-# ──────────────────────────────────────────────────────────────────────
-# Interactive demo embedding
-# ──────────────────────────────────────────────────────────────────────
-#
-# Posts can embed a portfolio demo (see portfolio/content/demos.py) by
-# dropping either of these equivalent placeholders anywhere in the
-# markdown body:
-#
-#     <div data-demo="frozen-forecaster"></div>         (preferred)
-#     <div class="demo-embed" data-slug="frozen-forecaster"></div>
-#                                                (pre-2026-04 syntax,
-#                                                 kept for existing posts)
-#
-# Before markdown conversion, `_expand_demo_embeds` swaps the placeholder
-# for the rendered contents of `portfolio/templates/portfolio/demos/
-# embed_<slug>.html` wrapped in `.demo-embed-root`. blog_post.html also
-# scans the body for the marker and conditionally loads the matching JS
-# module + demos-embed.css so the widget actually runs on the blog page.
-# Unknown slugs render as an inline error block (so a typo isn't silent).
-
-# New canonical form: <div data-demo="slug"></div>
-_DEMO_MARKER_RE = re.compile(
-    r'<div\s+data-demo=["\']([a-z0-9\-]+)["\'][^>]*>\s*</div>',
-    re.IGNORECASE,
-)
-
-# Legacy form from early demo-embed drafts: <div class="demo-embed" data-slug="…"></div>.
-# The order of attributes inside the tag isn't fixed, so we match them
-# independently (both must be present inside the same <div>).
-_DEMO_LEGACY_RE = re.compile(
-    r'<div\b(?=[^>]*\bclass=["\']demo-embed["\'])(?=[^>]*\bdata-slug=["\']([a-z0-9\-]+)["\'])[^>]*>\s*</div>',
-    re.IGNORECASE,
-)
-
-
-def _expand_demo_embeds(content):
-    """Replace demo-marker placeholders with the rendered embed template
-    for the matching slug, wrapped in `.demo-embed-root` so the embed
-    inherits blog-side CSS variables. Supports both the canonical
-    `<div data-demo="slug"></div>` form and the legacy
-    `<div class="demo-embed" data-slug="slug"></div>` form."""
-    # Fast-path: if neither attribute is present, nothing to do.
-    if 'data-demo=' not in content and 'data-slug=' not in content:
-        return content
-
-    # Deferred imports: this module is imported very early and Django
-    # settings may not be configured yet when blog/__init__.py is loaded
-    # at admin-migration time.
-    from django.template.loader import render_to_string, TemplateDoesNotExist
-    from portfolio.content.demos import DEMOS
-
-    demos_by_slug = {d['slug']: d for d in DEMOS}
-
-    def _render(slug):
-        demo = demos_by_slug.get(slug)
-        if demo is None:
-            return (
-                f'<div class="demo-embed-error">Unknown demo slug: '
-                f'<code>{slug}</code>. Add it to portfolio/content/demos.py '
-                f'or pick an existing slug.</div>'
-            )
-        embed_template = f'portfolio/demos/{demo["embed"]}'
-        try:
-            embed_html = render_to_string(embed_template)
-        except TemplateDoesNotExist:
-            return (
-                f'<div class="demo-embed-error">Missing embed template '
-                f'<code>{embed_template}</code> for demo '
-                f'<code>{slug}</code>.</div>'
-            )
-        footer = (
-            f'<div class="demo-embed-footer">'
-            f'<span>{demo["title"]}</span>'
-            f'<a href="/demos/{slug}/">Open full demo →</a>'
-            f'</div>'
-        )
-        return (
-            f'<div class="demo-embed-root" data-demo="{slug}">'
-            f'{embed_html}{footer}'
-            f'</div>'
-        )
-
-    content = _DEMO_MARKER_RE.sub(lambda m: _render(m.group(1)), content)
-    content = _DEMO_LEGACY_RE.sub(lambda m: _render(m.group(1)), content)
-    return content
+# NOTE: demo-embed logic moved to portfolio/blog/embeds/demo.py, and
+# dispatch is handled by portfolio.blog.embeds.expand_embeds. The old
+# _expand_demo_embeds / _DEMO_MARKER_RE / _DEMO_LEGACY_RE were removed
+# on 2026-04-22 after the generic dispatcher took over (it now handles
+# demo, arxiv, github, wiki, quiz, plot, equation in one pass).
 
 
 def render_markdown(content, is_explainer=False, post_slug=None, errors_out=None):
@@ -470,9 +470,13 @@ def render_markdown(content, is_explainer=False, post_slug=None, errors_out=None
     # an inline figure (SVG or base64 PNG), so subsequent passes treat
     # them as ordinary images.
     content = _process_pyfig_blocks(content, post_slug=post_slug, errors_out=errors_out)
-    # Expand <div data-demo="slug"></div> placeholders to their full
-    # embed HTML before markdown conversion. See _expand_demo_embeds.
-    content = _expand_demo_embeds(content)
+    # Run the full marker dispatcher (portfolio/blog/embeds/) — handles
+    # data-demo, data-arxiv, data-github, data-wiki, data-quiz, data-plot,
+    # data-equation, data-pyodide, etc. The legacy `_expand_demo_embeds`
+    # below is no longer called; the `demo` handler in the dispatcher
+    # covers both the canonical and legacy forms.
+    from portfolio.blog.embeds import expand_embeds
+    content = expand_embeds(content)
     content, latex_placeholders = _protect_latex(content)
 
     md = markdown.Markdown(extensions=[

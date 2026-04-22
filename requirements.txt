@@ -7,6 +7,12 @@ python-frontmatter==1.1.0
 psycopg[binary]>=3.1.18
 django-taggit==6.1.0
 dj-database-url==2.3.0
+# Claude proxy for the "Ask this post" reader chat. Only called from
+# portfolio/views/ask.py; the endpoint returns HTTP 503 when the
+# ANTHROPIC_API_KEY env var is unset, so missing credentials don't
+# crash views — the import is cheap and safe regardless.
+anthropic>=0.46
+
 # Default scientific-Python stack available to /pyfig blocks. Each post
 # can also declare extras via a per-post deps file (see _render_pyfig).
 matplotlib>=3.9

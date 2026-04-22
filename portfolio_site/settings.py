@@ -1,5 +1,21 @@
 """
 Django settings for portfolio_site project.
+
+Optional environment variables:
+    ANTHROPIC_API_KEY   Enables the "Ask this post" reader chat
+                        (see portfolio/views/ask.py). When unset, the
+                        /blog/<slug>/ask/ endpoint returns HTTP 503
+                        `{"error": "chat_offline"}` and the reader-side
+                        UI falls back to a "chat offline" message. No
+                        other part of the site depends on this key.
+    WEBMENTIONS_ENABLED "1" / "true" / "yes" to enable the webmention.io
+                        round-trip on every blog-post view. Defaults off
+                        so uncached views stay fast.
+    DATABASE_URL        Postgres connection string. Falls back to local
+                        SQLite (db.sqlite3) when unset.
+    SECRET_KEY          Django secret. Has a dev default baked in.
+    DEBUG               "True"/"False". Defaults "True".
+    ALLOWED_HOSTS       Comma-separated. Defaults to "*" for dev.
 """
 
 import os
