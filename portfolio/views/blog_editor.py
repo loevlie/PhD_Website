@@ -376,6 +376,47 @@ def blog_new(request):
 
 # ─── /blog/preview/ ──────────────────────────────────────────────────
 
+# Each tuple: (regex, replacement-template). Groups in the regex feed
+# into the placeholder so the author can see WHICH embed the placeholder
+# stands for. Every heavy embed handler (network fetch, matplotlib exec,
+# demo template render, GitHub file fetch) is short-circuited here so
+# the preview round-trip measures in tens of ms instead of seconds.
+_PREVIEW_SUBS = [
+    # pyfig blocks: full matplotlib execution per render is the biggest
+    # single cost; a 5-figure post can run >5s. Show one line instead.
+    (re.compile(r'```python\s+pyfig[^\n]*\n[\s\S]*?\n```', re.MULTILINE),
+     '<div class="preview-placeholder preview-pyfig">pyfig block · renders at save</div>'),
+    # Demo embeds: the template render itself is cheap but we swap to a
+    # placeholder client-side anyway — doing it server-side is strictly
+    # faster (no demo template I/O at all).
+    (re.compile(r'<div\s+data-demo=["\']([a-z0-9\-]+)["\'][^>]*>\s*</div>', re.IGNORECASE),
+     '<div class="preview-placeholder">Demo: <code>\\1</code> · runs on published page</div>'),
+    (re.compile(r'<div\b(?=[^>]*\bclass=["\']demo-embed["\'])(?=[^>]*\bdata-slug=["\']([a-z0-9\-]+)["\'])[^>]*>\s*</div>', re.IGNORECASE),
+     '<div class="preview-placeholder">Demo: <code>\\1</code> · runs on published page</div>'),
+    # Network-fetching embeds (arxiv / github / github-snippet / wiki):
+    # each hits the internet on a cold cache. Placeholders keep the
+    # author in flow; the real card renders when they save & view.
+    (re.compile(r'<div\s+data-arxiv=["\']([\w\./\-]+)["\'][^>]*>\s*</div>', re.IGNORECASE),
+     '<div class="preview-placeholder">arXiv: <code>\\1</code></div>'),
+    (re.compile(r'<div\s+data-github=["\']([\w\.\-/]+)["\'][^>]*>\s*</div>', re.IGNORECASE),
+     '<div class="preview-placeholder">GitHub: <code>\\1</code></div>'),
+    (re.compile(r'<div\s+data-github-snippet=["\']([^"\']+)["\'][^>]*>\s*</div>', re.IGNORECASE),
+     '<div class="preview-placeholder">GitHub snippet: <code>\\1</code></div>'),
+    (re.compile(r'<div\s+data-wiki=["\']([^"\']+)["\'][^>]*>\s*</div>', re.IGNORECASE),
+     '<div class="preview-placeholder">Wikipedia: <code>\\1</code></div>'),
+]
+
+
+def _strip_heavy_markers(body: str) -> str:
+    """Substitute expensive embed markers with compact placeholders so
+    the preview render never hits the network or runs matplotlib. The
+    author's source text is untouched — this transforms only the copy
+    that gets fed to `render_markdown`."""
+    for pat, repl in _PREVIEW_SUBS:
+        body = pat.sub(repl, body)
+    return body
+
+
 def blog_preview(request):
     """Server-renders a markdown payload to HTML for the live-preview
     pane in the editor. POST {body, is_explainer} -> {html, toc}."""
@@ -384,6 +425,7 @@ def blog_preview(request):
     from portfolio.blog import render_markdown
     body = request.POST.get('body', '')
     is_explainer = request.POST.get('is_explainer') == 'true'
+    body = _strip_heavy_markers(body)
     html, toc = render_markdown(body, is_explainer=is_explainer)
     return JsonResponse({'html': html, 'toc': toc})
 

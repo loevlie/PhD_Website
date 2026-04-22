@@ -114,6 +114,52 @@ class BlogPreviewTests(StaffClientMixin, TestCase):
         r = self.anon_client.post('/blog/preview/', {'body': 'x'})
         self.assertEqual(r.status_code, 403)
 
+    def test_preview_skips_heavy_embeds(self):
+        # Heavy markers should render as cheap placeholders so the preview
+        # round-trip never hits the network / never runs matplotlib.
+        body = (
+            '# Post\n\n'
+            '<div data-demo="nanoparticle-viewer"></div>\n\n'
+            '<div data-arxiv="1706.03762"></div>\n\n'
+            '<div data-github="loevlie/neuropt"></div>\n\n'
+            '<div data-github-snippet="o/r@main:x.py#L1-L5"></div>\n\n'
+            '<div data-wiki="Transformer"></div>\n\n'
+            '```python pyfig\n'
+            'import matplotlib.pyplot as plt\n'
+            'plt.plot([1, 2, 3])\n'
+            '```\n'
+        )
+        r = self.staff_client.post('/blog/preview/', {
+            'body': body, 'is_explainer': 'false',
+        })
+        self.assertEqual(r.status_code, 200)
+        html = r.json()['html']
+        # Every heavy marker is a compact placeholder in preview mode.
+        self.assertEqual(html.count('preview-placeholder'), 6)
+        # None of the real embed chrome made it through.
+        self.assertNotIn('embed-card', html)
+        self.assertNotIn('github-snippet', html)
+        self.assertNotIn('demo-embed-root', html)
+        self.assertNotIn('<figure', html)   # pyfig <figure> suppressed
+        # The placeholder tells the author which embed it stands for.
+        self.assertIn('nanoparticle-viewer', html)
+        self.assertIn('1706.03762', html)
+        self.assertIn('Transformer', html)
+
+    def test_preview_keeps_cheap_embeds(self):
+        # Cheap, pure-Python embeds (notation, repro) should still render
+        # fully — the fast-path only strips network/compute-heavy ones.
+        body = (
+            '<div data-notation>\n'
+            'θ: parameters\n'
+            '</div>\n'
+        )
+        r = self.staff_client.post('/blog/preview/', {
+            'body': body, 'is_explainer': 'false',
+        })
+        html = r.json()['html']
+        self.assertIn('notation-glossary', html)
+
 
 class BlogNewTests(StaffClientMixin, TestCase):
     def test_picker_renders(self):

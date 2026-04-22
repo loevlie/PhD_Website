@@ -178,17 +178,31 @@ html.editing main { padding-top: 0 !important; margin: 0 !important; }
 .editor-preview .blog-prose blockquote { border-left: 3px solid var(--ctp-lavender, #7287fd); padding-left: 16px; color: var(--ctp-subtext1, #bac2de); margin: 16px 0; }
 .editor-preview .blog-prose a { color: var(--ctp-lavender, #7287fd); }
 .editor-preview .preview-loading { color: var(--ctp-overlay0, #6c7086); font-style: italic; }
-.preview-demo-placeholder {
-    margin: 1.5em 0; padding: 1em 1.2em;
+
+/* Compact placeholder chrome for heavy markers (demo / arxiv / github /
+ * wiki / pyfig) that the server skips during preview renders. */
+.preview-placeholder {
+    margin: 1em 0; padding: 0.55em 0.9em;
     border: 1px dashed var(--ctp-surface1, #45475a);
-    border-radius: 8px;
+    border-radius: 6px;
     background: var(--ctp-surface0, #313244);
     color: var(--ctp-subtext1, #bac2de);
-    font-size: 0.9em;
+    font-size: 0.82em;
     font-family: 'Inter', system-ui, sans-serif;
+    line-height: 1.4;
 }
-.preview-demo-placeholder code { background: var(--ctp-mantle, #181825); padding: 2px 6px; border-radius: 4px; }
-.preview-demo-placeholder a { color: var(--ctp-lavender, #7287fd); }
+.preview-placeholder code {
+    background: var(--ctp-mantle, #181825);
+    padding: 1px 6px; border-radius: 4px;
+    font-size: 0.9em;
+    color: var(--ctp-lavender, #7287fd);
+}
+.preview-placeholder.preview-pyfig {
+    border-style: solid;
+    border-color: color-mix(in srgb, var(--ctp-yellow, #f9e2af) 50%, transparent);
+    background: color-mix(in srgb, var(--ctp-yellow, #f9e2af) 8%, var(--ctp-base, #1e1e2e));
+    color: var(--ctp-yellow, #f9e2af);
+}
 
 /* ── Slash-command floating menu ───────────────────────────────────── */
 .slash-menu {
@@ -666,21 +680,6 @@ html.editing main { padding-top: 0 !important; margin: 0 !important; }
             preview.innerHTML = data.html || '<p class="preview-loading">empty</p>';
             preview.classList.toggle('is-explainer', isExp === 'true');
             preview.classList.toggle('is-paper-companion', paperToggle.checked);
-            // Demo embeds need three.js / onnx runtime / etc. loaded at
-            // page init, and the preview pane can't re-init them after
-            // each innerHTML swap. Replace the rendered markup with an
-            // honest placeholder so the author isn't staring at a dead
-            // canvas — clicking Save & view runs the real thing.
-            preview.querySelectorAll('.demo-embed-root').forEach(function (el) {
-                var slug = el.getAttribute('data-demo') || 'demo';
-                el.outerHTML = (
-                    '<div class="preview-demo-placeholder">' +
-                    '<strong>Live demo:</strong> <code>' + slug + '</code>' +
-                    ' <span>— runs on the published page. ' +
-                    '<a href="/blog/{{ post.slug }}/" target="_blank" rel="noopener">Save &amp; view</a> to test.</span>' +
-                    '</div>'
-                );
-            });
             if (window.renderMathInElement) {
                 window.renderMathInElement(preview, {
                     delimiters: [
