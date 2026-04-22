@@ -103,31 +103,24 @@
         if (!list) return;
         list.innerHTML = '';
         misspellings.forEach(function (m) {
+            // Single-row layout: word · suggestions · actions · line.
+            // Everything inline so one issue = one compact line instead
+            // of the three-row stack the initial pass shipped with.
             var li = document.createElement('li');
             li.className = 'spellcheck-item';
             li.dataset.offset = m.offset;
             li.dataset.word = m.word;
 
-            var head = document.createElement('div');
-            head.className = 'spellcheck-head';
             var word = document.createElement('button');
             word.type = 'button';
             word.className = 'spellcheck-word';
             word.textContent = m.word;
             word.title = 'Jump to line ' + (m.line + 1);
             word.addEventListener('click', function () { jumpTo(m.offset, m.word.length); });
+            li.appendChild(word);
 
-            var loc = document.createElement('span');
-            loc.className = 'spellcheck-loc';
-            loc.textContent = 'L' + (m.line + 1);
-
-            head.appendChild(word);
-            head.appendChild(loc);
-            li.appendChild(head);
-
-            // Suggestions row (max 5): click to replace in-place.
             if (m.suggestions && m.suggestions.length) {
-                var sugs = document.createElement('div');
+                var sugs = document.createElement('span');
                 sugs.className = 'spellcheck-sugs';
                 m.suggestions.slice(0, 5).forEach(function (s) {
                     var b = document.createElement('button');
@@ -141,33 +134,35 @@
                 li.appendChild(sugs);
             }
 
-            // Actions row
-            var actions = document.createElement('div');
+            var actions = document.createElement('span');
             actions.className = 'spellcheck-actions';
             var ignore = document.createElement('button');
             ignore.type = 'button';
             ignore.className = 'spellcheck-action';
-            ignore.textContent = 'Ignore';
+            ignore.textContent = '✕';
             ignore.title = 'Ignore for this session';
             ignore.addEventListener('click', function () { li.remove(); bumpCount(-1); });
-
             var add = document.createElement('button');
             add.type = 'button';
             add.className = 'spellcheck-action';
-            add.textContent = '+ Dict';
+            add.textContent = '+dict';
             add.title = 'Always accept "' + m.word + '"';
             add.addEventListener('click', function () {
                 addExtra(m.word);
-                // Remove every row for this same word.
                 Array.prototype.forEach.call(
                     list.querySelectorAll('li[data-word="' + m.word.replace(/"/g, '\\"') + '"]'),
                     function (row) { row.remove(); bumpCount(-1); }
                 );
             });
-
             actions.appendChild(ignore);
             actions.appendChild(add);
             li.appendChild(actions);
+
+            var loc = document.createElement('span');
+            loc.className = 'spellcheck-loc';
+            loc.textContent = 'L' + (m.line + 1);
+            li.appendChild(loc);
+
             list.appendChild(li);
         });
     }

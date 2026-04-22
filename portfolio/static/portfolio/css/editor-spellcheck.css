@@ -61,35 +61,35 @@
 
 .spellcheck-list {
     list-style: none;
-    padding: 4px 0;
+    padding: 2px 0;
     margin: 0;
     overflow-y: auto;
-    max-height: 360px;
+    /* Cap height so that no matter how many issues the server returns,
+     * the drawer doesn't dominate the editor. Scroll if more. */
+    max-height: 220px;
 }
 .spellcheck-list:empty::after {
     content: 'No issues.';
     display: block;
-    padding: 14px 12px;
+    padding: 10px 12px;
     color: var(--content-muted, #7c7f93);
-    font-size: 0.82rem;
+    font-size: 0.8rem;
     font-style: italic;
 }
 
+/* One compact row per issue: word · suggestion pills · actions · line.
+ * Everything horizontal so a 20-issue list still fits in a tight drawer. */
 .spellcheck-item {
-    padding: 8px 12px;
-    border-bottom: 1px solid color-mix(in srgb, var(--border, #ccd0da) 50%, transparent);
     display: flex;
-    flex-direction: column;
-    gap: 6px;
+    align-items: center;
+    gap: 8px;
+    padding: 4px 12px;
+    border-bottom: 1px solid color-mix(in srgb, var(--border, #ccd0da) 40%, transparent);
+    min-height: 28px;
 }
 .spellcheck-item:last-child { border-bottom: none; }
+.spellcheck-item:hover { background: color-mix(in srgb, var(--accent, #7287fd) 6%, transparent); }
 
-.spellcheck-head {
-    display: flex;
-    align-items: baseline;
-    justify-content: space-between;
-    gap: 8px;
-}
 .spellcheck-word {
     background: transparent;
     border: none;
@@ -97,33 +97,39 @@
     cursor: pointer;
     font-family: 'JetBrains Mono', ui-monospace, monospace;
     font-weight: 600;
-    font-size: 0.88rem;
+    font-size: 0.82rem;
     color: var(--content, #1c1c1c);
     text-decoration: underline wavy #d20f39;
     text-underline-offset: 2px;
+    flex: 0 0 auto;
+    min-width: 5em;
+    max-width: 14em;
+    text-align: left;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
 }
 .spellcheck-word:hover { color: var(--accent, #7287fd); }
-.spellcheck-loc {
-    font-family: 'JetBrains Mono', ui-monospace, monospace;
-    font-size: 0.68rem;
-    color: var(--content-muted, #7c7f93);
-}
 
 .spellcheck-sugs {
-    display: flex;
-    flex-wrap: wrap;
-    gap: 4px;
+    display: inline-flex;
+    flex-wrap: nowrap;
+    gap: 3px;
+    flex: 1 1 auto;
+    min-width: 0;
+    overflow: hidden;
 }
 .spellcheck-sug {
     background: var(--surface-1, #f0f0f0);
     border: 1px solid var(--border, #ccd0da);
-    padding: 2px 8px;
+    padding: 1px 7px;
     border-radius: 4px;
     cursor: pointer;
     font-family: 'JetBrains Mono', ui-monospace, monospace;
-    font-size: 0.75rem;
+    font-size: 0.72rem;
     color: var(--content, #1c1c1c);
     transition: border-color 120ms, color 120ms;
+    white-space: nowrap;
 }
 .spellcheck-sug:hover {
     border-color: var(--accent, #7287fd);
@@ -131,21 +137,32 @@
 }
 
 .spellcheck-actions {
-    display: flex;
-    gap: 4px;
+    display: inline-flex;
+    gap: 3px;
+    flex: 0 0 auto;
 }
 .spellcheck-action {
     background: transparent;
-    border: 1px solid var(--border, #ccd0da);
-    padding: 2px 8px;
+    border: 1px solid transparent;
+    padding: 1px 6px;
     border-radius: 4px;
     cursor: pointer;
     font-family: 'JetBrains Mono', ui-monospace, monospace;
-    font-size: 0.68rem;
+    font-size: 0.7rem;
     color: var(--content-muted, #7c7f93);
     text-transform: lowercase;
+    line-height: 1.3;
 }
 .spellcheck-action:hover {
     border-color: var(--accent, #7287fd);
     color: var(--accent, #7287fd);
+}
+
+.spellcheck-loc {
+    font-family: 'JetBrains Mono', ui-monospace, monospace;
+    font-size: 0.66rem;
+    color: var(--content-muted, #7c7f93);
+    flex: 0 0 auto;
+    min-width: 2.2em;
+    text-align: right;
 }

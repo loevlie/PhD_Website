@@ -366,6 +366,7 @@
         <span class="upload-hint">⌘/ menu · drop/paste image · ? help</span>
         <span class="word-count" id="word-count" title="Words · estimated reading time">0 words</span>
         <span class="save-status" id="save-status">unchanged</span>
+        <button type="button" class="secondary" id="assist-toggle" title="AI assists (tighten · TL;DR · titles · sidenote · alt-text)" aria-haspopup="true" aria-expanded="false">✨ AI</button>
         <button type="button" class="secondary" id="open-fm">Details</button>
         <button type="submit" name="action" value="save">Save</button>
         <button type="submit" name="action" value="view" class="secondary">Save &amp; view</button>
@@ -395,13 +396,14 @@
         <ul class="spellcheck-list" id="spellcheck-list"></ul>
     </details>
 
-    <details class="assist-panel" id="assist-panel"
-             data-assist-url-prefix="/blog/{{ post.slug }}/assist/"
-             data-slug="{{ post.slug }}">
-        <summary class="assist-head-bar">
+    <div class="assist-popover hidden" id="assist-panel" role="dialog" aria-label="AI assists"
+         data-assist-url-prefix="/blog/{{ post.slug }}/assist/"
+         data-slug="{{ post.slug }}">
+        <div class="assist-popover-head">
             <span class="assist-title">AI assists</span>
             <span class="assist-status" id="assist-status">ready</span>
-        </summary>
+            <button type="button" class="assist-popover-close" id="assist-close" aria-label="Close">✕</button>
+        </div>
         <div class="assist-toolbar">
             <button type="button" class="assist-btn" data-action="tighten"
                     data-needs="selection"
@@ -430,7 +432,7 @@
             </div>
             <div class="assist-result-body" id="assist-result-body"></div>
         </div>
-    </details>
+    </div>
 
     <!-- ── Help overlay (toggled with `?`) ─────────────────────── -->
     <div class="help-overlay" id="help-overlay" aria-hidden="true">

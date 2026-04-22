@@ -20,6 +20,8 @@
     if (!textarea) return;
 
     var URL_PREFIX = panel.dataset.assistUrlPrefix;
+    var toggleBtn = document.getElementById('assist-toggle');
+    var closeBtn  = document.getElementById('assist-close');
     var statusEl  = document.getElementById('assist-status');
     var resultEl  = document.getElementById('assist-result');
     var resultTitleEl = document.getElementById('assist-result-title');
@@ -28,6 +30,47 @@
     var btnCopy     = document.getElementById('assist-copy');
     var btnDismiss  = document.getElementById('assist-dismiss');
     var buttons = panel.querySelectorAll('.assist-btn');
+
+    // ── Popover open/close ────────────────────────────────────────
+    function openPanel() {
+        panel.classList.remove('hidden');
+        if (toggleBtn) {
+            toggleBtn.classList.add('is-open');
+            toggleBtn.setAttribute('aria-expanded', 'true');
+        }
+    }
+    function closePanel() {
+        panel.classList.add('hidden');
+        if (toggleBtn) {
+            toggleBtn.classList.remove('is-open');
+            toggleBtn.setAttribute('aria-expanded', 'false');
+        }
+    }
+    function isOpen() { return !panel.classList.contains('hidden'); }
+
+    if (toggleBtn) {
+        toggleBtn.addEventListener('click', function (ev) {
+            ev.stopPropagation();
+            isOpen() ? closePanel() : openPanel();
+        });
+    }
+    if (closeBtn) {
+        closeBtn.addEventListener('click', closePanel);
+    }
+    // Click outside the popover closes it (but not clicks on the toggle
+    // itself — that would double-toggle and immediately re-close).
+    document.addEventListener('click', function (ev) {
+        if (!isOpen()) return;
+        if (panel.contains(ev.target)) return;
+        if (toggleBtn && toggleBtn.contains(ev.target)) return;
+        closePanel();
+    });
+    document.addEventListener('keydown', function (ev) {
+        if (ev.key === 'Escape' && isOpen()) {
+            closePanel();
+            if (toggleBtn) toggleBtn.focus();
+        }
+    });
 
     // One in-flight request at a time. Avoids a rapid-click racing
     // two calls and rendering whichever finishes second.

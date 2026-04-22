@@ -1,51 +1,74 @@
-/* Editor AI-assist panel (Tier 2).
+/* Editor AI-assist popover (Tier 2).
  *
- * Sits below the spell-check drawer. Collapsible via <details> so it
- * stays out of the way until the author wants it. All colours key off
- * the existing Catppuccin variables the editor chrome uses. */
+ * Opens from the ✨ AI button in the editor-bar. Floats over the
+ * editor panes so it never steals vertical space from the writing
+ * area — closes on Esc or click-outside. */
 
-.assist-panel {
-    border-top: 1px solid var(--ctp-surface0, #313244);
+.assist-popover {
+    position: fixed;
+    top: 58px;                  /* sits just below the editor-bar */
+    right: 16px;
+    z-index: 50;
+    width: min(420px, calc(100vw - 32px));
+    max-height: min(540px, calc(100vh - 80px));
+    display: flex;
+    flex-direction: column;
     background: var(--ctp-mantle, #181825);
     color: var(--ctp-text, #cdd6f4);
+    border: 1px solid var(--ctp-surface1, #45475a);
+    border-radius: 10px;
+    box-shadow: 0 18px 40px -12px rgba(0, 0, 0, 0.5);
     font-family: 'Inter', system-ui, sans-serif;
+    overflow: hidden;
 }
 
-.assist-head-bar {
-    display: flex; align-items: center; gap: 12px;
-    padding: 8px 16px;
-    cursor: pointer;
-    list-style: none;
-    font-size: 0.85rem;
-    user-select: none;
-}
+.assist-popover.hidden { display: none; }
 
-.assist-head-bar::-webkit-details-marker { display: none; }
-
-.assist-panel[open] .assist-head-bar {
+.assist-popover-head {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    padding: 9px 12px;
     border-bottom: 1px solid var(--ctp-surface0, #313244);
+    font-size: 0.85rem;
 }
 
 .assist-title {
     font-weight: 600;
     color: var(--ctp-lavender, #7287fd);
+    letter-spacing: 0.01em;
 }
 
 .assist-status {
-    font-size: 0.75rem;
+    font-size: 0.72rem;
     color: var(--ctp-subtext0, #a6adc8);
     margin-left: auto;
 }
 
+.assist-popover-close {
+    appearance: none;
+    background: transparent;
+    border: none;
+    color: var(--ctp-subtext0, #a6adc8);
+    cursor: pointer;
+    padding: 2px 6px;
+    font-size: 0.9rem;
+    line-height: 1;
+}
+.assist-popover-close:hover { color: var(--ctp-text, #cdd6f4); }
+
 .assist-toolbar {
-    display: flex; flex-wrap: wrap; gap: 8px;
-    padding: 10px 16px;
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
+    padding: 10px 12px;
 }
 
 .assist-btn {
     appearance: none;
-    padding: 6px 12px;
-    font-size: 0.8rem;
+    text-align: left;
+    padding: 8px 12px;
+    font-size: 0.82rem;
     font-family: inherit;
     color: var(--ctp-text, #cdd6f4);
     background: var(--ctp-surface0, #313244);
@@ -60,26 +83,23 @@
     border-color: var(--ctp-lavender, #7287fd);
 }
 
-.assist-btn:disabled {
-    opacity: 0.5;
-    cursor: not-allowed;
-}
+.assist-btn:disabled { opacity: 0.5; cursor: not-allowed; }
 
 .assist-result {
-    padding: 12px 16px;
+    padding: 10px 12px 12px;
     border-top: 1px solid var(--ctp-surface0, #313244);
     background: var(--ctp-base, #1e1e2e);
+    overflow-y: auto;
 }
-
 .assist-result.hidden { display: none; }
 
 .assist-result-head {
-    display: flex; align-items: center; gap: 12px;
-    margin-bottom: 8px;
+    display: flex; align-items: center; gap: 10px;
+    margin-bottom: 6px;
 }
 
 .assist-result-title {
-    font-size: 0.75rem;
+    font-size: 0.72rem;
     text-transform: uppercase;
     letter-spacing: 0.05em;
     color: var(--ctp-subtext0, #a6adc8);
@@ -87,13 +107,13 @@
 
 .assist-result-actions {
     margin-left: auto;
-    display: flex; gap: 6px;
+    display: flex; gap: 4px;
 }
 
 .assist-result-btn {
     appearance: none;
     padding: 3px 10px;
-    font-size: 0.75rem;
+    font-size: 0.72rem;
     font-family: inherit;
     background: transparent;
     color: var(--ctp-text, #cdd6f4);
@@ -101,7 +121,6 @@
     border-radius: 4px;
     cursor: pointer;
 }
-
 .assist-result-btn:hover {
     background: var(--ctp-surface0, #313244);
     border-color: var(--ctp-lavender, #7287fd);
@@ -114,10 +133,17 @@
     white-space: pre-wrap;
     word-wrap: break-word;
     color: var(--ctp-text, #cdd6f4);
-    max-height: 240px;
+    max-height: 260px;
     overflow-y: auto;
     padding: 8px 10px;
     background: var(--ctp-mantle, #181825);
     border: 1px solid var(--ctp-surface0, #313244);
     border-radius: 6px;
+}
+
+/* Active state for the toggle button in the editor-bar. */
+#assist-toggle.is-open {
+    background: var(--ctp-lavender, #7287fd);
+    color: var(--ctp-base, #1e1e2e);
+    border-color: transparent;
 }
