@@ -1159,3 +1159,111 @@ body.reading-mode .blog-prose { font-size: 1.1rem; line-height: 1.75; }
     border-bottom: 1px dotted currentColor;
 }
 .github-snippet .gh-snippet-foot a:hover { border-bottom-style: solid; }
+
+/* ── Notation glossary (data-notation) ───────────────────────────── */
+.notation-glossary {
+    margin: 1.8em 0;
+    padding: 1em 1.2em;
+    border: 1px solid var(--border-subtle, #e5e5e5);
+    border-left: 3px solid var(--accent-lavender, #7287fd);
+    border-radius: 6px;
+    background: var(--surface-faint, #fafbff);
+    font-size: 0.92em;
+}
+.notation-glossary .notation-head {
+    font-size: 0.7rem;
+    letter-spacing: 0.1em;
+    text-transform: uppercase;
+    color: var(--text-muted, #737373);
+    margin-bottom: 0.6em;
+    font-weight: 600;
+}
+.notation-glossary .notation-list {
+    margin: 0;
+    display: grid;
+    grid-template-columns: auto 1fr;
+    column-gap: 1em;
+    row-gap: 0.3em;
+}
+.notation-glossary .notation-row {
+    display: contents;
+}
+.notation-glossary .notation-term {
+    font-family: 'Fira Code', ui-monospace, monospace;
+    font-weight: 500;
+    color: var(--text-strong, #1f2937);
+    text-align: right;
+    padding-right: 0.2em;
+    white-space: nowrap;
+}
+.notation-glossary .notation-def {
+    margin: 0;
+    color: var(--text-body, #374151);
+}
+
+/* ── Reproducibility card (data-repro) ───────────────────────────── */
+.repro-card {
+    margin: 1.8em 0;
+    padding: 1em 1.2em;
+    border: 1px solid var(--border-subtle, #e5e5e5);
+    border-radius: 8px;
+    background: linear-gradient(180deg, var(--surface-faint, #fafbff) 0%, transparent 100%);
+}
+.repro-card .repro-head {
+    font-size: 0.78rem;
+    font-weight: 600;
+    letter-spacing: 0.03em;
+    color: var(--text-strong, #1f2937);
+    margin-bottom: 0.8em;
+    display: flex;
+    align-items: center;
+    gap: 0.5em;
+}
+.repro-card .repro-badge {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    width: 1.3em; height: 1.3em;
+    border-radius: 50%;
+    background: var(--accent-green, #40a02b);
+    color: white;
+    font-size: 0.75rem;
+}
+.repro-card .repro-list {
+    margin: 0;
+    display: grid;
+    grid-template-columns: minmax(6.5em, auto) 1fr;
+    column-gap: 1em;
+    row-gap: 0.35em;
+    font-size: 0.88em;
+}
+.repro-card .repro-row { display: contents; }
+.repro-card .repro-key {
+    font-size: 0.74rem;
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+    color: var(--text-muted, #737373);
+    padding-top: 0.15em;
+}
+.repro-card .repro-val {
+    margin: 0;
+    color: var(--text-body, #374151);
+    word-break: break-word;
+}
+.repro-card code {
+    font-family: 'Fira Code', ui-monospace, monospace;
+    font-size: 0.88em;
+    padding: 0.1em 0.4em;
+    background: var(--surface-code, #f1f1f4);
+    border-radius: 3px;
+}
+.repro-card .repro-command {
+    display: block;
+    padding: 0.5em 0.8em;
+    white-space: pre-wrap;
+    word-break: break-all;
+}
+.repro-card a.repro-commit { color: inherit; text-decoration: none; }
+.repro-card a.repro-commit:hover code {
+    background: var(--surface-hover, #e5e7ff);
+}

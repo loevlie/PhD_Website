@@ -81,14 +81,16 @@ def expand_embeds(content: str) -> str:
 # generic scanner (e.g. `<div data-*>` — there isn't one, but mentally)
 # can't short-circuit a specific one. Today all markers use disjoint
 # attribute names, so order is only relevant if we ever add a fallback.
-from . import demo            as _demo
-from . import arxiv           as _arxiv
-from . import github          as _github
-from . import github_snippet  as _github_snippet
-from . import wiki            as _wiki
-from . import equation        as _equation
-from . import quiz            as _quiz
-from . import plot            as _plot
+from . import demo             as _demo
+from . import arxiv            as _arxiv
+from . import github           as _github
+from . import github_snippet   as _github_snippet
+from . import wiki             as _wiki
+from . import equation         as _equation
+from . import quiz             as _quiz
+from . import plot             as _plot
+from . import notation         as _notation
+from . import reproducibility  as _repro
 
 
 _demo.register_all(register)
@@ -101,3 +103,7 @@ _wiki.register_all(register)
 _equation.register_all(register)
 _quiz.register_all(register)
 _plot.register_all(register)
+# Tier-3 authoring embeds: notation glossary + reproducibility card.
+# Both are purely render-time, no network, no cache needed.
+_notation.register_all(register)
+_repro.register_all(register)
