@@ -7,21 +7,9 @@
 {% block extra_head %}
 <link rel="stylesheet" href="{% static 'portfolio/css/pygments.css' %}">
 <link rel="stylesheet" href="{% static 'portfolio/vendor/katex/katex.min.css' %}">
-{# Editor-assist (spell-check). JS is self-gated on the #spellcheck-panel
-   element in the template, so loading it here is cheap even on editor
-   renders where spell-check isn't needed. #}
 <link rel="stylesheet" href="{% static 'portfolio/css/editor-spellcheck.css' %}">
 <script src="{% static 'portfolio/js/editor-spellcheck.js' %}" defer></script>
-{# Editor smart-paste: on paste, if the clipboard is a single URL we
-   recognise (arxiv / github repo / github permalink / wikipedia), the
-   matching <div data-*> marker replaces the paste. Detection is
-   server-side (portfolio/editor_assist/smart_paste.py) for a single
-   source of truth with the embeds handlers. #}
 <script src="{% static 'portfolio/js/editor-smart-paste.js' %}" defer></script>
-{# Editor AI-assists (Tier 2): tighten / TL;DR / title / alt-text /
-   sidenote. Toolbar sits at the bottom of the editor shell; buttons
-   are disabled until the relevant inputs are available (e.g. selection
-   for tighten/sidenote). Endpoint: /blog/<slug>/assist/<action>/. #}
 <link rel="stylesheet" href="{% static 'portfolio/css/editor-assist.css' %}">
 <script src="{% static 'portfolio/js/editor-assist.js' %}" defer></script>
 <style>
@@ -124,6 +112,17 @@
 .editor-preview .blog-prose blockquote { border-left: 3px solid var(--ctp-lavender, #7287fd); padding-left: 16px; color: var(--ctp-subtext1, #bac2de); margin: 16px 0; }
 .editor-preview .blog-prose a { color: var(--ctp-lavender, #7287fd); }
 .editor-preview .preview-loading { color: var(--ctp-overlay0, #6c7086); font-style: italic; }
+.preview-demo-placeholder {
+    margin: 1.5em 0; padding: 1em 1.2em;
+    border: 1px dashed var(--ctp-surface1, #45475a);
+    border-radius: 8px;
+    background: var(--ctp-surface0, #313244);
+    color: var(--ctp-subtext1, #bac2de);
+    font-size: 0.9em;
+    font-family: 'Inter', system-ui, sans-serif;
+}
+.preview-demo-placeholder code { background: var(--ctp-mantle, #181825); padding: 2px 6px; border-radius: 4px; }
+.preview-demo-placeholder a { color: var(--ctp-lavender, #7287fd); }
 
 /* ── Slash-command floating menu ───────────────────────────────────── */
 .slash-menu {
@@ -383,10 +382,6 @@
         </div>
     </div>
 
-    {# Spell-check drawer — collapsible bottom strip. Panel is always
-       in the DOM so the JS can self-initialise; `open` attribute
-       controls visibility of the issue list. Server URL + slug wired
-       via data-* attrs. See portfolio/editor_assist/spellcheck.py. #}
     <details class="spellcheck-panel" id="spellcheck-panel"
              data-spellcheck-url="{% url 'editor_spellcheck' post.slug %}"
              data-slug="{{ post.slug }}">
@@ -400,9 +395,6 @@
         <ul class="spellcheck-list" id="spellcheck-list"></ul>
     </details>
 
-    {# AI-assist toolbar. The JS (editor-assist.js) binds click handlers
-       on these buttons; the data-action attribute names the endpoint
-       suffix. All buttons POST to /blog/<slug>/assist/<action>/. #}
     <details class="assist-panel" id="assist-panel"
              data-assist-url-prefix="/blog/{{ post.slug }}/assist/"
              data-slug="{{ post.slug }}">
@@ -586,6 +578,21 @@
             preview.innerHTML = data.html || '<p class="preview-loading">empty</p>';
             preview.classList.toggle('is-explainer', isExp === 'true');
             preview.classList.toggle('is-paper-companion', paperToggle.checked);
+            // Demo embeds need three.js / onnx runtime / etc. loaded at
+            // page init, and the preview pane can't re-init them after
+            // each innerHTML swap. Replace the rendered markup with an
+            // honest placeholder so the author isn't staring at a dead
+            // canvas — clicking Save & view runs the real thing.
+            preview.querySelectorAll('.demo-embed-root').forEach(function (el) {
+                var slug = el.getAttribute('data-demo') || 'demo';
+                el.outerHTML = (
+                    '<div class="preview-demo-placeholder">' +
+                    '<strong>Live demo:</strong> <code>' + slug + '</code>' +
+                    ' <span>— runs on the published page. ' +
+                    '<a href="/blog/{{ post.slug }}/" target="_blank" rel="noopener">Save &amp; view</a> to test.</span>' +
+                    '</div>'
+                );
+            });
             if (window.renderMathInElement) {
                 window.renderMathInElement(preview, {
                     delimiters: [
