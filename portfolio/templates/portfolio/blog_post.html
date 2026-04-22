@@ -248,10 +248,16 @@ If a post has an explicit cover (post.image), that takes precedence.
     <div class="gradient-divider mb-10"></div>
 
     {% if post.is_explainer and post.toc_html %}
-    <!-- Explainer ToC: rendered at top so the right margin is fully reserved
-         for Tufte sidenotes. Collapsible <details> so the Contents block
-         doesn't dominate the lede paragraph. -->
-    <details class="explainer-toc mb-10 border border-border rounded-lg overflow-hidden">
+    {% comment %}Explainer ToC — two flavors:
+       * Below 1260 px viewport: the collapsible `<details>` block
+         appears inline above the body. `.explainer-toc-mobile` class
+         lets embeds.css hide it when the gutter ToC is present.
+       * At ≥1260 px: CSS pulls the `<aside id="sidebar-toc-left">`
+         into the left page gutter with `position: absolute`, and
+         the `<div class="sticky top-20">` inside follows the reader
+         as they scroll. The right margin stays reserved for Tufte
+         sidenotes (they use their own negative right-margin).{% endcomment %}
+    <details class="explainer-toc explainer-toc-mobile mb-10 border border-border rounded-lg overflow-hidden">
         <summary class="cursor-pointer px-4 py-3 text-[0.6875rem] font-semibold text-content-muted uppercase tracking-wider bg-surface-2 hover:text-accent transition-colors flex items-center gap-2">
             <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="6 9 12 15 18 9"/></svg>
             Contents
@@ -262,9 +268,32 @@ If a post has an explicit cover (post.image), that takes precedence.
     </details>
     {% endif %}
 
-    <!-- Layout: explainer = single column (sidenotes float into right margin);
-         regular post = article + sticky sidebar ToC on desktop. -->
-    <div class="relative {% if not post.is_explainer %}lg:grid lg:grid-cols-[1fr_220px] lg:gap-12{% endif %}">
+    {% comment %}Layout wrapper. For explainer posts with a ToC we use
+       `.explainer-layout` (plain-CSS rule in embeds.css) so the left
+       gutter can house the sticky ToC aside. For everything else we
+       keep the pre-existing Tailwind grid that puts the sticky ToC on
+       the right at ≥lg.{% endcomment %}
+    <div class="{% if post.is_explainer %}{% if post.toc_html %}explainer-layout{% else %}relative{% endif %}{% else %}relative lg:grid lg:grid-cols-[1fr_220px] lg:gap-12{% endif %}">
+
+    {% if post.is_explainer and post.toc_html %}
+    {% comment %}Left-gutter ToC for explainer posts. Visibility is
+       controlled by CSS (`#sidebar-toc-left` is display:none by
+       default, block at ≥1260px via the media query in embeds.css).
+       At that breakpoint the aside is absolute-positioned into the
+       left page gutter (outside the article's ~780px column) and
+       the inner `.sticky top-20` div follows the reader as they
+       scroll. Shares the `sidebar-toc-nav` id with the non-explainer
+       right-sidebar ToC below so the scroll-tracking JS that
+       highlights the active section picks up whichever is live.{% endcomment %}
+    <aside id="sidebar-toc-left">
+        <div class="sticky top-20">
+            <div class="text-[0.6875rem] font-semibold text-content-muted uppercase tracking-wider mb-3">On this page</div>
+            <nav class="sidebar-toc-links" id="sidebar-toc-nav">
+                {{ post.toc_html|safe }}
+            </nav>
+        </div>
+    </aside>
+    {% endif %}
 
     <!-- Article body -->
     <div class="blog-prose text-text text-base md:text-lg leading-[1.6]
