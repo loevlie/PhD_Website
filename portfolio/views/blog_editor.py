@@ -112,6 +112,13 @@ def blog_autosave(request, slug):
         return JsonResponse({'ok': False, 'error': 'not found'}, status=404)
     try:
         _apply_post_fields(post, request.POST)
+        # Autosave runs every 1.5s. The full render pipeline (pyfig
+        # execution, arxiv/github/wiki fetches, demo template renders)
+        # takes tens of seconds on a complex post; if we ran it on
+        # every autosave we'd block the web worker and queue the
+        # user's next preview request behind it. The explicit Save
+        # path still renders — published HTML stays in sync there.
+        post._skip_render = True
         post.save()
         if request.POST.get('tags') is not None:
             tag_str = request.POST.get('tags', '').strip()

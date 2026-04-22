@@ -79,6 +79,31 @@ class BlogAutosaveTests(StaffClientMixin, TestCase):
         r = self.staff_client.post('/blog/no-such-slug/autosave/', {'title': 'X'})
         self.assertEqual(r.status_code, 404)
 
+    def test_autosave_skips_full_render(self):
+        # Autosave must NOT trigger the expensive _render_and_persist
+        # path. Otherwise each keystroke re-runs pyfig + arxiv/github/
+        # wiki fetches and blocks the web worker. Explicit Save still
+        # renders (tested via the blog_edit POST path).
+        from unittest.mock import patch
+        post = make_post(slug='auto-render', body='# Hi')
+        with patch('portfolio.signals._render_and_persist') as render:
+            r = self.staff_client.post(f'/blog/{post.slug}/autosave/', {
+                'title': 'After', 'body': '# Hi there',
+            })
+        self.assertEqual(r.status_code, 200)
+        render.assert_not_called()
+
+    def test_explicit_save_still_renders(self):
+        # The Save button (POST /blog/<slug>/edit/) must continue to
+        # trigger rendering so published HTML stays in sync.
+        from unittest.mock import patch
+        post = make_post(slug='save-render', body='# Hi')
+        with patch('portfolio.signals._render_and_persist') as render:
+            self.staff_client.post(f'/blog/{post.slug}/edit/', {
+                'title': 'Updated', 'body': '# Updated body', 'action': 'save',
+            })
+        render.assert_called_once()
+
     def test_autosave_persists_tags_and_maturity(self):
         post = make_post(slug='auto-tags', tags=['old'])
         r = self.staff_client.post(f'/blog/{post.slug}/autosave/', {

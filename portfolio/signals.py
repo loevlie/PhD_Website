@@ -60,17 +60,26 @@ def _content_deleted(sender, **kwargs):
 @receiver(post_save, sender=Post)
 def _post_saved(sender, instance, raw=False, update_fields=None, **kwargs):
     invalidate_post_cache()
-    # Skip render in two cases:
+    # Skip render in three cases:
     # - `raw=True` happens during loaddata/fixture loads; the body may
     #   be in an inconsistent state with related rows.
     # - `update_fields` is a subset of the rendered_* fields, meaning
     #   this save was the persistence step itself (defensive — we
     #   bypass via .update() so this path normally won't trigger).
+    # - `instance._skip_render` is set by the editor's autosave path,
+    #   which fires every 1.5s while the author is typing. Running the
+    #   full pipeline (pyfig matplotlib, arxiv/github/wiki network
+    #   fetches, demo template renders) on every keystroke burst
+    #   blocks the single web worker for seconds and queues preview
+    #   fetches behind it. The explicit Save button does trigger the
+    #   render so the published version is always in sync.
     if raw:
         return
     if update_fields and set(update_fields).issubset(
         {'rendered_html', 'rendered_toc_html', 'rendered_at'}
     ):
+        return
+    if getattr(instance, '_skip_render', False):
         return
     _render_and_persist(instance)
 
