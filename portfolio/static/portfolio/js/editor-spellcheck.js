@@ -28,8 +28,49 @@
     var list = document.getElementById('spellcheck-list');
     var countEl = document.getElementById('spellcheck-count');
     var statusEl = document.getElementById('spellcheck-status');
+    var toggleBtn = document.getElementById('spellcheck-toggle');
+    var closeBtn = document.getElementById('spellcheck-close');
     var url = panel.dataset.spellcheckUrl;
     if (!url) return;
+
+    // ── Popover open/close (same pattern as editor-assist.js) ─────
+    function openPanel() {
+        panel.classList.remove('hidden');
+        if (toggleBtn) {
+            toggleBtn.classList.add('is-open');
+            toggleBtn.setAttribute('aria-expanded', 'true');
+        }
+    }
+    function closePanel() {
+        panel.classList.add('hidden');
+        if (toggleBtn) {
+            toggleBtn.classList.remove('is-open');
+            toggleBtn.setAttribute('aria-expanded', 'false');
+        }
+    }
+    function isOpen() { return !panel.classList.contains('hidden'); }
+
+    if (toggleBtn) {
+        toggleBtn.addEventListener('click', function (ev) {
+            ev.stopPropagation();
+            isOpen() ? closePanel() : openPanel();
+        });
+    }
+    if (closeBtn) {
+        closeBtn.addEventListener('click', closePanel);
+    }
+    document.addEventListener('click', function (ev) {
+        if (!isOpen()) return;
+        if (panel.contains(ev.target)) return;
+        if (toggleBtn && toggleBtn.contains(ev.target)) return;
+        closePanel();
+    });
+    document.addEventListener('keydown', function (ev) {
+        if (ev.key === 'Escape' && isOpen()) {
+            closePanel();
+            if (toggleBtn) toggleBtn.focus();
+        }
+    });
 
     var EXTRAS_KEY = 'dl.spellcheck.extras';
     var DEBOUNCE_MS = 2000;

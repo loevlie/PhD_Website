@@ -7,6 +7,13 @@
 {% block extra_head %}
 <link rel="stylesheet" href="{% static 'portfolio/css/pygments.css' %}">
 <link rel="stylesheet" href="{% static 'portfolio/vendor/katex/katex.min.css' %}">
+{% comment %}Load the full reader-side embeds stylesheet so the preview
+   pane renders arxiv / github / wiki / github-snippet / notation /
+   repro / quiz / plot cards with real styling instead of naked HTML.
+   demos-embed.css keeps the placeholder chrome consistent with the
+   live page.{% endcomment %}
+<link rel="stylesheet" href="{% static 'portfolio/css/embeds.css' %}">
+<link rel="stylesheet" href="{% static 'portfolio/css/demos-embed.css' %}">
 <link rel="stylesheet" href="{% static 'portfolio/css/editor-spellcheck.css' %}">
 <script src="{% static 'portfolio/js/editor-spellcheck.js' %}" defer></script>
 <script src="{% static 'portfolio/js/editor-smart-paste.js' %}" defer></script>
@@ -366,6 +373,7 @@
         <span class="upload-hint">⌘/ menu · drop/paste image · ? help</span>
         <span class="word-count" id="word-count" title="Words · estimated reading time">0 words</span>
         <span class="save-status" id="save-status">unchanged</span>
+        <button type="button" class="secondary" id="spellcheck-toggle" title="Spell-check (ML/tech-aware)" aria-haspopup="true" aria-expanded="false">✓ Spell<span class="editor-bar-badge" id="spellcheck-count"></span></button>
         <button type="button" class="secondary" id="assist-toggle" title="AI assists (tighten · TL;DR · titles · sidenote · alt-text)" aria-haspopup="true" aria-expanded="false">✨ AI</button>
         <button type="button" class="secondary" id="open-fm">Details</button>
         <button type="submit" name="action" value="save">Save</button>
@@ -383,18 +391,16 @@
         </div>
     </div>
 
-    <details class="spellcheck-panel" id="spellcheck-panel"
-             data-spellcheck-url="{% url 'editor_spellcheck' post.slug %}"
-             data-slug="{{ post.slug }}">
-        <summary class="spellcheck-head-bar">
+    <div class="spellcheck-popover hidden" id="spellcheck-panel" role="dialog" aria-label="Spell-check"
+         data-spellcheck-url="{% url 'editor_spellcheck' post.slug %}"
+         data-slug="{{ post.slug }}">
+        <div class="spellcheck-popover-head">
             <span class="spellcheck-title">Spell-check</span>
-            <span class="spellcheck-badge">
-                <span class="spellcheck-status" id="spellcheck-status">ready</span>
-                <span id="spellcheck-count"></span>
-            </span>
-        </summary>
+            <span class="spellcheck-status" id="spellcheck-status">ready</span>
+            <button type="button" class="spellcheck-popover-close" id="spellcheck-close" aria-label="Close">✕</button>
+        </div>
         <ul class="spellcheck-list" id="spellcheck-list"></ul>
-    </details>
+    </div>
 
     <div class="assist-popover hidden" id="assist-panel" role="dialog" aria-label="AI assists"
          data-assist-url-prefix="/blog/{{ post.slug }}/assist/"
