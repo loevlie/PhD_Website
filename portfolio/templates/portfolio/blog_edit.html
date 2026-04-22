@@ -695,7 +695,11 @@ html.editing main { padding-top: 0 !important; margin: 0 !important; }
             preview.innerHTML = data.html || '<p class="preview-loading">empty</p>';
             preview.classList.toggle('is-explainer', isExp === 'true');
             preview.classList.toggle('is-paper-companion', paperToggle.checked);
-            if (window.renderMathInElement) {
+            // KaTeX auto-render walks every text node looking for $…$;
+            // on a long post with no math that's ~30-80ms for nothing.
+            // Short-circuit when the HTML clearly has no math markers.
+            const hasMath = data.html && /(\$|math-inline|math-display)/.test(data.html);
+            if (hasMath && window.renderMathInElement) {
                 window.renderMathInElement(preview, {
                     delimiters: [
                         {left: '$$', right: '$$', display: true},

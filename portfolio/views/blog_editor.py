@@ -10,9 +10,12 @@ Routes served here:
 
 Auth: every endpoint requires request.user.is_staff (see `_can_edit`).
 """
+from collections import OrderedDict
 from datetime import date as date_cls
+import hashlib
 import os
 import re
+import time
 
 from django.conf import settings
 from django.core.files.storage import FileSystemStorage
@@ -417,17 +420,50 @@ def _strip_heavy_markers(body: str) -> str:
     return body
 
 
+# Per-process preview render cache. The editor is staff-only + single-
+# author so cross-user isolation isn't a concern. Key on (sha1(body),
+# is_explainer). Typing "." then backspacing is free; toggling between
+# two drafts you bounce between is free. LRU-ish: evict oldest entry
+# past capacity. 16 × ~30 KB html = ~0.5 MB RSS worst case.
+_PREVIEW_CACHE_MAX = 16
+_preview_cache: "OrderedDict[tuple[str, bool], tuple[str, str]]" = OrderedDict()
+
+
+def _preview_render(body: str, is_explainer: bool) -> tuple[str, str]:
+    from portfolio.blog import render_markdown
+    key = (
+        hashlib.sha1(body.encode('utf-8', errors='replace')).hexdigest(),
+        is_explainer,
+    )
+    hit = _preview_cache.get(key)
+    if hit is not None:
+        _preview_cache.move_to_end(key)
+        return hit
+    html, toc = render_markdown(body, is_explainer=is_explainer, preview=True)
+    _preview_cache[key] = (html, toc)
+    while len(_preview_cache) > _PREVIEW_CACHE_MAX:
+        _preview_cache.popitem(last=False)
+    return html, toc
+
+
 def blog_preview(request):
     """Server-renders a markdown payload to HTML for the live-preview
-    pane in the editor. POST {body, is_explainer} -> {html, toc}."""
+    pane in the editor. POST {body, is_explainer} -> {html, toc}.
+
+    Hot-path: heavy markers stripped, cosmetic passes skipped, result
+    memoised per (body_hash, is_explainer). A Server-Timing header
+    reports render milliseconds (view it in DevTools → Network)."""
     if not _can_edit(request):
         return JsonResponse({'error': 'unauthorized'}, status=403)
-    from portfolio.blog import render_markdown
     body = request.POST.get('body', '')
     is_explainer = request.POST.get('is_explainer') == 'true'
     body = _strip_heavy_markers(body)
-    html, toc = render_markdown(body, is_explainer=is_explainer)
-    return JsonResponse({'html': html, 'toc': toc})
+    t0 = time.perf_counter()
+    html, toc = _preview_render(body, is_explainer)
+    elapsed_ms = int((time.perf_counter() - t0) * 1000)
+    resp = JsonResponse({'html': html, 'toc': toc})
+    resp['Server-Timing'] = f'render;dur={elapsed_ms}'
+    return resp
 
 
 # ─── /blog/upload-image/ ─────────────────────────────────────────────

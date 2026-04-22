@@ -146,6 +146,21 @@ class BlogPreviewTests(StaffClientMixin, TestCase):
         self.assertIn('1706.03762', html)
         self.assertIn('Transformer', html)
 
+    def test_preview_caches_identical_renders(self):
+        # Hitting preview with the same body twice should go through
+        # the in-process LRU the second time. We don't assert wall-clock
+        # timing (flaky) — instead we assert the Server-Timing header
+        # drops to 0ms on the cached hit.
+        body = '# Hello\n\nsome text'
+        payload = {'body': body, 'is_explainer': 'false'}
+        r1 = self.staff_client.post('/blog/preview/', payload)
+        r2 = self.staff_client.post('/blog/preview/', payload)
+        t1 = r1.get('Server-Timing', '')
+        t2 = r2.get('Server-Timing', '')
+        self.assertTrue(t1.startswith('render;dur='))
+        self.assertEqual(t2, 'render;dur=0')
+        self.assertEqual(r1.json()['html'], r2.json()['html'])
+
     def test_preview_keeps_cheap_embeds(self):
         # Cheap, pure-Python embeds (notation, repro) should still render
         # fully — the fast-path only strips network/compute-heavy ones.

@@ -449,7 +449,7 @@ def _transform_footnotes_to_sidenotes(html):
 # demo, arxiv, github, wiki, quiz, plot, equation in one pass).
 
 
-def render_markdown(content, is_explainer=False, post_slug=None, errors_out=None):
+def render_markdown(content, is_explainer=False, post_slug=None, errors_out=None, preview=False):
     """Convert markdown string to HTML with syntax highlighting, ToC, and
     (for explainer posts) Tufte-style sidenotes from footnote markup.
 
@@ -495,11 +495,14 @@ def render_markdown(content, is_explainer=False, post_slug=None, errors_out=None
     html = _restore_latex(html, latex_placeholders)
     # Add loading="lazy" to all images
     html = html.replace('<img ', '<img loading="lazy" ')
-    # Wrap <img> tags in <picture> when a sibling .webp exists on disk —
-    # cuts ~67% of image weight site-wide. See _wrap_imgs_with_picture.
-    html = _wrap_imgs_with_picture(html)
-    # Inject language data attributes on code blocks
-    html = _inject_code_langs(html, content)
+    if not preview:
+        # `_wrap_imgs_with_picture` stat()s disk per unique image via
+        # staticfiles.finders — fine on a cold request, wasted work on
+        # every keystroke in the editor. `_inject_code_langs` is purely
+        # cosmetic (data-lang attrs for the copy-button theme) and
+        # never changes between a published render and a preview.
+        html = _wrap_imgs_with_picture(html)
+        html = _inject_code_langs(html, content)
     toc_html = getattr(md, 'toc', '')
 
     return html, toc_html
