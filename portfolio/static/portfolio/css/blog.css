@@ -1855,3 +1855,52 @@
     font-size: 0.8125em;
     color: var(--ctp-red, #f38ba8);
 }
+
+/* ── Author-inserted <figure> + <figcaption> ───────────────────────── */
+/* Triggered by the editor's image-caption dialog. Centered image, muted
+ * serif italic caption with a small-caps prefix to match the editorial
+ * feel of the posts. Scoped under .blog-prose so it doesn't collide
+ * with the pyfig <figure> chrome above. */
+.blog-prose figure:not(.pyfig) {
+    margin: 2em auto;
+    text-align: center;
+    max-width: 100%;
+}
+.blog-prose figure:not(.pyfig) > img,
+.blog-prose figure:not(.pyfig) > picture {
+    display: block;
+    margin: 0 auto;
+    max-width: 100%;
+    height: auto;
+    border-radius: 8px;
+}
+.blog-prose figure:not(.pyfig) > figcaption {
+    display: block;
+    margin: 0.9em auto 0;
+    max-width: 36em;
+    padding: 0 1em;
+    font-family: var(--font-serif, 'IBM Plex Serif', Georgia, serif);
+    font-size: 0.9em;
+    font-style: italic;
+    line-height: 1.55;
+    color: var(--text-muted, #6c7086);
+    text-align: center;
+    letter-spacing: 0.005em;
+}
+.blog-prose figure:not(.pyfig) > figcaption::before {
+    content: '';    /* default: no prefix — explainer posts layer theirs on top */
+}
+
+/* Explainer posts get a "FIGURE N." small-caps prefix to match the
+ * editorial register of the explainer layout. */
+.blog-prose.is-explainer { counter-reset: bp-figure; }
+.blog-prose.is-explainer figure:not(.pyfig) { counter-increment: bp-figure; }
+.blog-prose.is-explainer figure:not(.pyfig) > figcaption::before {
+    content: 'Figure ' counter(bp-figure) '. ';
+    font-variant-caps: all-small-caps;
+    font-style: normal;
+    font-weight: 600;
+    letter-spacing: 0.06em;
+    color: var(--text-secondary, #5c5f77);
+    margin-right: 0.15em;
+}

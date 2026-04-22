@@ -1285,9 +1285,25 @@ html.editing main { padding-top: 0 !important; margin: 0 !important; }
     ['dragleave', 'dragend', 'drop'].forEach(ev =>
         sourcePane.addEventListener(ev, () => sourcePane.classList.remove('drop-target'))
     );
+    // Move the textarea caret to the drop coordinates so the image
+    // lands where the author aimed, not wherever the cursor happened
+    // to be (usually at the top of the document after a page load).
+    function moveCaretToDropPoint(evt) {
+        if (!document.caretPositionFromPoint) return;
+        const pos = document.caretPositionFromPoint(evt.clientX, evt.clientY);
+        if (!pos) return;
+        // Chrome/Firefox both return the textarea element as offsetNode
+        // with a character offset when the point is inside a <textarea>.
+        if (pos.offsetNode === body || (pos.offsetNode && pos.offsetNode.nodeName === 'TEXTAREA')) {
+            body.focus();
+            body.setSelectionRange(pos.offset, pos.offset);
+        }
+    }
+
     sourcePane.addEventListener('drop', async (e) => {
         if (!e.dataTransfer.files || !e.dataTransfer.files.length) return;
         e.preventDefault();
+        moveCaretToDropPoint(e);
         for (const f of e.dataTransfer.files) await uploadFile(f);
     });
     body.addEventListener('paste', async (e) => {
