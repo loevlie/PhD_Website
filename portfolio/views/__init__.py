@@ -55,7 +55,11 @@ from .authoring import (
 from .studio import studio
 from .reading_quickadd import reading_quickadd
 from .ask import ask_post
-from .editor_assist import spellcheck as spellcheck_view, check_word as check_word_view
+from .editor_assist import (
+    spellcheck as spellcheck_view,
+    check_word as check_word_view,
+    smart_paste as smart_paste_view,
+)
 
 __all__ = [
     'index',

@@ -18,6 +18,7 @@ from django.shortcuts import get_object_or_404
 from django.views.decorators.http import require_POST
 
 from portfolio.editor_assist import spellcheck as spellcheck_mod
+from portfolio.editor_assist import smart_paste as smart_paste_mod
 
 
 def _can_edit(request) -> bool:
@@ -85,3 +86,36 @@ def check_word(request):
     if not word:
         return JsonResponse({'ok': False, 'error': 'no word'}, status=400)
     return JsonResponse({'ok': True, 'known': spellcheck_mod.is_known(word, extras=extras)})
+
+
+@require_POST
+def smart_paste(request):
+    """POST /editor/smart-paste/
+       body: {"url": "<url>"}
+       returns: {"ok": true, "match": {kind, marker, meta} | null}
+
+    Called from the editor JS on every `paste` that contains exactly
+    one URL. Server-side detection keeps the regex patterns in one
+    place (see portfolio/editor_assist/smart_paste.py) instead of
+    duplicating them into JS, where they'd drift.
+
+    Latency isn't critical — the paste flow IS blocked on the
+    response, but a single-URL check is <5ms on the server and the
+    JS falls through to default paste on any failure."""
+    if not _can_edit(request):
+        return JsonResponse({'ok': False, 'error': 'unauthorized'}, status=403)
+    try:
+        payload = json.loads(request.body or b'{}')
+    except json.JSONDecodeError:
+        return JsonResponse({'ok': False, 'error': 'bad json'}, status=400)
+    url = (payload.get('url') or '').strip()
+    if not url:
+        return JsonResponse({'ok': False, 'error': 'no url'}, status=400)
+    # Bound input size so a pasted megabyte of text doesn't choke us.
+    if len(url) > 2048:
+        return JsonResponse({'ok': False, 'error': 'url too long'}, status=413)
+    result = smart_paste_mod.detect(url)
+    return JsonResponse({
+        'ok': True,
+        'match': result.to_dict() if result else None,
+    })

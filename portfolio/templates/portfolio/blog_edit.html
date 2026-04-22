@@ -12,6 +12,12 @@
    renders where spell-check isn't needed. #}
 <link rel="stylesheet" href="{% static 'portfolio/css/editor-spellcheck.css' %}">
 <script src="{% static 'portfolio/js/editor-spellcheck.js' %}" defer></script>
+{# Editor smart-paste: on paste, if the clipboard is a single URL we
+   recognise (arxiv / github repo / github permalink / wikipedia), the
+   matching <div data-*> marker replaces the paste. Detection is
+   server-side (portfolio/editor_assist/smart_paste.py) for a single
+   source of truth with the embeds handlers. #}
+<script src="{% static 'portfolio/js/editor-smart-paste.js' %}" defer></script>
 <style>
 /* Editor chrome — fits inside blog_base layout */
 .editor-shell { display: grid; grid-template-rows: auto 1fr; height: calc(100vh - 64px); position: relative; }

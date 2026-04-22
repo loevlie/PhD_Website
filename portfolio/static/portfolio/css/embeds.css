@@ -1093,3 +1093,69 @@ body.reading-mode .blog-prose { font-size: 1.1rem; line-height: 1.75; }
     0%, 100% { opacity: 0.6; }
     50%      { opacity: 1; }
 }
+
+/* ─── GitHub-snippet embed ──────────────────────────────────────── */
+.github-snippet {
+    margin: 1.75rem 0;
+    border: 1px solid var(--ctp-surface0, #e5e5e5);
+    border-radius: 10px;
+    overflow: hidden;
+    background: var(--ctp-mantle, #fafafa);
+    font-size: 0.82rem;
+}
+.github-snippet .gh-snippet-head {
+    display: flex;
+    align-items: center;
+    flex-wrap: wrap;
+    gap: 8px;
+    padding: 8px 12px;
+    background: color-mix(in srgb, var(--ctp-surface0, #e5e5e5) 40%, transparent);
+    border-bottom: 1px solid var(--ctp-surface0, #e5e5e5);
+    font-family: 'JetBrains Mono', ui-monospace, monospace;
+    font-size: 0.7rem;
+    color: var(--ctp-overlay1, #7f849c);
+}
+.github-snippet .embed-pill { /* pill style matches other embeds */
+    padding: 1px 8px;
+    border-radius: 999px;
+    background: color-mix(in srgb, var(--ctp-lavender, #7287fd) 14%, transparent);
+    color: var(--ctp-lavender, #7287fd);
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 0.08em;
+    font-size: 0.65rem;
+}
+.github-snippet .embed-id   { color: var(--ctp-subtext1, #5c5f77); font-weight: 600; }
+.github-snippet .embed-ref  { color: var(--ctp-overlay2, #9399b2); }
+.github-snippet .embed-path { color: var(--ctp-overlay1, #7f849c); word-break: break-all; }
+.github-snippet .embed-lines {
+    margin-left: auto;
+    padding: 1px 6px;
+    border-radius: 4px;
+    background: var(--ctp-base, #fff);
+    border: 1px solid var(--ctp-surface0, #e5e5e5);
+    color: var(--ctp-subtext1, #5c5f77);
+}
+.github-snippet .highlight {
+    margin: 0;
+    padding: 12px 14px;
+    overflow-x: auto;
+    font-size: 0.8125rem;
+    line-height: 1.5;
+    background: var(--ctp-base, #fff);
+}
+.github-snippet .highlight pre { margin: 0; white-space: pre; }
+.github-snippet .gh-snippet-foot {
+    padding: 8px 12px;
+    border-top: 1px solid var(--ctp-surface0, #e5e5e5);
+    background: var(--ctp-mantle, #fafafa);
+    font-family: 'JetBrains Mono', ui-monospace, monospace;
+    font-size: 0.7rem;
+    text-align: right;
+}
+.github-snippet .gh-snippet-foot a {
+    color: var(--ctp-lavender, #7287fd);
+    text-decoration: none;
+    border-bottom: 1px dotted currentColor;
+}
+.github-snippet .gh-snippet-foot a:hover { border-bottom-style: solid; }

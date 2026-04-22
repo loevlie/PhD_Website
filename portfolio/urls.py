@@ -36,6 +36,7 @@ urlpatterns = [
     # pure-Python checker at portfolio/editor_assist/spellcheck.py.
     path('blog/<slug:slug>/spellcheck/', views.spellcheck_view, name='editor_spellcheck'),
     path('editor/check-word/', views.check_word_view, name='editor_check_word'),
+    path('editor/smart-paste/', views.smart_paste_view, name='editor_smart_paste'),
     path('notebook/', views.notebook, name='notebook'),
     path('reading/', views.reading, name='reading'),
     path('publications/', views.publications, name='publications'),

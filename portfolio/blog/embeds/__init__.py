@@ -81,17 +81,21 @@ def expand_embeds(content: str) -> str:
 # generic scanner (e.g. `<div data-*>` — there isn't one, but mentally)
 # can't short-circuit a specific one. Today all markers use disjoint
 # attribute names, so order is only relevant if we ever add a fallback.
-from . import demo        as _demo
-from . import arxiv       as _arxiv
-from . import github      as _github
-from . import wiki        as _wiki
-from . import equation    as _equation
-from . import quiz        as _quiz
-from . import plot        as _plot
+from . import demo            as _demo
+from . import arxiv           as _arxiv
+from . import github          as _github
+from . import github_snippet  as _github_snippet
+from . import wiki            as _wiki
+from . import equation        as _equation
+from . import quiz            as _quiz
+from . import plot            as _plot
 
 
 _demo.register_all(register)
 _arxiv.register_all(register)
+# github_snippet MUST register before github — the snippet regex is a
+# strict superset of the repo regex (adds /blob/<ref>/<path>).
+_github_snippet.register_all(register)
 _github.register_all(register)
 _wiki.register_all(register)
 _equation.register_all(register)
