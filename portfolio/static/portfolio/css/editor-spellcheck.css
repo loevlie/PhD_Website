@@ -1,0 +1,151 @@
+/* Editor spell-check panel styles.
+   Complements blog_edit.html. Self-contained so the panel can be
+   dropped/moved without touching surrounding rules. */
+
+.spellcheck-panel {
+    display: flex;
+    flex-direction: column;
+    min-height: 0;
+    border: 1px solid var(--border, #ccd0da);
+    border-radius: 8px;
+    background: var(--surface-0, #fafafa);
+    overflow: hidden;
+    font-size: 0.82rem;
+}
+
+.spellcheck-head-bar {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 8px 10px;
+    border-bottom: 1px solid var(--border, #ccd0da);
+    background: var(--surface-1, #f0f0f0);
+    font-family: 'JetBrains Mono', ui-monospace, monospace;
+    font-size: 0.72rem;
+    text-transform: uppercase;
+    letter-spacing: 0.08em;
+    color: var(--content-muted, #7c7f93);
+}
+.spellcheck-title {
+    font-weight: 600;
+    color: var(--content, #1c1c1c);
+}
+.spellcheck-badge {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+}
+#spellcheck-count:empty { display: none; }
+#spellcheck-count {
+    display: inline-block;
+    min-width: 1.3em;
+    text-align: center;
+    padding: 1px 6px;
+    border-radius: 999px;
+    background: color-mix(in srgb, #d20f39 14%, transparent);
+    color: #d20f39;
+    font-size: 0.68rem;
+    font-weight: 700;
+}
+.spellcheck-status.is-clean #spellcheck-count,
+.spellcheck-status.is-clean + #spellcheck-count { display: none; }
+
+.spellcheck-status {
+    font-size: 0.68rem;
+    font-weight: 500;
+    color: var(--content-muted, #7c7f93);
+}
+.spellcheck-status.is-checking { color: var(--accent, #7287fd); }
+.spellcheck-status.is-clean    { color: #40a02b; }
+.spellcheck-status.is-error    { color: #d20f39; }
+
+.spellcheck-list {
+    list-style: none;
+    padding: 4px 0;
+    margin: 0;
+    overflow-y: auto;
+    max-height: 360px;
+}
+.spellcheck-list:empty::after {
+    content: 'No issues.';
+    display: block;
+    padding: 14px 12px;
+    color: var(--content-muted, #7c7f93);
+    font-size: 0.82rem;
+    font-style: italic;
+}
+
+.spellcheck-item {
+    padding: 8px 12px;
+    border-bottom: 1px solid color-mix(in srgb, var(--border, #ccd0da) 50%, transparent);
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
+}
+.spellcheck-item:last-child { border-bottom: none; }
+
+.spellcheck-head {
+    display: flex;
+    align-items: baseline;
+    justify-content: space-between;
+    gap: 8px;
+}
+.spellcheck-word {
+    background: transparent;
+    border: none;
+    padding: 0;
+    cursor: pointer;
+    font-family: 'JetBrains Mono', ui-monospace, monospace;
+    font-weight: 600;
+    font-size: 0.88rem;
+    color: var(--content, #1c1c1c);
+    text-decoration: underline wavy #d20f39;
+    text-underline-offset: 2px;
+}
+.spellcheck-word:hover { color: var(--accent, #7287fd); }
+.spellcheck-loc {
+    font-family: 'JetBrains Mono', ui-monospace, monospace;
+    font-size: 0.68rem;
+    color: var(--content-muted, #7c7f93);
+}
+
+.spellcheck-sugs {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 4px;
+}
+.spellcheck-sug {
+    background: var(--surface-1, #f0f0f0);
+    border: 1px solid var(--border, #ccd0da);
+    padding: 2px 8px;
+    border-radius: 4px;
+    cursor: pointer;
+    font-family: 'JetBrains Mono', ui-monospace, monospace;
+    font-size: 0.75rem;
+    color: var(--content, #1c1c1c);
+    transition: border-color 120ms, color 120ms;
+}
+.spellcheck-sug:hover {
+    border-color: var(--accent, #7287fd);
+    color: var(--accent, #7287fd);
+}
+
+.spellcheck-actions {
+    display: flex;
+    gap: 4px;
+}
+.spellcheck-action {
+    background: transparent;
+    border: 1px solid var(--border, #ccd0da);
+    padding: 2px 8px;
+    border-radius: 4px;
+    cursor: pointer;
+    font-family: 'JetBrains Mono', ui-monospace, monospace;
+    font-size: 0.68rem;
+    color: var(--content-muted, #7c7f93);
+    text-transform: lowercase;
+}
+.spellcheck-action:hover {
+    border-color: var(--accent, #7287fd);
+    color: var(--accent, #7287fd);
+}

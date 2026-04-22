@@ -13,6 +13,11 @@ dj-database-url==2.3.0
 # crash views — the import is cheap and safe regardless.
 anthropic>=0.46
 
+# Editor spell-check (staff-only). Pure-Python, ships its own English
+# corpus. Called from portfolio/views/editor_assist.py on a debounce
+# from the editor JS. Zero runtime impact on reader-facing pages.
+pyspellchecker>=0.8
+
 # Default scientific-Python stack available to /pyfig blocks. Each post
 # can also declare extras via a per-post deps file (see _render_pyfig).
 matplotlib>=3.9

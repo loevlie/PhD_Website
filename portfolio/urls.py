@@ -32,6 +32,10 @@ urlpatterns = [
     path('blog/<slug:slug>/autosave/', views.blog_autosave, name='blog_autosave'),
     path('blog/<slug:slug>/cite.bib', views.blog_cite_bib, name='blog_cite_bib'),
     path('blog/<slug:slug>/regenerate-og/', views.regenerate_og_card, name='regenerate_og_card'),
+    # Editor-assist: spell-check debounced from the editor JS. Staff-only;
+    # pure-Python checker at portfolio/editor_assist/spellcheck.py.
+    path('blog/<slug:slug>/spellcheck/', views.spellcheck_view, name='editor_spellcheck'),
+    path('editor/check-word/', views.check_word_view, name='editor_check_word'),
     path('notebook/', views.notebook, name='notebook'),
     path('reading/', views.reading, name='reading'),
     path('publications/', views.publications, name='publications'),

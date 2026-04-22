@@ -7,6 +7,11 @@
 {% block extra_head %}
 <link rel="stylesheet" href="{% static 'portfolio/css/pygments.css' %}">
 <link rel="stylesheet" href="{% static 'portfolio/vendor/katex/katex.min.css' %}">
+{# Editor-assist (spell-check). JS is self-gated on the #spellcheck-panel
+   element in the template, so loading it here is cheap even on editor
+   renders where spell-check isn't needed. #}
+<link rel="stylesheet" href="{% static 'portfolio/css/editor-spellcheck.css' %}">
+<script src="{% static 'portfolio/js/editor-spellcheck.js' %}" defer></script>
 <style>
 /* Editor chrome — fits inside blog_base layout */
 .editor-shell { display: grid; grid-template-rows: auto 1fr; height: calc(100vh - 64px); position: relative; }
@@ -365,6 +370,23 @@
             </div>
         </div>
     </div>
+
+    {# Spell-check drawer — collapsible bottom strip. Panel is always
+       in the DOM so the JS can self-initialise; `open` attribute
+       controls visibility of the issue list. Server URL + slug wired
+       via data-* attrs. See portfolio/editor_assist/spellcheck.py. #}
+    <details class="spellcheck-panel" id="spellcheck-panel"
+             data-spellcheck-url="{% url 'editor_spellcheck' post.slug %}"
+             data-slug="{{ post.slug }}">
+        <summary class="spellcheck-head-bar">
+            <span class="spellcheck-title">Spell-check</span>
+            <span class="spellcheck-badge">
+                <span class="spellcheck-status" id="spellcheck-status">ready</span>
+                <span id="spellcheck-count"></span>
+            </span>
+        </summary>
+        <ul class="spellcheck-list" id="spellcheck-list"></ul>
+    </details>
 
     <!-- ── Help overlay (toggled with `?`) ─────────────────────── -->
     <div class="help-overlay" id="help-overlay" aria-hidden="true">
