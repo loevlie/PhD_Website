@@ -73,8 +73,11 @@
     });
 
     var EXTRAS_KEY = 'dl.spellcheck.extras';
+    var IGNORED_KEY = 'dl.spellcheck.ignored:' + (panel.dataset.slug || 'unknown');
     var DEBOUNCE_MS = 2000;
 
+    // Global custom dictionary — applies to every post. Populated by
+    // the "+dict" button on a suggestion row.
     function readExtras() {
         try { return JSON.parse(localStorage.getItem(EXTRAS_KEY) || '[]'); }
         catch (e) { return []; }
@@ -85,6 +88,28 @@
     function addExtra(word) {
         var arr = readExtras();
         if (arr.indexOf(word) === -1) { arr.push(word); writeExtras(arr); }
+    }
+
+    // Per-post ignore list. Populated by the "✕" button on a row.
+    // Persisted so a word you've waved through for this post doesn't
+    // re-appear on the next edit / page reload.
+    function readIgnored() {
+        try { return JSON.parse(localStorage.getItem(IGNORED_KEY) || '[]'); }
+        catch (e) { return []; }
+    }
+    function writeIgnored(arr) {
+        try { localStorage.setItem(IGNORED_KEY, JSON.stringify(arr)); } catch (e) {}
+    }
+    function addIgnored(word) {
+        var arr = readIgnored();
+        if (arr.indexOf(word) === -1) { arr.push(word); writeIgnored(arr); }
+    }
+
+    // What we send to the server: the union of both lists. The server
+    // treats them identically — it can't tell "global dict" from "just
+    // this post" apart, and doesn't need to.
+    function allExtras() {
+        return readExtras().concat(readIgnored());
     }
 
     function setStatus(msg, cls) {
@@ -116,7 +141,7 @@
                 'Content-Type': 'application/json',
                 'X-CSRFToken': csrfToken(),
             },
-            body: JSON.stringify({ text: text, extras: readExtras() }),
+            body: JSON.stringify({ text: text, extras: allExtras() }),
             signal: ctrl.signal,
         })
         .then(function (r) { return r.json(); })
@@ -181,8 +206,17 @@
             ignore.type = 'button';
             ignore.className = 'spellcheck-action';
             ignore.textContent = '✕';
-            ignore.title = 'Ignore for this session';
-            ignore.addEventListener('click', function () { li.remove(); bumpCount(-1); });
+            ignore.title = 'Ignore "' + m.word + '" in this post (persists across reloads)';
+            ignore.addEventListener('click', function () {
+                // Persist per-post so this word doesn't pop back on the
+                // next re-check or page reload. Also hide every open
+                // row for the same word.
+                addIgnored(m.word);
+                Array.prototype.forEach.call(
+                    list.querySelectorAll('li[data-word="' + m.word.replace(/"/g, '\\"') + '"]'),
+                    function (row) { row.remove(); bumpCount(-1); }
+                );
+            });
             var add = document.createElement('button');
             add.type = 'button';
             add.className = 'spellcheck-action';

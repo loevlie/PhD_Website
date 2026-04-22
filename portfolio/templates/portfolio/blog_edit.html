@@ -5,6 +5,14 @@
 {% block og_meta %}<meta name="robots" content="noindex,nofollow">{% endblock %}
 
 {% block extra_head %}
+<script>
+/* Mark page as editor-mode before nav/footer paint so there's no flash
+ * of site chrome before the editor CSS hides them. */
+document.documentElement.classList.add('editing');
+document.addEventListener('DOMContentLoaded', function () {
+    document.body.classList.add('editing');
+});
+</script>
 <link rel="stylesheet" href="{% static 'portfolio/css/pygments.css' %}">
 <link rel="stylesheet" href="{% static 'portfolio/vendor/katex/katex.min.css' %}">
 {% comment %}Load the full reader-side embeds stylesheet so the preview
@@ -20,8 +28,59 @@
 <link rel="stylesheet" href="{% static 'portfolio/css/editor-assist.css' %}">
 <script src="{% static 'portfolio/js/editor-assist.js' %}" defer></script>
 <style>
-/* Editor chrome — fits inside blog_base layout */
-.editor-shell { display: grid; grid-template-rows: auto 1fr; height: calc(100vh - 64px); position: relative; }
+/* Full-screen editor mode.
+ *
+ * The editor lives inside blog_base.html which ships a sticky nav and
+ * a site footer. If the editor content overflows (slash menu, drawer,
+ * long body), the outer page scrolls and pushes the editor-bar out of
+ * view — suddenly Save/Details are gone and you're looking at the
+ * public footer instead of your draft. These rules (toggled by the
+ * `editing` class the editor JS adds to <html> + <body>) hide the
+ * site chrome and lock page scroll so the editor owns the viewport. */
+html.editing, html.editing body { overflow: hidden; height: 100%; margin: 0; }
+html.editing nav.fixed,
+html.editing footer { display: none !important; }
+html.editing main { padding-top: 0 !important; margin: 0 !important; }
+
+.editor-shell { display: grid; grid-template-rows: auto 1fr; height: 100vh; position: relative; }
+
+/* ── Image-caption dialog ──────────────────────────────────────────── */
+.img-dialog {
+    border: 1px solid var(--ctp-surface1, #45475a);
+    border-radius: 10px;
+    padding: 0;
+    background: var(--ctp-mantle, #181825);
+    color: var(--ctp-text, #cdd6f4);
+    width: min(480px, calc(100vw - 32px));
+    box-shadow: 0 24px 60px -10px rgba(0, 0, 0, 0.5);
+}
+.img-dialog::backdrop { background: rgba(0, 0, 0, 0.55); backdrop-filter: blur(2px); }
+.img-dialog-form { display: flex; flex-direction: column; gap: 12px; padding: 18px 20px 16px; font-family: 'Inter', system-ui, sans-serif; }
+.img-dialog-form h3 { margin: 0; font-size: 1rem; font-weight: 600; color: var(--ctp-lavender, #7287fd); }
+.img-dialog-preview { max-width: 100%; max-height: 180px; object-fit: contain; border-radius: 6px; background: var(--ctp-surface0, #313244); }
+.img-dialog-field { display: flex; flex-direction: column; gap: 4px; font-size: 0.82rem; }
+.img-dialog-field > span { color: var(--ctp-subtext1, #bac2de); font-weight: 500; display: flex; justify-content: space-between; }
+.img-dialog-hint { color: var(--ctp-subtext0, #a6adc8); font-weight: 400; font-size: 0.72rem; }
+.img-dialog-field input {
+    background: var(--ctp-surface0, #313244);
+    border: 1px solid var(--ctp-surface1, #45475a);
+    color: var(--ctp-text, #cdd6f4);
+    font-family: inherit; font-size: 0.88rem;
+    padding: 8px 10px; border-radius: 6px; outline: none;
+}
+.img-dialog-field input:focus { border-color: var(--ctp-lavender, #7287fd); }
+.img-dialog-menu { display: flex; justify-content: flex-end; gap: 8px; margin: 4px 0 0; padding: 0; list-style: none; }
+.img-dialog-menu button {
+    appearance: none; padding: 7px 16px; border-radius: 6px;
+    font-family: inherit; font-size: 0.85rem; font-weight: 500; cursor: pointer;
+    border: 1px solid var(--ctp-surface1, #45475a);
+    background: var(--ctp-surface0, #313244); color: var(--ctp-text, #cdd6f4);
+}
+.img-dialog-menu button.primary {
+    background: var(--ctp-lavender, #7287fd); color: var(--ctp-base, #1e1e2e);
+    border-color: transparent; font-weight: 600;
+}
+.img-dialog-menu button:hover { border-color: var(--ctp-lavender, #7287fd); }
 .editor-bar {
     display: flex; align-items: center; gap: 12px;
     padding: 10px 16px;
@@ -548,6 +607,27 @@
         </div>
     </aside>
 </form>
+
+<!-- Image-caption dialog. Opens after a successful drop/paste upload.
+     Native <dialog> gives us Esc-close + focus trap + scrim for free. -->
+<dialog class="img-dialog" id="img-dialog">
+    <form method="dialog" class="img-dialog-form">
+        <h3>Add image</h3>
+        <img class="img-dialog-preview" id="img-dialog-preview" alt="">
+        <label class="img-dialog-field">
+            <span>Alt text <span class="img-dialog-hint">screen readers + SEO</span></span>
+            <input type="text" id="img-dialog-alt" autocomplete="off">
+        </label>
+        <label class="img-dialog-field">
+            <span>Caption <span class="img-dialog-hint">shown below the image (optional)</span></span>
+            <input type="text" id="img-dialog-cap" autocomplete="off" placeholder="e.g. Figure 1: the atlas used in…">
+        </label>
+        <menu class="img-dialog-menu">
+            <button type="button" class="secondary" id="img-dialog-skip">Skip</button>
+            <button type="submit" class="primary" id="img-dialog-ok" value="ok">Insert</button>
+        </menu>
+    </form>
+</dialog>
 
 <script defer src="{% static 'portfolio/vendor/katex/katex.min.js' %}"></script>
 <script defer src="{% static 'portfolio/vendor/katex/auto-render.min.js' %}"></script>
@@ -1093,14 +1173,55 @@
     // ── Image upload (drag-drop, paste, click) ──────────────────────
     const sourcePane = document.querySelector('.editor-source');
 
+    // Ask for alt text + caption after upload so the author doesn't
+    // insert a raw `![](url)` and forget to fill it in. Returns a
+    // promise resolving to {alt, caption} or null if they cancelled.
+    function askImageMeta(previewUrl, suggestedAlt) {
+        return new Promise((resolve) => {
+            const dlg = document.getElementById('img-dialog');
+            const img = document.getElementById('img-dialog-preview');
+            const altInput = document.getElementById('img-dialog-alt');
+            const capInput = document.getElementById('img-dialog-cap');
+            const ok = document.getElementById('img-dialog-ok');
+            const skip = document.getElementById('img-dialog-skip');
+            if (!dlg || !img || !altInput || !capInput || !ok || !skip) {
+                resolve({ alt: suggestedAlt, caption: '' });
+                return;
+            }
+            img.src = previewUrl;
+            altInput.value = suggestedAlt || '';
+            capInput.value = '';
+
+            function cleanup(result) {
+                ok.removeEventListener('click', onOk);
+                skip.removeEventListener('click', onSkip);
+                dlg.removeEventListener('close', onClose);
+                try { dlg.close(); } catch (e) {}
+                resolve(result);
+            }
+            function onOk(ev) {
+                ev.preventDefault();
+                cleanup({ alt: altInput.value.trim(), caption: capInput.value.trim() });
+            }
+            function onSkip() { cleanup({ alt: suggestedAlt, caption: '' }); }
+            function onClose() { cleanup({ alt: suggestedAlt, caption: '' }); }
+            ok.addEventListener('click', onOk);
+            skip.addEventListener('click', onSkip);
+            dlg.addEventListener('close', onClose);
+            dlg.showModal();
+            setTimeout(() => altInput.focus(), 30);
+        });
+    }
+
     async function uploadFile(file) {
         if (!file || !file.type.startsWith('image/')) return false;
         sourcePane.classList.add('uploading');
         status.textContent = 'uploading ' + file.name + '…';
         status.classList.add('is-dirty');
+        const suggestedAlt = file.name.replace(/\.[a-z0-9]+$/i, '').replace(/[-_]+/g, ' ');
         const fd = new FormData();
         fd.append('image', file);
-        fd.append('alt', file.name.replace(/\.[a-z0-9]+$/i, '').replace(/[-_]+/g, ' '));
+        fd.append('alt', suggestedAlt);
         fd.append('csrfmiddlewaretoken', csrf);
         try {
             const r = await fetch('{% url "blog_upload_image" %}', {
@@ -1108,7 +1229,23 @@
             });
             const data = await r.json();
             if (!r.ok) throw new Error(data.error || r.statusText);
-            insertAtCursor('\n\n' + data.markdown + '\n\n');
+            // Upload succeeded — prompt for alt + caption before inserting.
+            const meta = await askImageMeta(data.url, suggestedAlt);
+            const alt = (meta && meta.alt) || suggestedAlt;
+            const caption = meta && meta.caption;
+            let md;
+            if (caption) {
+                // Raw <figure> so the caption is visibly rendered
+                // below the image. Python markdown passes raw HTML
+                // through unchanged.
+                md = '<figure>\n'
+                   + '<img src="' + data.url + '" alt="' + alt.replace(/"/g, '&quot;') + '">\n'
+                   + '<figcaption>' + caption.replace(/</g, '&lt;') + '</figcaption>\n'
+                   + '</figure>';
+            } else {
+                md = '![' + alt + '](' + data.url + ')';
+            }
+            insertAtCursor('\n\n' + md + '\n\n');
             status.textContent = 'image inserted — unsaved';
         } catch (e) {
             status.textContent = 'upload failed: ' + e.message;
