@@ -74,9 +74,18 @@
         .then(function (r) { return r.json(); })
         .then(function (data) {
             if (data && data.ok && data.match && data.match.marker) {
-                // Surround the marker with blank lines so it survives
-                // paragraph splitting in the markdown parser.
-                insertAtCursor('\n\n' + data.match.marker + '\n\n');
+                // Rich URL: ask the author whether they want the full
+                // block card or an inline link. Readers now get a
+                // hover-preview of the same card either way, so the
+                // choice is really "how does this read in the layout?".
+                askFormat(data.match).then(function (choice) {
+                    if (choice === 'card') {
+                        insertAtCursor('\n\n' + data.match.marker + '\n\n');
+                    } else if (choice === 'inline') {
+                        insertAtCursor(url);
+                    }
+                    // 'cancel' → insert nothing (author pressed Esc).
+                });
             } else {
                 // No match — insert the raw URL the author pasted.
                 insertAtCursor(url);
@@ -87,4 +96,47 @@
             insertAtCursor(url);
         });
     });
+
+    // ── Paste-format dialog ────────────────────────────────────────
+    // Fires when smart-paste detects a rich URL. Offers "Full card"
+    // (block embed, the original smart-paste behaviour) or "Inline
+    // link" (plain URL, upgraded to a hover card for readers).
+    function askFormat(match) {
+        return new Promise(function (resolve) {
+            var dlg = document.getElementById('paste-format-dialog');
+            if (!dlg) { resolve('card'); return; }          // missing DOM → no prompt
+            var labelEl = document.getElementById('paste-format-label');
+            var markerEl = document.getElementById('paste-format-marker');
+            var cardBtn = document.getElementById('paste-format-card');
+            var inlineBtn = document.getElementById('paste-format-inline');
+            var cancelBtn = document.getElementById('paste-format-cancel');
+            var kindLabel = ({
+                'arxiv': 'arXiv paper',
+                'github': 'GitHub repo',
+                'github_snippet': 'GitHub code',
+                'wiki': 'Wikipedia article',
+            })[match.kind] || 'link';
+            labelEl.textContent = 'Pasted ' + kindLabel + ' — how should it appear?';
+            markerEl.textContent = match.marker;
+
+            function cleanup(result) {
+                cardBtn.removeEventListener('click', onCard);
+                inlineBtn.removeEventListener('click', onInline);
+                cancelBtn.removeEventListener('click', onCancel);
+                dlg.removeEventListener('close', onClose);
+                try { dlg.close(); } catch (e) {}
+                resolve(result);
+            }
+            function onCard(ev) { ev.preventDefault(); cleanup('card'); }
+            function onInline(ev) { ev.preventDefault(); cleanup('inline'); }
+            function onCancel(ev) { ev.preventDefault(); cleanup('cancel'); }
+            function onClose() { cleanup('cancel'); }
+            cardBtn.addEventListener('click', onCard);
+            inlineBtn.addEventListener('click', onInline);
+            cancelBtn.addEventListener('click', onCancel);
+            dlg.addEventListener('close', onClose);
+            dlg.showModal();
+            setTimeout(function () { cardBtn.focus(); }, 30);
+        });
+    }
 })();

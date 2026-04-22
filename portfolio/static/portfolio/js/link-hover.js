@@ -1,18 +1,24 @@
 // Link hover preview.
 //
-// Shows a small popover with the destination URL when the reader
-// hovers over an external link in a blog post. Useful because readers
-// often want to know where they're about to go before clicking —
-// especially for posts with lots of arxiv / github citations. The
-// native browser "title" tooltip has a ~500 ms delay and styles like
-// an OS dialog; this is instant and themed.
+// Shows a popover when the reader hovers over an external link in a
+// blog post:
+//   * arxiv / github / wiki URLs  → rich embed card (lazy-fetched from
+//                                   /embed/card/?url=…), same shape the
+//                                   author would get with a
+//                                   `<div data-*>` marker.
+//   * anything else              → small tooltip with hostname + path.
 //
 // Scoped to `.blog-prose a[href^="http"]` so we don't compete with:
 //   * citations.js           — <cite class="ref"> has its own popover
-//   * footnote sidenotes     — already show inline
-//   * editor nav / site nav  — not in blog-prose
+//   * footnote backrefs      — already inline sidenotes on explainers
+//   * editor/site chrome     — not in blog-prose
 //
-// Self-initialising: one popover element reused across links.
+// Network model:
+//   * Fetch on hover-intent (120 ms delay) so quick flicks past a link
+//     don't trigger requests.
+//   * Per-URL in-memory cache so re-hovering the same link is instant.
+//   * AbortController on hide so in-flight fetches from a prior hover
+//     don't paint over the current one.
 
 (function () {
     'use strict';
@@ -20,39 +26,35 @@
     var prose = document.querySelector('.blog-prose');
     if (!prose) return;
 
-    var pop = null;
-    var active = null;
+    // Patterns mirror portfolio/editor_assist/smart_paste.py. Only the
+    // shape-detection — the actual rendering happens server-side.
+    var RICH_URL_RE =
+        /^https?:\/\/(arxiv\.org\/(abs|pdf)\/|(?:[a-z]{2}\.)?wikipedia\.org\/wiki\/|github\.com\/[^\/]+\/[^\/?#]+\/?(?:[?#]|$))/i;
+
+    var pop = null;            // single shared popover element
+    var popIsRich = false;     // is the current content the rich card?
+    var active = null;         // current anchor
+    var showTimer = null;
     var hideTimer = null;
+    var inflight = null;
+    var richCache = Object.create(null);  // url → html string
 
     function ensurePopover() {
         if (pop) return pop;
         pop = document.createElement('div');
         pop.className = 'link-hover-pop';
         pop.setAttribute('role', 'tooltip');
-        pop.style.cssText = [
-            'position: absolute',
-            'z-index: 40',
-            'pointer-events: none',
-            'max-width: min(420px, 70vw)',
-            'padding: 6px 10px',
-            'font-size: 0.75rem',
-            'font-family: ui-monospace, SFMono-Regular, Menlo, monospace',
-            'background: var(--ctp-mantle, #1e1e2e)',
-            'color: var(--ctp-text, #cdd6f4)',
-            'border: 1px solid var(--ctp-surface1, #45475a)',
-            'border-radius: 6px',
-            'box-shadow: 0 8px 20px -4px rgba(0,0,0,0.35)',
-            'opacity: 0',
-            'transition: opacity 80ms ease-out',
-            'white-space: nowrap',
-            'overflow: hidden',
-            'text-overflow: ellipsis',
-        ].join(';');
+        // Mouse moving onto the popover keeps it open (so the reader
+        // can interact with a rich card's internal links if desired).
+        pop.addEventListener('mouseenter', function () {
+            clearTimeout(hideTimer);
+        });
+        pop.addEventListener('mouseleave', hide);
         document.body.appendChild(pop);
         return pop;
     }
 
-    function format(href) {
+    function formatPlainText(href) {
         try {
             var u = new URL(href);
             var path = u.pathname + u.search + u.hash;
@@ -65,15 +67,55 @@
 
     function position(anchor) {
         var r = anchor.getBoundingClientRect();
-        var top = window.scrollY + r.bottom + 6;
+        var vw = document.documentElement.clientWidth;
+        var popW = pop.offsetWidth;
+        var top = window.scrollY + r.bottom + 8;
+        // Prefer left-aligning the popover with the link; clamp to the
+        // viewport so wide rich cards never clip off-screen.
         var left = window.scrollX + r.left;
-        // Keep within viewport: clamp against right edge so long URLs
-        // don't clip off-screen on narrow viewports.
-        var maxLeft = window.scrollX + document.documentElement.clientWidth
-                    - pop.offsetWidth - 12;
+        var maxLeft = window.scrollX + vw - popW - 12;
         if (left > maxLeft) left = Math.max(window.scrollX + 8, maxLeft);
         pop.style.top = top + 'px';
         pop.style.left = left + 'px';
+    }
+
+    function applyPlain(text) {
+        pop.classList.remove('is-rich');
+        pop.classList.add('is-plain');
+        pop.textContent = text;
+        popIsRich = false;
+    }
+
+    function applyRich(html) {
+        pop.classList.remove('is-plain');
+        pop.classList.add('is-rich');
+        pop.innerHTML = html;
+        popIsRich = true;
+    }
+
+    function fetchRich(anchor, href) {
+        if (richCache[href] !== undefined) {
+            return Promise.resolve(richCache[href]);
+        }
+        if (inflight) inflight.abort();
+        var ctrl = new AbortController();
+        inflight = ctrl;
+        return fetch('/embed/card/?url=' + encodeURIComponent(href), {
+            credentials: 'same-origin',
+            signal: ctrl.signal,
+        }).then(function (r) {
+            if (r.status === 204) { richCache[href] = null; return null; }
+            if (!r.ok) return null;
+            return r.text().then(function (html) {
+                richCache[href] = html;
+                return html;
+            });
+        }).catch(function (e) {
+            if (e && e.name === 'AbortError') return null;
+            return null;
+        }).finally(function () {
+            if (inflight === ctrl) inflight = null;
+        });
     }
 
     function show(anchor) {
@@ -81,48 +123,71 @@
         active = anchor;
         clearTimeout(hideTimer);
         ensurePopover();
-        pop.textContent = format(anchor.href);
+
+        var href = anchor.href;
+        var isRich = RICH_URL_RE.test(href);
+
+        // Paint the plain hostname immediately so the reader gets
+        // instant feedback; upgrade to the rich card when it arrives.
+        applyPlain(formatPlainText(href));
         pop.style.opacity = '0';
         pop.style.top = '-9999px';
-        // Position after the text is in so offsetWidth reflects content.
         requestAnimationFrame(function () {
+            if (active !== anchor) return;
             position(anchor);
             pop.style.opacity = '1';
+        });
+
+        if (!isRich) return;
+
+        fetchRich(anchor, href).then(function (html) {
+            if (active !== anchor || !html) return;
+            applyRich(html);
+            requestAnimationFrame(function () { position(anchor); });
         });
     }
 
     function hide() {
+        clearTimeout(showTimer);
         active = null;
+        if (inflight) { inflight.abort(); inflight = null; }
         if (!pop) return;
-        // Small delay so a flick across two adjacent links doesn't
-        // fade twice.
         hideTimer = setTimeout(function () {
-            if (!active && pop) pop.style.opacity = '0';
-        }, 60);
+            if (!active && pop) {
+                pop.style.opacity = '0';
+                // Reset content so the next show() doesn't flash the
+                // previous link's card.
+                setTimeout(function () {
+                    if (!active) applyPlain('');
+                }, 120);
+            }
+        }, 120);
     }
 
-    // Event delegation — one listener, any future dynamic links get
-    // the hover for free.
     prose.addEventListener('mouseover', function (ev) {
         var a = ev.target.closest('a[href]');
         if (!a || !prose.contains(a)) return;
-        if (!/^https?:\/\//i.test(a.getAttribute('href') || '')) return;
-        // Skip links that already have their own popover (citations,
-        // footnote back-refs, etc.).
+        var href = a.getAttribute('href') || '';
+        if (!/^https?:\/\//i.test(href)) return;
         if (a.classList.contains('ref') || a.classList.contains('footnote-ref')
             || a.classList.contains('footnote-backref')
             || a.closest('cite.ref, .cite-ref, .sidenote')) return;
-        show(a);
+        // Small hover-intent delay — avoids firing on quick flicks past
+        // a link during normal reading-scroll.
+        clearTimeout(showTimer);
+        showTimer = setTimeout(function () { show(a); }, 120);
     });
     prose.addEventListener('mouseout', function (ev) {
         var a = ev.target.closest('a[href]');
         if (!a) return;
-        // Only hide when leaving the link itself, not moving between
-        // children of the link.
         var to = ev.relatedTarget;
-        if (to && a.contains(to)) return;
+        if (to && (a.contains(to) || (pop && pop.contains(to)))) return;
         hide();
     });
-    window.addEventListener('scroll', function () { if (active) position(active); }, { passive: true });
-    window.addEventListener('resize', function () { if (active) position(active); });
+    window.addEventListener('scroll', function () {
+        if (active) position(active);
+    }, { passive: true });
+    window.addEventListener('resize', function () {
+        if (active) position(active);
+    });
 })();

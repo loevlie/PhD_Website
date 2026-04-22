@@ -37,6 +37,9 @@ urlpatterns = [
     path('blog/<slug:slug>/spellcheck/', views.spellcheck_view, name='editor_spellcheck'),
     path('editor/check-word/', views.check_word_view, name='editor_check_word'),
     path('editor/smart-paste/', views.smart_paste_view, name='editor_smart_paste'),
+    # Hover-preview rich card for arxiv / github / wiki URLs. Called by
+    # link-hover.js on `mouseover` of an external link in a blog post.
+    path('embed/card/', views.embed_card, name='embed_card'),
     # AI author assists (Tier 2): tighten / tldr / title / alt-text /
     # sidenote. Proxy to Anthropic server-side so the key stays off the
     # browser; staff-only; rate-limited per-user.

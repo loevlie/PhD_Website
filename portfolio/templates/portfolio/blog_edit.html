@@ -81,6 +81,24 @@ html.editing main { padding-top: 0 !important; margin: 0 !important; }
     border-color: transparent; font-weight: 600;
 }
 .img-dialog-menu button:hover { border-color: var(--ctp-lavender, #7287fd); }
+.paste-format-body { font-size: 0.85rem; color: var(--ctp-subtext1, #bac2de); }
+.paste-format-marker {
+    padding: 6px 10px; margin: 2px 0 8px;
+    background: var(--ctp-base, #1e1e2e);
+    border: 1px solid var(--ctp-surface0, #313244);
+    border-radius: 4px; font-size: 0.72rem;
+    overflow-x: auto; white-space: nowrap;
+}
+.paste-format-marker code {
+    font-family: 'Fira Code', ui-monospace, monospace;
+    color: var(--ctp-lavender, #7287fd); background: transparent; padding: 0;
+}
+.paste-format-options {
+    list-style: none; padding: 0; margin: 0; display: flex; flex-direction: column; gap: 6px;
+    font-size: 0.8rem;
+}
+.paste-format-options li { line-height: 1.4; }
+.paste-format-options strong { color: var(--ctp-text, #cdd6f4); font-weight: 600; }
 .editor-bar {
     display: flex; align-items: center; gap: 12px;
     padding: 10px 16px;
@@ -621,6 +639,29 @@ html.editing main { padding-top: 0 !important; margin: 0 !important; }
         </div>
     </aside>
 </form>
+
+<!-- Paste-format dialog. Fires when smart-paste detects an arxiv /
+     github / wikipedia URL so the author can choose between a block
+     embed card (current default) or an inline link (readers still get
+     the rich card via hover-preview). Reuses the .img-dialog chrome
+     so it matches the image-caption modal. -->
+<dialog class="img-dialog" id="paste-format-dialog">
+    <form method="dialog" class="img-dialog-form">
+        <h3 id="paste-format-label">Pasted link — how should it appear?</h3>
+        <div class="paste-format-body">
+            <div class="paste-format-marker"><code id="paste-format-marker"></code></div>
+            <ul class="paste-format-options">
+                <li><strong>Full card</strong> — block embed with title / summary, like a featured reference.</li>
+                <li><strong>Inline link</strong> — flows with the text; readers get the same rich card when hovering.</li>
+            </ul>
+        </div>
+        <menu class="img-dialog-menu">
+            <button type="button" class="secondary" id="paste-format-cancel">Cancel</button>
+            <button type="button" class="secondary" id="paste-format-inline">Inline link</button>
+            <button type="submit" class="primary" id="paste-format-card" value="card">Full card</button>
+        </menu>
+    </form>
+</dialog>
 
 <!-- Image-caption dialog. Opens after a successful drop/paste upload.
      Native <dialog> gives us Esc-close + focus trap + scrim for free. -->

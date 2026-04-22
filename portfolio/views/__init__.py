@@ -55,6 +55,7 @@ from .authoring import (
 from .studio import studio
 from .reading_quickadd import reading_quickadd
 from .ask import ask_post
+from .embed_card import embed_card
 from .editor_assist import (
     spellcheck as spellcheck_view,
     check_word as check_word_view,

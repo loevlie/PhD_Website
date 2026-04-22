@@ -1275,3 +1275,41 @@ body.reading-mode .blog-prose { font-size: 1.1rem; line-height: 1.75; }
 .repro-card a.repro-commit:hover code {
     background: var(--surface-hover, #e5e7ff);
 }
+
+/* ── Link hover popover (link-hover.js) ──────────────────────────── */
+.link-hover-pop {
+    position: absolute;
+    z-index: 40;
+    opacity: 0;
+    transition: opacity 120ms ease-out;
+    box-shadow: 0 12px 36px -8px rgba(0, 0, 0, 0.28);
+    border-radius: 8px;
+    max-width: min(420px, 70vw);
+}
+/* Plain mode: a compact monospace tooltip with the hostname + path. */
+.link-hover-pop.is-plain {
+    padding: 6px 10px;
+    font-size: 0.75rem;
+    font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
+    background: var(--ctp-mantle, #1e1e2e);
+    color: var(--ctp-text, #cdd6f4);
+    border: 1px solid var(--ctp-surface1, #45475a);
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    pointer-events: none;
+}
+/* Rich mode: a full arxiv/github/wiki embed card. We strip the outer
+ * margin the `.embed-card` has in-prose so the popover hugs the card. */
+.link-hover-pop.is-rich {
+    max-width: min(480px, 80vw);
+    padding: 0;
+    background: transparent;
+    border: 0;
+}
+.link-hover-pop.is-rich .embed-card {
+    margin: 0;
+    background: var(--surface-0, var(--ctp-mantle, #1e1e2e));
+    border: 1px solid var(--border, var(--ctp-surface1, #45475a));
+    box-shadow: none;
+}
