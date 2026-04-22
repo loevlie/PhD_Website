@@ -93,15 +93,33 @@ def _read_terms(path: Path) -> set[str]:
 
 
 @lru_cache(maxsize=1)
+@lru_cache(maxsize=1)
 def _get_checker() -> SpellChecker:
-    """Lazy-initialized, module-level singleton. The first call loads
-    the English corpus (~10 MB → a second or two) and injects every
-    word from `terms/*.txt`. Subsequent calls return the cached
-    instance."""
+    """Process-wide singleton. The first call loads the English corpus
+    (~10 MB → a second or two) and injects every word from
+    `terms/*.txt`. Subsequent calls return the cached instance."""
     spell = SpellChecker(language='en', case_sensitive=False)
     for stem in ('ml', 'tech'):
         spell.word_frequency.load_words(_read_terms(_TERMS_DIR / f'{stem}.txt'))
     return spell
+
+
+@lru_cache(maxsize=4096)
+def _suggestions_for(word: str, max_n: int) -> tuple[str, ...]:
+    """Return top-N suggestions for a misspelled word.
+
+    pyspellchecker's `candidates()` is the single slowest thing in this
+    module — it computes edit-distance against a ~2M-word corpus and
+    costs ~200–400 ms per unique unknown word. On a technical post with
+    30 ML-jargon words the uncached total tops 9 seconds.
+
+    The same misspellings recur across every keystroke in an editing
+    session, so an LRU keyed on (word, max_n) drops the second-call
+    cost to a dict lookup. 4 096 words is far more unique unknowns than
+    any real post generates."""
+    spell = _get_checker()
+    candidates = spell.candidates(word) or set()
+    return tuple(sorted(candidates, key=lambda w: -spell.word_frequency[w])[:max_n])
 
 
 # ─── Public API ───────────────────────────────────────────────────────
@@ -186,10 +204,7 @@ def check_text(
             continue
         seen_keys.add(key)
         line, col = line_col(m.start())
-        # `candidates()` returns None for unknown words with no close
-        # match. Guard, then take the top N ranked by frequency.
-        candidates = spell.candidates(lower) or set()
-        top = sorted(candidates, key=lambda w: -spell.word_frequency[w])[:max_suggestions]
+        top = list(_suggestions_for(lower, max_suggestions))
         results.append(Misspelling(
             word=word, line=line, col=col, offset=m.start(),
             suggestions=top,
