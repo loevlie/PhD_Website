@@ -48,7 +48,15 @@ If a post has an explicit cover (post.image), that takes precedence.
    at the bottom in {% block scripts %} so the download matches what
    the body actually embeds.{% endcomment %}
 {% if 'data-demo=' in post.body or 'data-demo=' in post.content_html or 'class="demo-embed"' in post.body or 'class="demo-embed"' in post.content_html %}
+{% comment %}Demo embeds on blog posts: demos-embed.css is the self-
+   contained chrome; components.css + sections.css carry the per-demo
+   classes (.btn--outline, .np-swatch, .ff-*, .depth-*, etc.) that the
+   standalone demo pages use. Without them, blog-embedded demos render
+   with naked buttons and missing swatches — see the AuPd nanoparticle
+   regression 2026-04-22.{% endcomment %}
 <link rel="stylesheet" href="{% static 'portfolio/css/demos-embed.css' %}">
+<link rel="stylesheet" href="{% static 'portfolio/css/components.css' %}">
+<link rel="stylesheet" href="{% static 'portfolio/css/sections.css' %}">
 {% endif %}
 {% comment %}Shared blog-embed CSS — every blog post gets it (it's small
    and covers arxiv/github/wiki cards, equation tooltips, quiz cards,

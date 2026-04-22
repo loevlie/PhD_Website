@@ -459,7 +459,7 @@ html.editing main { padding-top: 0 !important; margin: 0 !important; }
         </div>
         <div class="editor-preview">
             <div class="blog-prose {% if post.is_explainer %}is-explainer{% endif %}{% if post.is_paper_companion %} is-paper-companion{% endif %}" id="editor-preview-content">
-                <p class="preview-loading">Rendering preview…</p>
+                {% if post.rendered_html %}{{ post.rendered_html|safe }}{% else %}<p class="preview-loading">Rendering preview…</p>{% endif %}
             </div>
         </div>
     </div>
@@ -657,7 +657,11 @@ html.editing main { padding-top: 0 !important; margin: 0 !important; }
     const paperToggle = form.querySelector('[name=is_paper_companion]');
 
     let renderTimer = null;
-    let lastRendered = '';
+    // Seed with the initial (body, is_explainer) pair so the first render
+    // call after DOM ready dedupes against the already-painted preview
+    // (server inlined post.rendered_html into the pane).
+    let lastRendered = (explainerToggle.checked ? 'true' : 'false') + '\u0000' + body.value;
+    let inflightCtrl = null;
 
     // ── Live preview ────────────────────────────────────────────────
     async function render() {
@@ -667,6 +671,14 @@ html.editing main { padding-top: 0 !important; margin: 0 !important; }
         if (key === lastRendered) return;
         lastRendered = key;
 
+        // Cancel an in-flight render so a slow previous response
+        // can't overwrite the output of the render we're about to
+        // start. Without this, typing fast means the preview shows
+        // stale content because render N-1 lands after render N.
+        if (inflightCtrl) inflightCtrl.abort();
+        const ctrl = new AbortController();
+        inflightCtrl = ctrl;
+
         const fd = new FormData();
         fd.append('body', text);
         fd.append('is_explainer', isExp);
@@ -674,9 +686,12 @@ html.editing main { padding-top: 0 !important; margin: 0 !important; }
         try {
             const r = await fetch('{% url "blog_preview" %}', {
                 method: 'POST', body: fd, credentials: 'same-origin',
+                signal: ctrl.signal,
             });
+            if (ctrl.signal.aborted) return;
             if (!r.ok) throw new Error(r.statusText);
             const data = await r.json();
+            if (ctrl.signal.aborted) return;
             preview.innerHTML = data.html || '<p class="preview-loading">empty</p>';
             preview.classList.toggle('is-explainer', isExp === 'true');
             preview.classList.toggle('is-paper-companion', paperToggle.checked);
@@ -690,12 +705,17 @@ html.editing main { padding-top: 0 !important; margin: 0 !important; }
                 });
             }
         } catch (e) {
+            if (e && e.name === 'AbortError') return;  // superseded
             preview.innerHTML = '<p class="preview-loading">preview error: ' + e.message + '</p>';
+        } finally {
+            if (inflightCtrl === ctrl) inflightCtrl = null;
         }
     }
     function scheduleRender(delay) {
         clearTimeout(renderTimer);
-        renderTimer = setTimeout(render, delay || 350);
+        // 180ms is well under the human "lag" threshold (~250ms) while
+        // still coalescing keystrokes of a normal typing burst.
+        renderTimer = setTimeout(render, delay || 180);
     }
 
     // ── Dirty / save status tracking ────────────────────────────────
@@ -1300,15 +1320,42 @@ html.editing main { padding-top: 0 !important; margin: 0 !important; }
         }
     } catch (e) {}
 
-    // Initial render
-    function initRender() {
-        if (window.renderMathInElement || document.readyState === 'complete') {
-            render();
+    // The initial preview (post.rendered_html inlined by the view) has
+    // fully-expanded demo cards in it — and the editor doesn't load
+    // three.js / the demo modules. Swap each demo root for a placeholder
+    // so what the author sees on first paint matches what subsequent
+    // preview renders produce (the server already strips demos there).
+    function stripDemosToPlaceholders(root) {
+        root.querySelectorAll('.demo-embed-root').forEach(function (el) {
+            var slug = el.getAttribute('data-demo') || 'demo';
+            var div = document.createElement('div');
+            div.className = 'preview-placeholder';
+            div.innerHTML = 'Demo: <code>' + slug + '</code> · runs on published page';
+            el.replaceWith(div);
+        });
+    }
+    stripDemosToPlaceholders(preview);
+
+    // Initial paint: the preview pane was populated server-side with
+    // post.rendered_html. Skip the /blog/preview/ round-trip entirely
+    // unless the body was mutated (e.g., localStorage draft restore) —
+    // otherwise the first paint would be the cached render, then an
+    // identical render lands 100ms later for no reason. If the body
+    // does differ (draft restore), scheduleRender() will fire it.
+    function initMath() {
+        if (window.renderMathInElement) {
+            window.renderMathInElement(preview, {
+                delimiters: [
+                    {left: '$$', right: '$$', display: true},
+                    {left: '$',  right: '$',  display: false},
+                ],
+                throwOnError: false,
+            });
         } else {
-            setTimeout(initRender, 50);
+            setTimeout(initMath, 80);
         }
     }
-    initRender();
+    initMath();
 })();
 </script>
 {% endblock %}
