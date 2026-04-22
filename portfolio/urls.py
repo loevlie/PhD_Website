@@ -37,6 +37,10 @@ urlpatterns = [
     path('blog/<slug:slug>/spellcheck/', views.spellcheck_view, name='editor_spellcheck'),
     path('editor/check-word/', views.check_word_view, name='editor_check_word'),
     path('editor/smart-paste/', views.smart_paste_view, name='editor_smart_paste'),
+    # AI author assists (Tier 2): tighten / tldr / title / alt-text /
+    # sidenote. Proxy to Anthropic server-side so the key stays off the
+    # browser; staff-only; rate-limited per-user.
+    path('blog/<slug:slug>/assist/<slug:action>/', views.assist_view, name='editor_assist'),
     path('notebook/', views.notebook, name='notebook'),
     path('reading/', views.reading, name='reading'),
     path('publications/', views.publications, name='publications'),

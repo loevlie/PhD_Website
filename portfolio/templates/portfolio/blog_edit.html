@@ -18,6 +18,12 @@
    server-side (portfolio/editor_assist/smart_paste.py) for a single
    source of truth with the embeds handlers. #}
 <script src="{% static 'portfolio/js/editor-smart-paste.js' %}" defer></script>
+{# Editor AI-assists (Tier 2): tighten / TL;DR / title / alt-text /
+   sidenote. Toolbar sits at the bottom of the editor shell; buttons
+   are disabled until the relevant inputs are available (e.g. selection
+   for tighten/sidenote). Endpoint: /blog/<slug>/assist/<action>/. #}
+<link rel="stylesheet" href="{% static 'portfolio/css/editor-assist.css' %}">
+<script src="{% static 'portfolio/js/editor-assist.js' %}" defer></script>
 <style>
 /* Editor chrome — fits inside blog_base layout */
 .editor-shell { display: grid; grid-template-rows: auto 1fr; height: calc(100vh - 64px); position: relative; }
@@ -392,6 +398,46 @@
             </span>
         </summary>
         <ul class="spellcheck-list" id="spellcheck-list"></ul>
+    </details>
+
+    {# AI-assist toolbar. The JS (editor-assist.js) binds click handlers
+       on these buttons; the data-action attribute names the endpoint
+       suffix. All buttons POST to /blog/<slug>/assist/<action>/. #}
+    <details class="assist-panel" id="assist-panel"
+             data-assist-url-prefix="/blog/{{ post.slug }}/assist/"
+             data-slug="{{ post.slug }}">
+        <summary class="assist-head-bar">
+            <span class="assist-title">AI assists</span>
+            <span class="assist-status" id="assist-status">ready</span>
+        </summary>
+        <div class="assist-toolbar">
+            <button type="button" class="assist-btn" data-action="tighten"
+                    data-needs="selection"
+                    title="Shorten the selected prose without changing meaning">⚡ Tighten selection</button>
+            <button type="button" class="assist-btn" data-action="tldr"
+                    data-needs="body"
+                    title="2–3 sentence summary of the whole post">📄 TL;DR</button>
+            <button type="button" class="assist-btn" data-action="title"
+                    data-needs="body"
+                    title="Suggest 5 titles for this post">✏️ Titles</button>
+            <button type="button" class="assist-btn" data-action="sidenote"
+                    data-needs="selection"
+                    title="Suggest a sidenote clarifying a term in the selection">💭 Sidenote</button>
+            <button type="button" class="assist-btn" data-action="alt-text"
+                    data-needs="caption"
+                    title="Generate alt text from an image caption on the current line">🖼️ Alt text</button>
+        </div>
+        <div class="assist-result hidden" id="assist-result" role="region" aria-label="AI assist result">
+            <div class="assist-result-head">
+                <span class="assist-result-title" id="assist-result-title"></span>
+                <span class="assist-result-actions">
+                    <button type="button" class="assist-result-btn" id="assist-insert">Insert</button>
+                    <button type="button" class="assist-result-btn" id="assist-copy">Copy</button>
+                    <button type="button" class="assist-result-btn" id="assist-dismiss">Dismiss</button>
+                </span>
+            </div>
+            <div class="assist-result-body" id="assist-result-body"></div>
+        </div>
     </details>
 
     <!-- ── Help overlay (toggled with `?`) ─────────────────────── -->

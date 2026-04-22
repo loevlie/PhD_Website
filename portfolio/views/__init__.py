@@ -59,6 +59,7 @@ from .editor_assist import (
     spellcheck as spellcheck_view,
     check_word as check_word_view,
     smart_paste as smart_paste_view,
+    assist as assist_view,
 )
 
 __all__ = [

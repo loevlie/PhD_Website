@@ -7,22 +7,54 @@ Endpoints here share two properties:
     if auth policy ever evolves.
   * JSON in / JSON out. Calls happen from the editor JS on a debounced
     keystroke cycle — simplest possible wire format.
-
-Today: /blog/<slug>/spellcheck/ (POST).
-Room to grow: /blog/<slug>/assist/<action>/ for Tier 2 AI assists.
 """
 import json
 
+from django.core.cache import cache
 from django.http import JsonResponse
 from django.shortcuts import get_object_or_404
 from django.views.decorators.http import require_POST
 
-from portfolio.editor_assist import spellcheck as spellcheck_mod
+from portfolio.editor_assist import ai_assists as assists_mod
 from portfolio.editor_assist import smart_paste as smart_paste_mod
+from portfolio.editor_assist import spellcheck as spellcheck_mod
 
 
 def _can_edit(request) -> bool:
     return request.user.is_authenticated and request.user.is_staff
+
+
+# AI-assist rate limits are per-user (not per-IP) because the editor
+# is staff-only, so identifying the user is trivially cheap and there's
+# no PII concern. Limits sit above realistic editing cadence but stop
+# a runaway loop in JS from burning through the Anthropic budget.
+_ASSIST_PER_MINUTE = 20
+_ASSIST_PER_DAY = 300
+
+
+def _assist_rate_limit(user_id: int) -> tuple[bool, str]:
+    """Returns (over_limit, scope). Uses the same cache.add + incr dance
+    as the reader-facing /ask endpoint so the semantics match (see
+    portfolio/views/ask.py:_rate_limit_hit for the rationale)."""
+    min_key = f'assist:user:{user_id}:min'
+    day_key = f'assist:user:{user_id}:day'
+    cache.add(min_key, 0, timeout=60)
+    cache.add(day_key, 0, timeout=60 * 60 * 24)
+    try:
+        n_min = cache.incr(min_key)
+    except ValueError:
+        cache.set(min_key, 1, timeout=60)
+        n_min = 1
+    try:
+        n_day = cache.incr(day_key)
+    except ValueError:
+        cache.set(day_key, 1, timeout=60 * 60 * 24)
+        n_day = 1
+    if n_min > _ASSIST_PER_MINUTE:
+        return True, 'minute'
+    if n_day > _ASSIST_PER_DAY:
+        return True, 'day'
+    return False, ''
 
 
 @require_POST
@@ -119,3 +151,49 @@ def smart_paste(request):
         'ok': True,
         'match': result.to_dict() if result else None,
     })
+
+
+@require_POST
+def assist(request, slug, action):
+    """POST /blog/<slug>/assist/<action>/
+       body varies by action (see portfolio.editor_assist.ai_assists.ACTIONS)
+       returns: {"ok": true, "result": <str | list[str]>}
+
+    Thin wrapper around ai_assists.run. We handle auth, rate-limiting,
+    JSON parsing, and status-code mapping; everything else — prompt
+    building, the Anthropic call, response parsing — lives in the
+    module so the logic is unit-testable without hitting the network."""
+    if not _can_edit(request):
+        return JsonResponse({'ok': False, 'error': 'unauthorized'}, status=403)
+
+    from portfolio.models import Post
+    get_object_or_404(Post, slug=slug)
+
+    try:
+        payload = json.loads(request.body or b'{}')
+    except json.JSONDecodeError:
+        return JsonResponse({'ok': False, 'error': 'bad json'}, status=400)
+    if not isinstance(payload, dict):
+        return JsonResponse({'ok': False, 'error': 'bad payload'}, status=400)
+
+    over, scope = _assist_rate_limit(request.user.id)
+    if over:
+        return JsonResponse(
+            {'ok': False, 'error': 'rate_limited', 'scope': scope},
+            status=429,
+        )
+
+    try:
+        result = assists_mod.run(action, payload)
+    except assists_mod.AssistUnknown:
+        return JsonResponse({'ok': False, 'error': 'unknown action'}, status=400)
+    except assists_mod.AssistBadInput as e:
+        return JsonResponse({'ok': False, 'error': str(e)}, status=400)
+    except assists_mod.AssistUnavailable:
+        return JsonResponse({'ok': False, 'error': 'offline'}, status=503)
+    except assists_mod.AssistError:
+        # Don't leak the upstream exception text — it can contain quota
+        # details, partial key fragments in some SDK errors, etc.
+        return JsonResponse({'ok': False, 'error': 'upstream_error'}, status=502)
+
+    return JsonResponse({'ok': True, 'action': action, 'result': result})
