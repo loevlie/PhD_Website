@@ -274,6 +274,87 @@
     text-transform: uppercase;
     letter-spacing: 0.06em;
 }
+
+/* ── Profile-edit disclosure — lets a collaborator set their
+ * display name / avatar / bio / homepage. Shown below the assigned-
+ * posts list (or welcome panel on staff). Auto-expanded on first
+ * visit (no display_name + no avatar yet). */
+.profile-edit {
+    margin: 8px 0 0;
+    border: 1px solid var(--ctp-surface0, #ccd0da);
+    border-radius: 10px;
+    background: var(--ctp-mantle, #e6e9ef);
+    padding: 10px 14px;
+    font-family: 'Inter', system-ui, sans-serif;
+}
+.profile-edit[open] { padding-bottom: 18px; }
+.profile-edit-head {
+    cursor: pointer;
+    list-style: none;
+    display: flex; align-items: baseline; gap: 12px;
+    font-size: 0.85rem;
+    font-weight: 600;
+    color: var(--ctp-text, #4c4f69);
+    padding: 4px 0;
+}
+.profile-edit-head::-webkit-details-marker { display: none; }
+.profile-edit-head::before {
+    content: '▸';
+    color: var(--ctp-subtext0, #6c7086);
+    display: inline-block;
+    transition: transform 140ms;
+    font-size: 0.72rem;
+}
+.profile-edit[open] .profile-edit-head::before { transform: rotate(90deg); }
+.profile-edit-hint {
+    font-weight: 400;
+    font-size: 0.72rem;
+    color: var(--ctp-subtext0, #a6adc8);
+    margin-left: auto;
+    text-transform: none;
+    letter-spacing: 0;
+}
+
+.profile-form { gap: 12px; padding-top: 14px; }
+.profile-preview {
+    display: flex; align-items: center; gap: 12px;
+    padding: 10px 12px;
+    background: var(--ctp-base, #eff1f5);
+    border: 1px solid var(--ctp-surface0, #ccd0da);
+    border-radius: 8px;
+    margin-bottom: 6px;
+}
+.profile-preview-avatar {
+    width: 46px; height: 46px; border-radius: 50%; object-fit: cover;
+    background: var(--ctp-surface1, #bcc0cc);
+    display: inline-flex; align-items: center; justify-content: center;
+    color: var(--ctp-base, #eff1f5);
+    font-family: 'IBM Plex Serif', Georgia, serif;
+    font-weight: 600; font-size: 1.2rem;
+    flex: none;
+}
+.profile-preview-avatar--empty { background: var(--ctp-lavender, #7287fd); }
+.profile-preview-name {
+    font-family: 'IBM Plex Serif', Georgia, serif;
+    font-size: 1rem; font-weight: 600;
+    color: var(--ctp-text, #4c4f69);
+}
+.profile-preview-bio {
+    margin-top: 2px;
+    font-size: 0.82rem;
+    color: var(--ctp-subtext1, #5c5f77);
+    font-style: italic;
+}
+.profile-form input[type="file"] {
+    background: var(--ctp-base, #eff1f5);
+    border: 1px dashed var(--ctp-surface1, #bcc0cc);
+    border-radius: 6px;
+    padding: 8px 10px;
+    font-size: 0.82rem;
+    color: var(--ctp-subtext1, #5c5f77);
+    font-family: inherit;
+}
+.profile-form input[type="file"]:hover { border-color: var(--ctp-lavender, #7287fd); }
 </style>
 {% endblock %}
 

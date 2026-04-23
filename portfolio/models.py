@@ -465,3 +465,48 @@ class NowSection(models.Model):
 
     def __str__(self):
         return f'{self.heading} (/now/)'
+
+
+# ─── User profile ─────────────────────────────────────────────────────
+# Optional per-user display info — attaches to every Django User so a
+# collaborator can set their display name + avatar + short bio, and
+# posts they co-author render proper attribution ("by Alice Y · Dennis
+# Loevlie"). Kept as a separate model (rather than a custom User) so
+# we don't have to write a migration against auth.User.
+class UserProfile(models.Model):
+    user = models.OneToOneField(
+        'auth.User', on_delete=models.CASCADE, related_name='profile',
+    )
+    display_name = models.CharField(
+        max_length=80, blank=True,
+        help_text="How your name appears on posts you co-author. Falls back to your username.",
+    )
+    bio = models.CharField(
+        max_length=280, blank=True,
+        help_text="One line · shown next to your avatar on co-authored posts. Think Twitter bio length.",
+    )
+    avatar = models.ImageField(
+        upload_to='avatars/', blank=True, null=True,
+        help_text="Square image recommended. Shown as a small circle next to your name.",
+    )
+    homepage_url = models.URLField(
+        blank=True,
+        help_text="Optional. Your website / blog / social profile — linked from the avatar.",
+    )
+    updated_at = models.DateTimeField(auto_now=True)
+
+    class Meta:
+        verbose_name = 'User profile'
+        verbose_name_plural = 'User profiles'
+
+    def __str__(self):
+        return self.display_name or self.user.username
+
+    @property
+    def display(self) -> str:
+        """Name to show in UI. Prefers display_name, falls back to
+        `first_name last_name`, then username."""
+        if self.display_name:
+            return self.display_name
+        full = f'{self.user.first_name} {self.user.last_name}'.strip()
+        return full or self.user.username

@@ -5,8 +5,23 @@ from portfolio.models import (
     Post, Pageview, DailySalt, Reading,
     NewsItem, Publication, PublicationLink,
     Project, ProjectLink, TimelineEntry, OpenSourceItem,
-    SocialLink, NowPage, NowSection,
+    SocialLink, NowPage, NowSection, UserProfile,
 )
+
+
+@admin.register(UserProfile)
+class UserProfileAdmin(admin.ModelAdmin):
+    list_display = ['user', 'display_name', 'bio_short', 'has_avatar', 'updated_at']
+    search_fields = ['user__username', 'display_name', 'bio']
+    raw_id_fields = ['user']
+    readonly_fields = ['updated_at']
+
+    def bio_short(self, obj):
+        return (obj.bio[:60] + '…') if len(obj.bio) > 60 else obj.bio
+
+    def has_avatar(self, obj):
+        return bool(obj.avatar)
+    has_avatar.boolean = True
 
 
 @admin.register(Post)

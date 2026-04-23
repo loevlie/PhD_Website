@@ -116,3 +116,19 @@ def _render_and_persist(post):
         rendered_toc_html=toc,
         rendered_at=timezone.now(),
     )
+
+
+# ─── UserProfile lifecycle ──────────────────────────────────────────
+# Every auth.User gets a UserProfile exactly once, created on first
+# save. Keeps `user.profile` safe to access everywhere without
+# defensive existence checks. Deletion cascades via the FK.
+from django.conf import settings as _django_settings
+
+
+@receiver(post_save, sender='auth.User')
+def _user_profile_created(sender, instance, created, raw=False, **kwargs):
+    if raw:
+        return
+    if created:
+        from portfolio.models import UserProfile
+        UserProfile.objects.get_or_create(user=instance)

@@ -70,18 +70,48 @@ def signup(request):
     })
 
 
-def profile(request):
-    """GET /accounts/profile/ — the user's home after login.
+class _UserProfileForm(forms.ModelForm):
+    """Trim the auto-generated ModelForm down to the fields we actually
+    surface on the self-serve edit page. Validation relies on the
+    model's own field constraints."""
+    class Meta:
+        from portfolio.models import UserProfile
+        model = UserProfile
+        fields = ('display_name', 'bio', 'avatar', 'homepage_url')
+        widgets = {
+            'bio': forms.TextInput(attrs={'maxlength': 280, 'placeholder': 'e.g. PhD student · writes about tabular foundation models'}),
+            'display_name': forms.TextInput(attrs={'placeholder': 'e.g. Alice Young'}),
+            'homepage_url': forms.URLInput(attrs={'placeholder': 'https://alice.example'}),
+        }
 
-    Staff users see a pointer to /site/studio/ (the admin dashboard);
-    collaborators see a list of posts they've been granted edit access
-    to, each linking to its editor + per-post analytics page. A fresh
-    signup with no assignments sees a "waiting for admin" message."""
+
+def profile(request):
+    """GET/POST /accounts/profile/ — the user's home after login.
+
+    GET renders the landing + a self-serve edit form for the user's
+    UserProfile (display name, avatar, one-line bio, homepage).
+    POST handles the form (multipart for the avatar upload).
+    Staff users see a pointer to /site/studio/; collaborators see a
+    list of posts they've been granted edit access to. Fresh signup
+    with no assignments sees a "waiting for admin" message."""
     if not request.user.is_authenticated:
         return redirect(f'/accounts/login/?next=/accounts/profile/')
+    from portfolio.models import UserProfile
+    profile_obj, _ = UserProfile.objects.get_or_create(user=request.user)
+
+    if request.method == 'POST':
+        form = _UserProfileForm(request.POST, request.FILES, instance=profile_obj)
+        if form.is_valid():
+            form.save()
+            return redirect('accounts_profile')
+    else:
+        form = _UserProfileForm(instance=profile_obj)
+
     editable = []
     if not request.user.is_staff:
         editable = list(request.user.edit_posts.all().order_by('-modified_at'))
     return render(request, 'portfolio/accounts/profile.html', {
         'editable': editable,
+        'profile': profile_obj,
+        'profile_form': form,
     })

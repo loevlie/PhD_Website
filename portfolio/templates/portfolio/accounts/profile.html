@@ -79,6 +79,42 @@
 {% endif %}
 
 <hr class="acc-divider">
+
+{# ── Edit profile — avatar / display name / bio / homepage.
+   Saves hit the same view as this page (POST) and redirect back. #}
+<details class="profile-edit" {% if not profile.display_name and not profile.avatar %}open{% endif %}>
+    <summary class="profile-edit-head">
+        Edit profile
+        <span class="profile-edit-hint">
+            {% if profile.display_name or profile.avatar or profile.bio %}your name + avatar on co-authored posts{% else %}set your name + avatar to be credited on posts{% endif %}
+        </span>
+    </summary>
+    <form method="post" enctype="multipart/form-data" class="acc-form profile-form">
+        {% csrf_token %}
+        <div class="profile-preview">
+            {% if profile.avatar %}
+                <img src="{{ profile.avatar.url }}" alt="" class="profile-preview-avatar">
+            {% else %}
+                <span class="profile-preview-avatar profile-preview-avatar--empty">{{ profile.display|slice:":1"|upper }}</span>
+            {% endif %}
+            <div>
+                <div class="profile-preview-name">{{ profile.display }}</div>
+                {% if profile.bio %}<div class="profile-preview-bio">{{ profile.bio }}</div>{% endif %}
+            </div>
+        </div>
+        {% for field in profile_form %}
+        <div class="acc-field">
+            <label for="{{ field.id_for_label }}">{{ field.label }}</label>
+            {{ field }}
+            {% if field.help_text %}<span class="helptext">{{ field.help_text }}</span>{% endif %}
+            {% if field.errors %}<ul class="acc-errors">{% for err in field.errors %}<li>{{ err }}</li>{% endfor %}</ul>{% endif %}
+        </div>
+        {% endfor %}
+        <button type="submit" class="acc-submit">Save profile</button>
+    </form>
+</details>
+
+<hr class="acc-divider">
 <div class="acc-links">
     <form method="post" action="{% url 'logout' %}" style="display: inline;">
         {% csrf_token %}
