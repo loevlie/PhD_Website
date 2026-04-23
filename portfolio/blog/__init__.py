@@ -671,6 +671,7 @@ def _post_to_dict(post_obj, render_html=True):
         'toc_html': toc_html,
         'word_count': len(post_obj.body.split()),
         'modified_at': getattr(post_obj, 'modified_at', None),
+        'rendered_at': getattr(post_obj, 'rendered_at', None),
     }
 
 
