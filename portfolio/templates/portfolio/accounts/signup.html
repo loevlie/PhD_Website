@@ -3,8 +3,9 @@
 {% block title %}Sign up — dl.blog{% endblock %}
 
 {% block acc_content %}
-<h1 class="acc-title">Create an account</h1>
-<p class="acc-sub">New accounts start with no edit access. An admin will assign specific posts to you after signup.</p>
+<p class="acc-eyebrow">Editor access</p>
+<h1 class="acc-title">Create an <em>account</em>.</h1>
+<p class="acc-sub">New accounts start with no edit access. Once you sign up, send your username to an admin and they'll assign you the specific posts you're collaborating on.</p>
 
 <form method="post" class="acc-form" novalidate>
     {% csrf_token %}
@@ -26,9 +27,10 @@
         {% for err in form.non_field_errors %}<li>{{ err }}</li>{% endfor %}
     </ul>
     {% endif %}
-    <button type="submit" class="acc-submit">Sign up</button>
+    <button type="submit" class="acc-submit">Create account →</button>
 </form>
 
+<hr class="acc-divider">
 <div class="acc-links">
     Already have an account? <a href="{% url 'login' %}">Log in</a>
 </div>

@@ -3,11 +3,12 @@
 {% block title %}Logged out — dl.blog{% endblock %}
 
 {% block acc_content %}
-<h1 class="acc-title">Logged out</h1>
-<p class="acc-sub">You're signed out of this browser.</p>
+<p class="acc-eyebrow">Signed out</p>
+<h1 class="acc-title">See you, <em>safely</em>.</h1>
+<p class="acc-sub">You've been logged out of this browser.</p>
+
+<hr class="acc-divider">
 <div class="acc-links">
-    <a href="{% url 'login' %}">Log in again</a>
-    &nbsp;·&nbsp;
-    <a href="/">Home</a>
+    <a href="{% url 'login' %}">Log in again</a> · <a href="/">Back to home</a>
 </div>
 {% endblock %}

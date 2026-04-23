@@ -3,45 +3,71 @@
 {% block title %}Profile — dl.blog{% endblock %}
 
 {% block acc_content %}
-<h1 class="acc-title">Welcome, {{ request.user.username }}</h1>
-
 {% if request.user.is_staff %}
-<p class="acc-sub">Staff account — you have full access.</p>
-<div class="acc-links">
-    <a href="/site/studio/">→ Studio dashboard</a>
-    <br><br>
-    <a href="/site/insights/">→ Site analytics</a>
-    <br><br>
-    <a href="/admin/">→ Django admin</a>
-</div>
+<p class="acc-eyebrow">Staff</p>
+<h1 class="acc-title">Welcome, <em>{{ request.user.username }}</em>.</h1>
+<p class="acc-sub">You have full access. Pick where to go:</p>
+
+<ul class="acc-post-list">
+    <li class="acc-post">
+        <h3 class="acc-post-title">Studio</h3>
+        <p class="acc-post-meta">New posts · drafts · admin landing</p>
+        <div class="acc-post-actions">
+            <a href="/site/studio/">Open studio →</a>
+        </div>
+    </li>
+    <li class="acc-post">
+        <h3 class="acc-post-title">Site analytics</h3>
+        <p class="acc-post-meta">Traffic · referrers · engagement</p>
+        <div class="acc-post-actions">
+            <a href="/site/insights/">Open analytics →</a>
+        </div>
+    </li>
+    <li class="acc-post">
+        <h3 class="acc-post-title">Django admin</h3>
+        <p class="acc-post-meta">Model-level editing · user + collaborator management</p>
+        <div class="acc-post-actions">
+            <a href="/admin/">Open admin →</a>
+        </div>
+    </li>
+</ul>
 
 {% elif editable %}
-<p class="acc-sub">You have editor access to the following posts:</p>
-<ul style="list-style: none; padding: 0; margin: 0; display: flex; flex-direction: column; gap: 12px;">
+<p class="acc-eyebrow">Collaborator</p>
+<h1 class="acc-title">Hi, <em>{{ request.user.username }}</em>.</h1>
+<p class="acc-sub">You have editor access to {{ editable|length }} post{{ editable|length|pluralize }}. Each card links to the editor and the analytics page for that post.</p>
+
+<ul class="acc-post-list">
     {% for p in editable %}
-    <li style="padding: 12px 14px; border: 1px solid var(--border, #e2e2e4); border-radius: 8px; background: var(--surface-base, #fff);">
-        <div style="font-weight: 600; font-size: 0.95rem; margin-bottom: 4px;">{{ p.title }}</div>
-        <div style="font-size: 0.78rem; color: var(--text-muted, #6c7086); margin-bottom: 8px;">
+    <li class="acc-post">
+        <h3 class="acc-post-title">{{ p.title }}</h3>
+        <p class="acc-post-meta">
             {% if p.draft %}Draft · {% endif %}Updated {{ p.modified_at|date:"M j, Y" }}
-        </div>
-        <div style="display: flex; gap: 10px; font-size: 0.85rem;">
-            <a href="{% url 'blog_edit' p.slug %}" style="color: var(--accent, #7287fd); text-decoration: none;">Edit →</a>
-            <a href="{% url 'analytics_post_dashboard' p.slug %}" style="color: var(--accent, #7287fd); text-decoration: none;">Analytics →</a>
-            {% if not p.draft %}<a href="{% url 'blog_post' p.slug %}" style="color: var(--text-muted, #6c7086); text-decoration: none;">View public page</a>{% endif %}
+        </p>
+        <div class="acc-post-actions">
+            <a href="{% url 'blog_edit' p.slug %}">Edit →</a>
+            <a href="{% url 'analytics_post_dashboard' p.slug %}">Analytics →</a>
+            {% if not p.draft %}<a href="{% url 'blog_post' p.slug %}" class="subdued">View public page</a>{% endif %}
         </div>
     </li>
     {% endfor %}
 </ul>
 
 {% else %}
+<p class="acc-eyebrow">Waiting room</p>
+<h1 class="acc-title">Hi, <em>{{ request.user.username }}</em>.</h1>
+<p class="acc-sub">Your account is live, but no posts have been assigned to you yet.</p>
+
 <div class="acc-note">
-    <strong>No posts assigned yet.</strong>
-    An admin needs to add you as a collaborator on a specific post before you can edit anything. Share your username <code>{{ request.user.username }}</code> with them.
+    <strong>Next step:</strong> share your username <code>{{ request.user.username }}</code> with the admin. They'll add you as a collaborator on a specific post, and it'll show up here with editor + analytics links.
 </div>
 {% endif %}
 
+<hr class="acc-divider">
 <div class="acc-links">
-    <a href="{% url 'logout' %}" onclick="event.preventDefault(); document.getElementById('logout-form').submit();">Log out</a>
-    <form id="logout-form" method="post" action="{% url 'logout' %}" style="display:none;">{% csrf_token %}</form>
+    <form method="post" action="{% url 'logout' %}" style="display: inline;">
+        {% csrf_token %}
+        <button type="submit" style="background: none; border: 0; padding: 0; font: inherit; color: var(--ctp-lavender, #7287fd); cursor: pointer; font-weight: 500;">Log out</button>
+    </form>
 </div>
 {% endblock %}

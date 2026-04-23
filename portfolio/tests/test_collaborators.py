@@ -170,7 +170,10 @@ class PublicSignupTests(TestCase):
     def test_signup_form_renders(self):
         r = self.client.get('/accounts/signup/')
         self.assertEqual(r.status_code, 200)
-        self.assertContains(r, 'Create an account')
+        # The heading is "Create an <em>account</em>." — match the
+        # submit button text instead of the stylised display title.
+        self.assertContains(r, 'Create account')
+        self.assertContains(r, 'id="id_username"')
 
     def test_signup_creates_non_staff_user(self):
         r = self.client.post('/accounts/signup/', {
@@ -192,8 +195,11 @@ class PublicSignupTests(TestCase):
             'password1': 'x@H3yP4ssword!',
             'password2': 'x@H3yP4ssword!',
         }, follow=True)
-        self.assertContains(r, 'autobot')            # username on profile
-        self.assertContains(r, 'No posts assigned')  # default state
+        self.assertContains(r, 'autobot')             # username on profile
+        # Fresh signup has no collaborator assignments → profile shows
+        # the "waiting room" state. Match a phrase that's stable
+        # across visual polish passes.
+        self.assertContains(r, 'no posts have been assigned')
 
     def test_signup_cannot_create_staff(self):
         # Extra POST fields must be ignored; UserCreationForm.Meta.fields

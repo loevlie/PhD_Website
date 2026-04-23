@@ -3,8 +3,9 @@
 {% block title %}Log in — dl.blog{% endblock %}
 
 {% block acc_content %}
-<h1 class="acc-title">Log in</h1>
-<p class="acc-sub">Access the posts you've been granted editor or analytics access to.</p>
+<p class="acc-eyebrow">Welcome back</p>
+<h1 class="acc-title">Log <em>in</em>.</h1>
+<p class="acc-sub">Access the posts and analytics you've been granted.</p>
 
 <form method="post" class="acc-form" novalidate>
     {% csrf_token %}
@@ -25,12 +26,12 @@
         {% for err in form.non_field_errors %}<li>{{ err }}</li>{% endfor %}
     </ul>
     {% endif %}
-    <button type="submit" class="acc-submit">Log in</button>
+    <button type="submit" class="acc-submit">Log in →</button>
 </form>
 
+<hr class="acc-divider">
 <div class="acc-links">
-    New here? <a href="{% url 'accounts_signup' %}">Create an account</a>
-    <br><br>
+    New here? <a href="{% url 'accounts_signup' %}">Create an account</a><br>
     <a href="{% url 'password_reset' %}">Forgot your password?</a>
 </div>
 {% endblock %}
