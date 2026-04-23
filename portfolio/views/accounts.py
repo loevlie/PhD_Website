@@ -70,15 +70,20 @@ def signup(request):
     })
 
 
-_AVATAR_MAX_BYTES = 2 * 1024 * 1024  # 2 MB
+_AVATAR_MAX_DIM = 512  # pixels per side after re-encode
 
 
 class _UserProfileForm(forms.ModelForm):
     """Trim the auto-generated ModelForm down to the fields we actually
-    surface on the self-serve edit page. Validation relies on the
-    model's own field constraints, plus a size ceiling on the avatar
-    upload so a 20 MB camera-roll dump doesn't end up in object
-    storage."""
+    surface on the self-serve edit page.
+
+    The avatar cleaner ALWAYS re-encodes the upload: reads it through
+    Pillow, thumbnails to 512 px on the long side, saves as JPEG at
+    85% quality. That means a 20 MB camera-roll dump lands as a ~50 KB
+    square on disk — no size rejection, no cropped EXIF leaking the
+    author's coordinates. The only failure mode is a file Pillow
+    can't decode (HEIC without the plugin, a corrupt upload, …), and
+    the view path handles that by saving the text fields anyway."""
     class Meta:
         from portfolio.models import UserProfile
         model = UserProfile
@@ -89,16 +94,42 @@ class _UserProfileForm(forms.ModelForm):
             'homepage_url': forms.URLInput(attrs={'placeholder': 'https://alice.example'}),
         }
         help_texts = {
-            'avatar': 'Square image works best (cropped to a circle). 2 MB max. JPEG / PNG / WebP.',
+            'avatar': 'Any size — we auto-compress to a 512 px square on save. JPEG / PNG / WebP work; HEIC from iPhone needs to be exported first.',
         }
 
     def clean_avatar(self):
         f = self.cleaned_data.get('avatar')
-        if f and hasattr(f, 'size') and f.size > _AVATAR_MAX_BYTES:
-            raise forms.ValidationError(
-                f'Avatar is {f.size // 1024} KB — please keep it under 2 MB.'
+        # Only re-encode a FRESHLY uploaded file. Existing avatars
+        # come back as the on-disk FieldFile without the `file` attr
+        # that InMemoryUploadedFile has — we leave those alone.
+        if not f or not hasattr(f, 'content_type'):
+            return f
+        try:
+            from PIL import Image
+            import io
+            img = Image.open(f)
+            # Normalise: flatten to RGB so JPEG encode works even for
+            # RGBA / palette / 16-bit modes.
+            if img.mode not in ('RGB',):
+                img = img.convert('RGB')
+            img.thumbnail((_AVATAR_MAX_DIM, _AVATAR_MAX_DIM), Image.LANCZOS)
+            buf = io.BytesIO()
+            img.save(buf, format='JPEG', quality=85, optimize=True)
+            buf.seek(0)
+            from django.core.files.uploadedfile import InMemoryUploadedFile
+            base = (getattr(f, 'name', 'avatar') or 'avatar').rsplit('.', 1)[0]
+            return InMemoryUploadedFile(
+                buf, field_name='avatar', name=f'{base}.jpg',
+                content_type='image/jpeg', size=buf.getbuffer().nbytes, charset=None,
             )
-        return f
+        except Exception:
+            # HEIC from iPhone lands here unless pillow-heif is
+            # installed. Bubble a friendly message; the view keeps the
+            # text edits via the partial-save path.
+            raise forms.ValidationError(
+                'Could not read that image. Try JPEG, PNG, or WebP — '
+                'iPhone HEIC needs to be exported as JPEG first.'
+            )
 
 
 def profile(request):
@@ -120,6 +151,20 @@ def profile(request):
         if form.is_valid():
             form.save()
             return redirect(f"{request.path}?saved=1")
+        # If the ONLY field with errors is avatar (typical when the user
+        # uploads a HEIC, an oversized photo, or a non-image file), don't
+        # drop their display_name / bio / homepage_url edits on the floor.
+        # Save the text fields, keep the existing avatar untouched, and
+        # redirect with a banner explaining why the avatar wasn't stored.
+        if set(form.errors) == {'avatar'}:
+            text_form = _UserProfileForm(request.POST, instance=profile_obj)
+            if text_form.is_valid():
+                text_form.save()
+                import urllib.parse as _urlp
+                reason = ' '.join(form.errors['avatar'].as_text().split()).lstrip('* ')
+                return redirect(
+                    f"{request.path}?saved=1&avatar_error={_urlp.quote(reason[:160])}"
+                )
     else:
         form = _UserProfileForm(instance=profile_obj)
 
@@ -131,4 +176,5 @@ def profile(request):
         'profile': profile_obj,
         'profile_form': form,
         'just_saved': request.GET.get('saved') == '1',
+        'avatar_error': request.GET.get('avatar_error', ''),
     })

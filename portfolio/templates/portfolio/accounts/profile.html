@@ -6,7 +6,13 @@
 {% if just_saved %}
 <div class="acc-toast" role="status">
     <span class="acc-toast-dot"></span>
-    <span class="acc-toast-text">Profile saved. Your name and avatar will appear on posts you co-author.</span>
+    <span class="acc-toast-text">
+        {% if avatar_error %}
+            Profile saved — but the avatar couldn't be read ({{ avatar_error }}). Other fields were stored.
+        {% else %}
+            Profile saved. Your name and avatar will appear on posts you co-author.
+        {% endif %}
+    </span>
 </div>
 {% endif %}
 {% comment %}Session banner — pinned above everything so the author
