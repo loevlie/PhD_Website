@@ -824,6 +824,22 @@
     flex-direction: column;
     gap: 10px;
 }
+
+/* Initial-letter fallback disc for authors without an uploaded avatar.
+ * Used for guest collaborators who haven't set a profile image; the
+ * site owner keeps the static hero avatar as their fallback. */
+.byline-avatar-initial {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    background: color-mix(in srgb, var(--ctp-lavender, #7287fd) 22%, transparent);
+    color: var(--ctp-text, #4c4f69);
+    font-weight: 600;
+    font-family: 'Inter', system-ui, sans-serif;
+    font-size: 0.95rem;
+    letter-spacing: 0.02em;
+    user-select: none;
+}
 .explainer-meta-author {
     display: flex;
     align-items: center;

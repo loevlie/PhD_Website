@@ -144,16 +144,7 @@ class Post(models.Model):
     collaborators = models.ManyToManyField(
         'auth.User', through='PostCollaborator', blank=True,
         related_name='edit_posts',
-        help_text="Non-staff users who can edit AND are auto-credited on this post.",
-    )
-
-    # Byline slot for the primary author (`post.author` CharField).
-    # Collaborators default to order=2 so Dennis appears first unless
-    # explicitly demoted. Lower = earlier in the byline.
-    author_order = models.PositiveSmallIntegerField(
-        default=1,
-        help_text="Byline position for the primary author (post.author). 1 = first. "
-                  "Collaborators default to 2. Use 3/4/5… to demote Dennis.",
+        help_text="Users in the byline (one row = one credited author, with a position).",
     )
 
     created_at = models.DateTimeField(auto_now_add=True)
@@ -181,18 +172,15 @@ class Post(models.Model):
 
     @property
     def byline_authors(self):
-        """Ordered list of author dicts for the byline — primary author
-        (`post.author` CharField) slotted at `author_order`, plus every
-        collaborator at their own `PostCollaborator.order`. Merged and
-        sorted ascending so the template can just iterate."""
-        items = [{
-            'order': self.author_order,
-            'name': self.author,
-            'avatar_url': None,
-            'bio': 'ELLIS PhD Student at CWI & University of Amsterdam',
-            'homepage_url': '/',
-            'is_primary': True,
-        }]
+        """Ordered list of author dicts for the byline, sourced entirely
+        from `PostCollaborator` rows. The site owner (first superuser)
+        is auto-added on post creation so the admin can reorder their
+        own slot from the same inline as guest collaborators.
+
+        Defensive fallback: if a legacy post has no collaborator rows at
+        all, render `post.author` as a single primary author so the page
+        still has a byline."""
+        items = []
         rel = self.postcollaborator_set.select_related('user__profile').order_by('order', 'id')
         for pc in rel:
             prof = getattr(pc.user, 'profile', None)
@@ -200,11 +188,16 @@ class Post(models.Model):
                 'order': pc.order,
                 'name': (prof.display if prof else pc.user.username),
                 'avatar_url': (prof.avatar.url if (prof and prof.avatar) else None),
-                'bio': (prof.bio if prof else ''),
-                'homepage_url': (prof.homepage_url if prof else ''),
-                'is_primary': False,
+                'bio': (prof.bio if prof and prof.bio else ''),
+                'homepage_url': (prof.homepage_url if prof and prof.homepage_url else ''),
+                'is_primary': pc.user.is_superuser,
             })
-        items.sort(key=lambda i: (i['order'], 0 if i['is_primary'] else 1))
+        if not items:
+            items.append({
+                'order': 1, 'name': self.author, 'avatar_url': None,
+                'bio': 'ELLIS PhD Student at CWI & University of Amsterdam',
+                'homepage_url': '/', 'is_primary': True,
+            })
         return items
 
 

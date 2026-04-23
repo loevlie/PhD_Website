@@ -51,13 +51,14 @@ class PostAdmin(admin.ModelAdmin):
 
     fieldsets = (
         ('Post', {
-            'fields': ('title', 'slug', 'date', 'updated', 'author', 'author_order'),
+            'fields': ('title', 'slug', 'date', 'updated', 'author'),
             'description': (
-                'author_order = byline position for the primary author '
-                '(<code>post.author</code>). 1 = first (default). Bump to 2/3 '
-                'to demote Dennis behind a collaborator. Add collaborators in '
-                'the inline table at the bottom — each row auto-credits that '
-                'user in the byline and grants edit access.'
+                'The <strong>byline</strong> is built entirely from the '
+                '<em>Collaborators</em> inline at the bottom — one row per '
+                'credited author with an <code>order</code> (1 = first). '
+                'The site owner is auto-added to every new post at '
+                'order=1, so the admin can re-slot themselves behind a '
+                'guest collaborator by editing the number.'
             ),
         }),
         ('Content', {

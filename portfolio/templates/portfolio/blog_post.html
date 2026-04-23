@@ -185,11 +185,13 @@ If a post has an explicit cover (post.image), that takes precedence.
                 <div class="explainer-meta-author">
                     {% if a.avatar_url %}
                     <img src="{{ a.avatar_url }}" alt="{{ a.name }}" class="explainer-author-avatar" width="80" height="80">
-                    {% else %}
+                    {% elif a.is_primary %}
                     <picture>
                         <source srcset="{% static 'portfolio/images/hero-avatar.webp' %}" type="image/webp">
                         <img src="{% static 'portfolio/images/hero-avatar.jpg' %}" alt="{{ a.name }}" class="explainer-author-avatar site-avatar-id" width="80" height="80">
                     </picture>
+                    {% else %}
+                    <span class="explainer-author-avatar byline-avatar-initial" aria-hidden="true">{{ a.name|slice:":1"|upper }}</span>
                     {% endif %}
                     <div>
                         {% if a.homepage_url %}<a href="{{ a.homepage_url }}" class="explainer-author-name">{{ a.name }}</a>{% else %}<span class="explainer-author-name">{{ a.name }}</span>{% endif %}
@@ -244,11 +246,13 @@ If a post has an explicit cover (post.image), that takes precedence.
             <div class="flex items-center gap-3">
                 {% if a.avatar_url %}
                 <img src="{{ a.avatar_url }}" alt="{{ a.name }}" class="w-10 h-10 rounded-full object-cover border border-border" width="40" height="40">
-                {% else %}
+                {% elif a.is_primary %}
                 <picture>
                     <source srcset="{% static 'portfolio/images/hero-avatar.webp' %}" type="image/webp">
                     <img src="{% static 'portfolio/images/hero-avatar.jpg' %}" alt="{{ a.name }}" class="w-10 h-10 rounded-full object-cover border border-border site-avatar-id" width="40" height="40">
                 </picture>
+                {% else %}
+                <span class="w-10 h-10 rounded-full border border-border byline-avatar-initial" aria-hidden="true">{{ a.name|slice:":1"|upper }}</span>
                 {% endif %}
                 <div>
                     {% if a.homepage_url %}<a href="{{ a.homepage_url }}" class="text-sm font-medium text-content hover:text-accent transition-colors">{{ a.name }}</a>{% else %}<span class="text-sm font-medium text-content">{{ a.name }}</span>{% endif %}

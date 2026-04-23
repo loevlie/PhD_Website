@@ -58,6 +58,24 @@ def _content_deleted(sender, **kwargs):
 
 
 @receiver(post_save, sender=Post)
+def _ensure_owner_in_byline(sender, instance, created, raw=False, **kwargs):
+    """On NEW post creation, auto-add the site owner (first superuser)
+    as a PostCollaborator at order=1 so the admin sees themselves in
+    the byline-ordering inline — not just guest collaborators. Runs
+    only on `created` so manual removals on an existing post stick."""
+    if raw or not created:
+        return
+    from django.contrib.auth.models import User
+    from portfolio.models import PostCollaborator
+    owner = User.objects.filter(is_superuser=True).order_by('id').first()
+    if owner is None:
+        return
+    PostCollaborator.objects.get_or_create(
+        post=instance, user=owner, defaults={'order': 1},
+    )
+
+
+@receiver(post_save, sender=Post)
 def _post_saved(sender, instance, raw=False, update_fields=None, **kwargs):
     invalidate_post_cache()
     # Skip render in three cases:
