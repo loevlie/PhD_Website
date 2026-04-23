@@ -410,42 +410,78 @@ _FOOTNOTE_BLOCK_RE = re.compile(
 
 
 def _transform_footnotes_to_sidenotes(html):
-    """For explainer posts: pull footnote bodies out of the bottom <div class="footnote">
-    block and inline each one as <aside class="sidenote"> right after its marker.
+    """For explainer posts: pull footnote bodies out of the bottom
+    <div class="footnote"> block and append each one as a
+    `<span class="sidenote">` at the END of the paragraph that
+    contains the marker.
 
-    Standard markdown footnote markup (rendered by python-markdown's `footnotes`
-    extension) becomes Tufte-style margin notes that float into the right gutter
-    on wide viewports (CSS in blog.css handles positioning)."""
-    # Collect {slug: inner_html} from the footnote list.
+    Why end-of-paragraph, not immediately after the marker:
+    - On narrow viewports the span renders `display: block`, so an
+      inline-after-the-sup placement visually "cuts off" the rest of
+      the sentence — the sidenote appears between the marker and
+      the remaining words.
+    - On wide viewports CSS floats the span into the right margin,
+      and a paragraph-end placement lets the full sentence flow
+      without the floated element splitting it.
+
+    Standard markdown footnote markup (rendered by python-markdown's
+    `footnotes` extension) becomes Tufte-style margin notes."""
     notes = {slug: body.strip() for slug, body in _FOOTNOTE_LI_RE.findall(html)}
     if not notes:
         return html
 
-    # Replace each in-text marker with marker + adjacent <aside class="sidenote">.
-    def insert_aside(m):
-        sup_html, slug, num = m.group(1), m.group(2), m.group(3)
-        body = notes.get(slug, '')
-        if not body:
-            return sup_html
-        # `<span>` (not `<aside>`) is intentional: the browser auto-closes
-        # a `<p>` when it encounters a block-level element inside, which
-        # splits the surrounding sentence onto a new line visually. A
-        # span stays inline in the DOM even though CSS paints it as a
-        # floated margin note, preserving the "…text continues after the
-        # superscript…" reading flow the author writes.
-        return (
-            f'{sup_html}'
-            f'<span class="sidenote sidenote-{slug}">'
-            f'<span class="sidenote-num">{num}.</span> {body}'
-            f'</span>'
-        )
-    html = _FOOTNOTE_SUP_RE.sub(insert_aside, html)
-
-    # Strip the now-redundant bottom-of-page footnote block. CSS also hides
-    # it (.is-explainer .blog-prose .footnote { display: none }) as a belt-
-    # and-braces fallback in case this regex misses an edge case.
+    # Strip the bottom-of-page footnote block — we're relocating the
+    # bodies into their paragraphs.
     html = _FOOTNOTE_BLOCK_RE.sub('', html)
-    return html
+
+    try:
+        from bs4 import BeautifulSoup
+    except ImportError:
+        # Fallback to the original after-marker placement. Rare path
+        # — production installs bs4. Keeps render working if the dep
+        # goes missing.
+        def insert_inline(m):
+            sup_html, slug, num = m.group(1), m.group(2), m.group(3)
+            body = notes.get(slug, '')
+            if not body:
+                return sup_html
+            return (
+                f'{sup_html}'
+                f'<span class="sidenote sidenote-{slug}">'
+                f'<span class="sidenote-num">{num}.</span> {body}'
+                f'</span>'
+            )
+        return _FOOTNOTE_SUP_RE.sub(insert_inline, html)
+
+    soup = BeautifulSoup(html, 'html.parser')
+    for sup in soup.select('sup[id^="fnref:"]'):
+        slug = sup.get('id', '')[len('fnref:'):]
+        body = notes.get(slug)
+        if not body:
+            continue
+        # Pick the nearest block-level ancestor. Paragraph is the
+        # common case; <li> / <blockquote> also carry footnotes.
+        block = sup.find_parent(['p', 'li', 'blockquote'])
+        if block is None:
+            block = sup.parent
+        # Keep the visible number text from the sup's <a> for parity
+        # with the legacy regex output.
+        num_text = (sup.a.get_text(strip=True) if sup.a else '1') or '1'
+        sn = soup.new_tag('span')
+        sn['class'] = ['sidenote', f'sidenote-{slug}']
+        num_span = soup.new_tag('span', attrs={'class': 'sidenote-num'})
+        num_span.string = f'{num_text}.'
+        sn.append(num_span)
+        sn.append(' ')
+        # Footnote bodies come back as inner HTML; parse and append
+        # child nodes so `<a>`, `<em>`, etc. inside the body stay
+        # rendered rather than HTML-escaped.
+        body_frag = BeautifulSoup(body, 'html.parser')
+        for child in list(body_frag.contents):
+            sn.append(child)
+        block.append(sn)
+
+    return str(soup)
 
 
 # NOTE: demo-embed logic moved to portfolio/blog/embeds/demo.py, and
