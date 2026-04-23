@@ -90,10 +90,14 @@
     /* ===== Tier 1: native Popover + interestfor ============================ */
 
     function supportsInterestFor() {
-        // `interestfor` is a button attribute that triggers popover on hover/focus.
-        // Detect it via `interestForElement` IDL on HTMLButtonElement.
-        return 'interestForElement' in HTMLButtonElement.prototype
-            || 'interestFor' in HTMLButtonElement.prototype;
+        // The native `interestfor` + `popover="hint"` combination
+        // dismisses the popover when "interest stops" — which in
+        // current Chromium means the popover vanishes before the
+        // user can reach the Open / Copy BibTeX buttons. The JS
+        // fallback has keep-alive-on-hover for the popover itself
+        // and is more reliable across browsers; disable the native
+        // path until the spec's interactive-hint story settles.
+        return false;
     }
 
     function upgradeNative(refs, manifest) {
@@ -156,8 +160,28 @@
     function attachJsFallback(refs, manifest) {
         let active = null;
         let activeAnchor = null;
+        let hideTimer = null;
+
+        function cancelHide() {
+            if (hideTimer) { clearTimeout(hideTimer); hideTimer = null; }
+        }
+
+        // Dismiss only when neither the trigger nor the popover is
+        // hovered. The grace window lets the user traverse the ~8px
+        // gap between the two without the popover vanishing mid-reach
+        // — the original "goes away before I can click Open" bug.
+        function scheduleHide() {
+            cancelHide();
+            hideTimer = setTimeout(() => {
+                if (!active) return;
+                const popHovered = active.matches(':hover');
+                const anchorHovered = activeAnchor && activeAnchor.matches(':hover');
+                if (!popHovered && !anchorHovered) hide();
+            }, 250);
+        }
 
         function hide() {
+            cancelHide();
             if (!active) return;
             active.classList.remove('is-visible');
             setTimeout(() => active && active.remove(), 150);
@@ -175,17 +199,19 @@
             requestAnimationFrame(() => pop.classList.add('is-visible'));
             active = pop;
             activeAnchor = anchor;
+            // Keep-alive on popover hover so the user can reach the
+            // Open / Copy BibTeX controls without the hide timer firing.
+            pop.addEventListener('mouseenter', cancelHide);
+            pop.addEventListener('mouseleave', scheduleHide);
         }
 
         refs.forEach(ref => {
             ref.setAttribute('tabindex', '0');
             ref.setAttribute('aria-label',
                 'Citation ' + (ref.getAttribute('data-key') || '') + '. Press Enter to open.');
-            ref.addEventListener('mouseenter', () => show(ref));
-            ref.addEventListener('focus', () => show(ref));
-            ref.addEventListener('mouseleave', () => {
-                setTimeout(() => { if (active && !active.matches(':hover')) hide(); }, 150);
-            });
+            ref.addEventListener('mouseenter', () => { cancelHide(); show(ref); });
+            ref.addEventListener('focus', () => { cancelHide(); show(ref); });
+            ref.addEventListener('mouseleave', scheduleHide);
             ref.addEventListener('blur', hide);
             ref.addEventListener('click', (e) => {
                 e.preventDefault();

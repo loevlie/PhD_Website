@@ -24,6 +24,34 @@ def _citation_id(post):
     return f'loevlie{year}{first_word or post["slug"].replace("-", "")[:12]}'
 
 
+def _name_to_bibtex(name):
+    """Convert a display name ("Alice Young") to BibTeX author form
+    ("Young, Alice"). Names already containing a comma are returned
+    unchanged on the assumption they're pre-formatted."""
+    name = (name or '').strip()
+    if not name or ',' in name:
+        return name
+    parts = name.split()
+    if len(parts) == 1:
+        return parts[0]
+    last = parts[-1]
+    first = ' '.join(parts[:-1])
+    return f'{last}, {first}'
+
+
+def bibtex_author_field(post):
+    """Build the BibTeX `author = {…}` value from a post's byline, in
+    the author order set by the admin (PostCollaborator.order). Falls
+    back to the legacy `post.author` CharField when byline_authors
+    isn't populated (file-based posts, list views)."""
+    byline = post.get('byline_authors') or []
+    names = [a.get('name', '') for a in byline if a.get('name')]
+    if not names:
+        legacy = post.get('author') or 'Dennis Loevlie'
+        names = [legacy]
+    return ' and '.join(_name_to_bibtex(n) for n in names)
+
+
 def blog_cite_bib(request, slug):
     """GET /blog/<slug>/cite.bib — return a BibTeX @misc entry for
     the post, so academic readers can cite it verbatim in a paper."""
@@ -35,7 +63,7 @@ def blog_cite_bib(request, slug):
     date_obj = post.get('date')
     year = date_obj.year if hasattr(date_obj, 'year') else ''
     month = date_obj.strftime('%b').lower() if hasattr(date_obj, 'strftime') else ''
-    author = post.get('author') or 'Dennis Loevlie'
+    author = bibtex_author_field(post)
     title = post['title']
     # Escape for BibTeX: curly-protect the title (stops
     # capitalization-folding by downstream processors).

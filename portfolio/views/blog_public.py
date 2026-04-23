@@ -264,12 +264,12 @@ def blog_post(request, slug):
     # so the template can render it without a second round-trip to
     # /blog/<slug>/cite.bib — that endpoint still exists for readers
     # who want the raw file.
-    from portfolio.views.authoring import _citation_id
+    from portfolio.views.authoring import _citation_id, bibtex_author_field
     cite_id = _citation_id(post)
     date_obj = post.get('date')
     year = date_obj.year if hasattr(date_obj, 'year') else ''
     month = date_obj.strftime('%b').lower() if hasattr(date_obj, 'strftime') else ''
-    author = post.get('author') or 'Dennis Loevlie'
+    author = bibtex_author_field(post)
     # Use the canonical URL (strip request-scheme quirks) so the cited
     # URL matches what's in production.
     canonical_url = f'{request.scheme}://{request.get_host()}/blog/{slug}/'
