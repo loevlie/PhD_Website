@@ -98,8 +98,8 @@ If a post has an explicit cover (post.image), that takes precedence.
         </a>
         <div class="flex items-center gap-2">
             <button type="button" class="save-for-later" data-reading-mode-toggle>Reading mode</button>
-            {% if user.is_staff %}
-            <a href="{% url 'blog_edit' post.slug %}" class="inline-flex items-center gap-1.5 text-xs text-content-muted hover:text-accent transition-colors border border-border rounded px-2 py-1 font-mono">
+            {% if can_edit_this_post %}
+            <a href="{% url 'blog_edit' post.slug %}" class="inline-flex items-center gap-1.5 text-xs text-content-muted hover:text-accent transition-colors border border-border rounded px-2 py-1 font-mono" title="Edit this post">
                 <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 20h9"/><path d="M16.5 3.5a2.121 2.121 0 0 1 3 3L7 19l-4 1 1-4L16.5 3.5z"/></svg>
                 edit
             </a>

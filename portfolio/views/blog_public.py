@@ -260,6 +260,22 @@ def blog_post(request, slug):
         '}'
     )
 
+    # Show the "edit" pill in the reader chrome for staff OR a
+    # collaborator on THIS post. Cheap M2M existence check; anon
+    # visitors hit neither branch.
+    can_edit_this_post = False
+    if request.user.is_authenticated:
+        if request.user.is_staff:
+            can_edit_this_post = True
+        else:
+            try:
+                from portfolio.models import Post as _Post
+                can_edit_this_post = _Post.objects.filter(
+                    slug=slug, collaborators=request.user,
+                ).exists()
+            except Exception:
+                can_edit_this_post = False
+
     return render(request, 'portfolio/blog_post.html', {
         'post': post,
         'series_posts': series_posts,
@@ -268,4 +284,5 @@ def blog_post(request, slug):
         'webmentions': webmentions,
         'bibtex': bibtex,
         'cite_id': cite_id,
+        'can_edit_this_post': can_edit_this_post,
     })
