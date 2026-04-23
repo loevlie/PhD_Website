@@ -185,20 +185,13 @@ def blog_autosave(request, slug):
     if not _can_edit(request, post=post):
         return JsonResponse({'ok': False, 'error': 'unauthorized'}, status=403)
 
-    # Tier-1 conflict detection. Autosave is silent in the happy path,
-    # but if a co-editor has saved newer content since this browser
-    # loaded, we MUST reject (409) rather than quietly clobber. Client
-    # surfaces a conflict banner + Reload/Overwrite actions.
-    server_version = _iso(post.modified_at)
-    client_version = (request.POST.get('base_version') or '').strip()
-    force = client_version == 'overwrite'
-    if not force and client_version and client_version != server_version:
-        return JsonResponse({
-            'ok': False,
-            'error': 'conflict',
-            'server_version': server_version,
-            'server_title': post.title,
-        }, status=409)
+    # Conflict detection intentionally OMITTED on autosave. Autosave
+    # fires every ~1.5s and even a single editor tripped false-positive
+    # conflicts (microsecond-precision modified_at round-trips,
+    # beforeunload beacons with stale base_version, etc.). The explicit
+    # Save path still checks (see blog_edit), which is where
+    # conflict-detection actually has teeth — autosave is a best-effort
+    # safety net, not a place to block work.
 
     try:
         _apply_post_fields(post, request.POST)

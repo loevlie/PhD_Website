@@ -680,10 +680,6 @@ html.editing main { padding-top: 0 !important; margin: 0 !important; }
 {% block content %}
 <form class="editor-shell" id="editor-form" method="post" action="{% url 'blog_edit' post.slug %}">
     {% csrf_token %}
-    {# Optimistic-concurrency token. Echoed on every save / autosave;
-       server 409s if it's behind the post's current modified_at. The
-       hidden "overwrite" companion starts empty and flips to the
-       sentinel 'overwrite' when the conflict dialog's "Use mine" wins. #}
     <input type="hidden" name="base_version" id="editor-base-version" value="{{ base_version }}">
 
     {% if conflict %}
@@ -879,12 +875,6 @@ html.editing main { padding-top: 0 !important; margin: 0 !important; }
                 <label><input type="checkbox" name="draft" {% if post.draft %}checked{% endif %}> Draft (hidden from listings)</label>
             </div>
 
-            {# Notation glossary — per-post; rendered via an empty
-               <div data-notation></div> marker in the body when any
-               entries are set. Each row: term (text or LaTeX) +
-               definition. A hidden JSON field carries the
-               serialised list on submit so one POST handles the
-               whole array. #}
             <div class="fm-field fm-notation">
                 <label class="fm-notation-label">
                     Notation glossary
@@ -1131,13 +1121,7 @@ html.editing main { padding-top: 0 !important; margin: 0 !important; }
         } catch (e) { /* quota or private mode — ignore */ }
     }
 
-    // When true, autosave stops firing — set after a 409 conflict so
-    // we don't machine-gun the server with known-stale saves. The
-    // banner + Save button are what the author uses to resolve.
-    let autosavePaused = false;
-
     async function autosaveNow() {
-        if (autosavePaused) return;
         if (autosaveInflight) {
             scheduleAutosave();
             return;
@@ -1149,20 +1133,12 @@ html.editing main { padding-top: 0 !important; margin: 0 !important; }
             const r = await fetch('{% url "blog_autosave" post.slug %}', {
                 method: 'POST', body: fd, credentials: 'same-origin',
             });
-            if (r.status === 409) {
-                // Co-editor saved newer content since we loaded.
-                autosavePaused = true;
-                const data = await r.json().catch(() => ({}));
-                showConflictToast(data);
-                markError('conflict');
-                return;
-            }
             const data = await r.json();
             if (data.ok) {
                 markSaved(data.saved_at);
                 try { localStorage.removeItem('editor-draft:' + slug); } catch (e) {}
-                // Roll base_version forward so the next autosave doesn't
-                // conflict against our own prior save.
+                // Roll base_version forward so a subsequent explicit
+                // Save doesn't wrongly 409 against our own prior save.
                 const bv = document.getElementById('editor-base-version');
                 if (bv && data.base_version) bv.value = data.base_version;
             } else {
@@ -1173,32 +1149,6 @@ html.editing main { padding-top: 0 !important; margin: 0 !important; }
         } finally {
             autosaveInflight = false;
         }
-    }
-
-    function showConflictToast(data) {
-        const who = (data && data.server_title) ? ('"' + data.server_title + '"') : 'this post';
-        showToast('Conflict: someone else saved ' + who + ' while you were editing.', {
-            label: 'Resolve',
-            onClick: function () {
-                // Two clear paths. "Reload" discards local edits (server
-                // wins); "Overwrite" resubmits with a sentinel so the
-                // server accepts our version despite the stale base.
-                const choice = window.confirm(
-                    'Choose how to resolve:\n\n' +
-                    '  OK  = Overwrite (discard their changes, save yours)\n' +
-                    '  Cancel = Reload (discard your changes, see theirs)'
-                );
-                if (choice) {
-                    const bv = document.getElementById('editor-base-version');
-                    if (bv) bv.value = 'overwrite';
-                    autosavePaused = false;
-                    autosaveNow();
-                } else {
-                    window.location.reload();
-                }
-            },
-            duration: 30000,
-        });
     }
 
     // Save before unload if dirty (synchronous beacon)
@@ -1583,16 +1533,19 @@ html.editing main { padding-top: 0 !important; margin: 0 !important; }
     function scrollPreviewToSlug(slugN) {
         const pane = document.getElementById('editor-preview-content');
         if (!pane) return;
-        const deadline = Date.now() + 2200;
+        const deadline = Date.now() + 2500;
         function tick() {
-            // Python-Markdown emits `<sup id="fnref:slug">` for footnote
-            // references; the sidenote transform preserves the id on the
-            // first ref. Either variant reaches the same target.
-            const el = pane.querySelector('[id$="' + slugN + '"]');
+            // Prefer the sidenote aside (big target on explainer posts);
+            // fall back to the numeric sup reference on standard posts.
+            // Python-Markdown emits ids with a `fn:`/`fnref:` prefix,
+            // plus our transform stamps `sidenote-<slug>` on the aside.
+            const el = pane.querySelector('.sidenote-' + slugN)
+                    || pane.querySelector('[id="fnref:' + slugN + '"]')
+                    || pane.querySelector('[id$="' + slugN + '"]');
             if (el) {
                 el.scrollIntoView({ block: 'center', behavior: 'smooth' });
                 el.classList.add('editor-flash');
-                setTimeout(function () { el.classList.remove('editor-flash'); }, 1600);
+                setTimeout(function () { el.classList.remove('editor-flash'); }, 1800);
                 return;
             }
             if (Date.now() < deadline) setTimeout(tick, 120);
@@ -1669,38 +1622,32 @@ html.editing main { padding-top: 0 !important; margin: 0 !important; }
             const slugN = nextNoteSlug();
             const tag = '[^' + slugN + ']';
 
-            // Figure out the paragraph the caret was in (or the next
-            // paragraph if the caret was in whitespace between two).
-            // This is computed BEFORE the tag is inserted so the
-            // boundaries are unambiguous.
+            // Paragraph the caret was in (or the next paragraph if it
+            // was in whitespace). Computed BEFORE insertion so splice
+            // points stay unambiguous.
             const [paraStart, paraEnd] = paragraphBoundsOf(pinnedStart);
-
-            // 1) Insert the tag. If the caret landed inside the
-            //    paragraph, keep the intended position; if it was in
-            //    whitespace, put the tag at the END of the preceding
-            //    paragraph instead of mid-gap (where it'd look orphaned).
             const tagInsertAt = (pinnedStart >= paraStart && pinnedStart <= paraEnd)
                 ? pinnedStart
-                : Math.max(paraStart, paraEnd);  // fall through to end
-            body.value = body.value.slice(0, tagInsertAt) + tag + body.value.slice(tagInsertAt);
+                : paraStart;   // fall through to START of next paragraph
+
+            // Using execCommand('insertText') preserves the native
+            // textarea undo history — a raw `body.value = …` would
+            // silently wipe it, so Cmd+Z couldn't roll back the insert.
+            // Deprecated but still the only portable way to mutate a
+            // textarea with undo intact.
+            body.focus();
+            body.setSelectionRange(tagInsertAt, tagInsertAt);
+            document.execCommand('insertText', false, tag);
             const tagEnd = tagInsertAt + tag.length;
 
-            // 2) Splice the definition one blank line past the END of
-            //    the paragraph that now holds the tag. Accounts for
-            //    the tag's length shifting the paragraph's end.
-            const newParaEnd = paraEnd + tag.length;
+            const defInsertAt = paraEnd + tag.length;
             const defLine = '\n\n' + tag + ': ' + text + '\n';
-            body.value = body.value.slice(0, newParaEnd) + defLine + body.value.slice(newParaEnd);
+            body.setSelectionRange(defInsertAt, defInsertAt);
+            document.execCommand('insertText', false, defLine);
 
-            // 3) Caret lands right after the tag so the author can
-            //    keep writing prose.
-            body.focus();
             body.setSelectionRange(tagEnd, tagEnd);
-            body.dispatchEvent(new Event('input', { bubbles: true }));
 
-            // 4) Toast with jump-to-definition. Offsets match the
-            //    splice above: skip "\n\n[^slug]: " to land on the text.
-            const defTextStart = newParaEnd + 2 + tag.length + 2;
+            const defTextStart = defInsertAt + 2 + tag.length + 2;  // after "\n\n[^X]: "
             const defTextEnd = defTextStart + text.length;
             setTimeout(function () {
                 showToast('Sidenote added — definition sits one line below this paragraph.', {
@@ -1711,9 +1658,6 @@ html.editing main { padding-top: 0 !important; margin: 0 !important; }
                         body.blur(); body.focus();
                     }
                 });
-                // Also try to scroll the preview pane to the freshly
-                // rendered footnote marker so the author visually
-                // confirms the insert worked.
                 scrollPreviewToSlug(slugN);
             }, 30);
             cleanup();
