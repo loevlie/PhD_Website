@@ -149,6 +149,19 @@ html.editing main { padding-top: 0 !important; margin: 0 !important; }
 }
 .editor-conflict-actions a:hover { border-color: var(--ctp-peach, #fab387); color: var(--ctp-peach, #fab387); }
 
+/* Brief attention-flash used by scrollPreviewToSlug — so the author
+ * sees exactly where the new sidenote landed in the rendered preview. */
+@keyframes editor-flash-glow {
+    0%   { background: color-mix(in srgb, var(--ctp-lavender, #7287fd) 55%, transparent); }
+    100% { background: transparent; }
+}
+.editor-flash {
+    animation: editor-flash-glow 1.4s ease-out;
+    border-radius: 4px;
+    outline: 2px solid var(--ctp-lavender, #7287fd);
+    outline-offset: 2px;
+}
+
 /* Notation glossary manager in the Details drawer. */
 .fm-notation-label {
     display: flex; flex-direction: column; gap: 3px;
@@ -1562,25 +1575,68 @@ html.editing main { padding-top: 0 !important; margin: 0 !important; }
     //      end of the *current paragraph* — proximity beats burying it
     //      at EOF where it used to go.
     //   4. Toast confirms with a "Jump to definition" link as insurance.
+    // Scroll the preview pane to the rendered footnote marker for a
+    // newly-inserted slug. The preview renders async after the input
+    // event, so we poll briefly then scroll when the marker appears.
+    // Best-effort — silently gives up after ~2s if the preview still
+    // hasn't rendered the new reference.
+    function scrollPreviewToSlug(slugN) {
+        const pane = document.getElementById('editor-preview-content');
+        if (!pane) return;
+        const deadline = Date.now() + 2200;
+        function tick() {
+            // Python-Markdown emits `<sup id="fnref:slug">` for footnote
+            // references; the sidenote transform preserves the id on the
+            // first ref. Either variant reaches the same target.
+            const el = pane.querySelector('[id$="' + slugN + '"]');
+            if (el) {
+                el.scrollIntoView({ block: 'center', behavior: 'smooth' });
+                el.classList.add('editor-flash');
+                setTimeout(function () { el.classList.remove('editor-flash'); }, 1600);
+                return;
+            }
+            if (Date.now() < deadline) setTimeout(tick, 120);
+        }
+        tick();
+    }
+
     function nextNoteSlug() {
+        // Collision-proof slug. The old scheme (`note-1`, `note-2`, …)
+        // looked tidy but broke when the author repeatedly tested
+        // /sidenote: nextNoteSlug would pick a number already in use
+        // by an earlier footnote that it was filtering past, and the
+        // new def would silently shadow the old one at render time.
+        // A 6-char base36 suffix (~60M keyspace) makes collision
+        // astronomically unlikely across a single post.
         const used = new Set();
         const re = /\[\^([a-z0-9-]+)\]/g;
         let m;
         while ((m = re.exec(body.value)) !== null) used.add(m[1]);
-        let n = 1;
-        while (used.has('note-' + n)) n++;
-        return 'note-' + n;
+        for (let attempts = 0; attempts < 8; attempts++) {
+            const slug = 'note-' + Math.random().toString(36).slice(2, 8);
+            if (!used.has(slug)) return slug;
+        }
+        return 'note-' + Date.now().toString(36);   // fallback
     }
 
-    function endOfCurrentParagraph(pos) {
-        // A paragraph ends at the next blank line (two consecutive
-        // newlines) or the end of the document. Return the offset of
-        // that blank line's first newline.
+    function paragraphBoundsOf(pos) {
+        // Return [start, end] of the paragraph containing `pos` in the
+        // current body.value. A paragraph boundary is a blank line
+        // (two consecutive newlines). If `pos` itself is inside a
+        // blank region, attach it to the NEXT paragraph — that's where
+        // a /sidenote called in whitespace should land.
         const text = body.value;
-        // Skip forward to end of current paragraph.
-        const rest = text.slice(pos);
-        const m = rest.match(/\n\n/);
-        return m ? pos + m.index : text.length;
+        // Look backward for the nearest `\n\n` (or BOF).
+        const before = text.slice(0, pos);
+        const backIdx = before.lastIndexOf('\n\n');
+        let start = backIdx === -1 ? 0 : backIdx + 2;
+        // If we're sitting in a run of blank newlines, skip them.
+        while (start < text.length && text[start] === '\n') start++;
+        // Forward to the nearest `\n\n` (or EOF).
+        const rest = text.slice(start);
+        const fwd = rest.match(/\n\n/);
+        const end = fwd ? start + fwd.index : text.length;
+        return [start, end];
     }
 
     function openSidenotePicker() {
@@ -1613,32 +1669,41 @@ html.editing main { padding-top: 0 !important; margin: 0 !important; }
             const slugN = nextNoteSlug();
             const tag = '[^' + slugN + ']';
 
-            // 1) Insert tag at the cursor.
-            const tagStart = pinnedStart;
-            const tagEnd = tagStart + tag.length;
-            body.value = body.value.slice(0, pinnedStart) + tag + body.value.slice(pinnedEnd);
+            // Figure out the paragraph the caret was in (or the next
+            // paragraph if the caret was in whitespace between two).
+            // This is computed BEFORE the tag is inserted so the
+            // boundaries are unambiguous.
+            const [paraStart, paraEnd] = paragraphBoundsOf(pinnedStart);
 
-            // 2) Splice definition one line past the end of the
-            //    current paragraph (found relative to the now-shifted
-            //    body). Offset everything after the paragraph boundary
-            //    by the tag's length since we just inserted it.
-            const paraEnd = endOfCurrentParagraph(tagEnd);
+            // 1) Insert the tag. If the caret landed inside the
+            //    paragraph, keep the intended position; if it was in
+            //    whitespace, put the tag at the END of the preceding
+            //    paragraph instead of mid-gap (where it'd look orphaned).
+            const tagInsertAt = (pinnedStart >= paraStart && pinnedStart <= paraEnd)
+                ? pinnedStart
+                : Math.max(paraStart, paraEnd);  // fall through to end
+            body.value = body.value.slice(0, tagInsertAt) + tag + body.value.slice(tagInsertAt);
+            const tagEnd = tagInsertAt + tag.length;
+
+            // 2) Splice the definition one blank line past the END of
+            //    the paragraph that now holds the tag. Accounts for
+            //    the tag's length shifting the paragraph's end.
+            const newParaEnd = paraEnd + tag.length;
             const defLine = '\n\n' + tag + ': ' + text + '\n';
-            body.value = body.value.slice(0, paraEnd) + defLine + body.value.slice(paraEnd);
+            body.value = body.value.slice(0, newParaEnd) + defLine + body.value.slice(newParaEnd);
 
             // 3) Caret lands right after the tag so the author can
-            //    keep typing the surrounding prose.
+            //    keep writing prose.
             body.focus();
             body.setSelectionRange(tagEnd, tagEnd);
             body.dispatchEvent(new Event('input', { bubbles: true }));
 
-            // 4) Toast with jump-to-definition. The def starts at
-            //    paraEnd + 2 (we prepended "\n\n"); selecting the text
-            //    span lets Ctrl-A or overtype feel natural.
-            const defTextStart = paraEnd + 2 + tag.length + 2;  // after "\n\n[^X]: "
+            // 4) Toast with jump-to-definition. Offsets match the
+            //    splice above: skip "\n\n[^slug]: " to land on the text.
+            const defTextStart = newParaEnd + 2 + tag.length + 2;
             const defTextEnd = defTextStart + text.length;
             setTimeout(function () {
-                showToast('Sidenote ' + slugN + ' added — definition sits just below this paragraph.', {
+                showToast('Sidenote added — definition sits one line below this paragraph.', {
                     label: 'Jump to definition',
                     onClick: function () {
                         body.focus();
@@ -1646,6 +1711,10 @@ html.editing main { padding-top: 0 !important; margin: 0 !important; }
                         body.blur(); body.focus();
                     }
                 });
+                // Also try to scroll the preview pane to the freshly
+                // rendered footnote marker so the author visually
+                // confirms the insert worked.
+                scrollPreviewToSlug(slugN);
             }, 30);
             cleanup();
         }
