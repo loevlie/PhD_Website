@@ -450,6 +450,29 @@ html.editing main { padding-top: 0 !important; margin: 0 !important; }
 .editor-preview .blog-prose blockquote { border-left: 3px solid var(--ctp-lavender, #7287fd); padding-left: 16px; color: var(--ctp-subtext1, #bac2de); margin: 16px 0; }
 .editor-preview .blog-prose a { color: var(--ctp-lavender, #7287fd); }
 .editor-preview .preview-loading { color: var(--ctp-overlay0, #6c7086); font-style: italic; }
+/* Sidenote inside the editor preview — the preview pane is narrow and
+ * has no wide right margin for the note to float into, so the floated
+ * version gets clipped at the right edge. Render inline-below-the-
+ * paragraph in the preview instead; reader-side CSS still floats it
+ * on wide viewports. */
+.editor-preview .blog-prose .sidenote {
+    float: none !important;
+    clear: none !important;
+    width: auto !important;
+    margin: 0.4rem 0 0.9rem !important;
+    padding-left: 0.75rem;
+    border-left: 2px solid color-mix(in oklch, var(--ctp-lavender, #7287fd) 30%, transparent);
+    font-size: 0.8125rem;
+    font-style: italic;
+    display: block;
+    color: var(--ctp-subtext1, #bac2de);
+}
+.editor-preview .blog-prose .sidenote-num {
+    color: var(--ctp-lavender, #c6a0f6);
+    font-weight: 600;
+    font-style: normal;
+    margin-right: 0.35em;
+}
 
 /* Compact placeholder chrome for heavy markers (demo / arxiv / github /
  * wiki / pyfig) that the server skips during preview renders. */

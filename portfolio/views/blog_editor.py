@@ -533,8 +533,12 @@ _POST_TEMPLATES = {
 
 def blog_new(request):
     """Create a new draft post and redirect to its editor.
-    GET without ?template=: show the template-picker page.
-    GET with ?template=<key>: create a draft from that template.
+
+    GET (with or without ?template=<key>): show the template picker.
+    POST with template=<key>: create a draft and redirect to its
+    editor. POST-only creation is intentional — a GET endpoint that
+    creates a resource would spawn a duplicate draft on every browser
+    refresh, back-navigation, or link prefetch.
 
     Access: staff by default. Non-staff users need the explicit
     `portfolio.add_post` permission (granted in /admin/ on the user
@@ -545,7 +549,13 @@ def blog_new(request):
     if not _can_create_post(request):
         return _staff_redirect(request, '/blog/new/')
 
-    template_key = request.GET.get('template')
+    # Creation only happens on POST.
+    if request.method != 'POST':
+        return render(request, 'portfolio/blog_new.html', {
+            'templates': [(k, v) for k, v in _POST_TEMPLATES.items()],
+        })
+
+    template_key = request.POST.get('template')
     if template_key not in _POST_TEMPLATES:
         return render(request, 'portfolio/blog_new.html', {
             'templates': [(k, v) for k, v in _POST_TEMPLATES.items()],
@@ -554,13 +564,13 @@ def blog_new(request):
     tmpl = _POST_TEMPLATES[template_key]
     from portfolio.models import Post
     body = tmpl['body']
-    base_title = request.GET.get('title') or tmpl['title']
+    base_title = request.POST.get('title') or tmpl['title']
 
     # For the `demo` template, a ?demo=<slug> param pre-fills the title
     # and the data-demo marker from the chosen DEMOS entry so the
     # resulting post renders the live widget out of the box.
     if template_key == 'demo':
-        demo_slug = (request.GET.get('demo') or '').strip()
+        demo_slug = (request.POST.get('demo') or '').strip()
         if demo_slug:
             from portfolio.content.demos import DEMOS
             demo = next((d for d in DEMOS if d['slug'] == demo_slug), None)
@@ -580,7 +590,7 @@ def blog_new(request):
 
     # For the `arxiv` template, a ?arxiv=<id> param pre-fills title + marker.
     if template_key == 'arxiv':
-        arxiv_id = (request.GET.get('arxiv') or '').strip()
+        arxiv_id = (request.POST.get('arxiv') or '').strip()
         if arxiv_id:
             try:
                 from portfolio.blog.embeds.arxiv import _fetch as fetch_arxiv
@@ -588,7 +598,7 @@ def blog_new(request):
             except Exception:
                 meta = None
             paper_title = meta['title'] if meta else f'arXiv:{arxiv_id}'
-            base_title = request.GET.get('title') or f'Paper companion: {paper_title}'
+            base_title = request.POST.get('title') or f'Paper companion: {paper_title}'
             body = (
                 f'# Paper companion: {paper_title}\n\n'
                 f'<div data-arxiv="{arxiv_id}"></div>\n\n'

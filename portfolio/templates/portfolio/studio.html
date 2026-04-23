@@ -45,12 +45,19 @@
                     <p class="studio-card-desc">Long-form essay for /blog/. Opens the template picker.</p>
                     <div class="studio-card-meta">{{ counts.essays }} published · {{ counts.essay_drafts }} draft{{ counts.essay_drafts|pluralize }}</div>
                 </a>
-                <a class="studio-card" href="/blog/new/?template=lab_note">
-                    <div class="studio-card-icon">🧪</div>
-                    <h3 class="studio-card-title">New lab note</h3>
-                    <p class="studio-card-desc">Dated, status-tagged entry for /notebook/.</p>
-                    <div class="studio-card-meta">{{ counts.lab_notes }} published · {{ counts.lab_note_drafts }} draft{{ counts.lab_note_drafts|pluralize }}</div>
-                </a>
+                {# Creating a new draft has side effects — use POST so
+                   a browser back-navigation or prefetch can't spawn a
+                   duplicate untitled draft. The button is styled to
+                   match the adjacent <a> tiles. #}
+                <form method="post" action="/blog/new/" style="display:contents;">
+                    {% csrf_token %}
+                    <button type="submit" name="template" value="lab_note" class="studio-card studio-card--button">
+                        <div class="studio-card-icon">🧪</div>
+                        <h3 class="studio-card-title">New lab note</h3>
+                        <p class="studio-card-desc">Dated, status-tagged entry for /notebook/.</p>
+                        <div class="studio-card-meta">{{ counts.lab_notes }} published · {{ counts.lab_note_drafts }} draft{{ counts.lab_note_drafts|pluralize }}</div>
+                    </button>
+                </form>
                 <details class="studio-card studio-card--form">
                     <summary>
                         <div class="studio-card-icon">🎛️</div>
@@ -58,16 +65,18 @@
                         <p class="studio-card-desc">Essay that embeds a live demo. Pick the demo to pre-fill.</p>
                         <div class="studio-card-meta">{{ demos|length }} demo{{ demos|length|pluralize }} available</div>
                     </summary>
-                    <div class="studio-quickform">
+                    <form method="post" action="/blog/new/" class="studio-quickform">
+                        {% csrf_token %}
+                        <input type="hidden" name="template" value="demo">
                         {% for d in demos %}
-                        <a href="/blog/new/?template=demo&demo={{ d.slug }}" class="studio-btn studio-btn--ghost" style="justify-content:flex-start">
+                        <button type="submit" name="demo" value="{{ d.slug }}" class="studio-btn studio-btn--ghost" style="justify-content:flex-start">
                             {{ d.title }}
-                        </a>
+                        </button>
                         {% endfor %}
-                        <a href="/blog/new/?template=demo" class="studio-btn" style="justify-content:flex-start">
+                        <button type="submit" class="studio-btn" style="justify-content:flex-start">
                             Blank demo writeup (pick slug yourself)
-                        </a>
-                    </div>
+                        </button>
+                    </form>
                 </details>
                 <details class="studio-card studio-card--form">
                     <summary>

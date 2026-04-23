@@ -49,6 +49,11 @@
     text-decoration: none;
     color: inherit;
     transition: border-color 150ms ease, transform 150ms ease, background-color 150ms ease;
+    /* button reset — cards were <a> tags before */
+    font: inherit;
+    text-align: left;
+    width: 100%;
+    cursor: pointer;
 }
 .np-card:hover, .np-card:focus-visible {
     border-color: var(--ctp-lavender, #7287fd);
@@ -98,14 +103,15 @@
     <div class="np-eyebrow">New post</div>
     <h1 class="np-title">Choose a template</h1>
     <p class="np-lede">Each template prefills frontmatter (maturity, is_explainer, is_paper_companion) and a section scaffold matching its register.</p>
-    <div class="np-grid">
+    <form method="post" action="{% url 'blog_new' %}" class="np-grid">
+        {% csrf_token %}
         {% for key, t in templates %}
-        <a class="np-card" href="{% url 'blog_new' %}?template={{ key }}">
+        <button type="submit" name="template" value="{{ key }}" class="np-card">
             <h2 class="np-card-label">{{ t.label }}</h2>
             <p class="np-card-desc">{{ t.desc }}</p>
             <span class="np-card-key">{{ key }}</span>
-        </a>
+        </button>
         {% endfor %}
-    </div>
+    </form>
 </div>
 {% endblock %}
