@@ -33,8 +33,12 @@
     }
 
     function supportsInterestFor() {
-        return 'interestForElement' in HTMLButtonElement.prototype
-            || 'interestFor' in HTMLButtonElement.prototype;
+        // Disabled for the same reason as citations.js: the native
+        // `interestfor` + `popover="hint"` combination dismisses the
+        // popover as soon as interest ends, which can fire before the
+        // user reaches the content. Keep everyone on the JS fallback
+        // (with popover-hover keep-alive) until the spec settles.
+        return false;
     }
 
     function popoverContent(entry) {
@@ -85,7 +89,22 @@
 
     function attachJsFallback(spans, manifest) {
         let active = null, anchor = null;
+        let hideTimer = null;
+
+        function cancelHide() {
+            if (hideTimer) { clearTimeout(hideTimer); hideTimer = null; }
+        }
+        function scheduleHide() {
+            cancelHide();
+            hideTimer = setTimeout(() => {
+                if (!active) return;
+                const popHovered = active.matches(':hover');
+                const anchorHovered = anchor && anchor.matches(':hover');
+                if (!popHovered && !anchorHovered) hide();
+            }, 250);
+        }
         function hide() {
+            cancelHide();
             if (!active) return;
             active.classList.remove('is-visible');
             setTimeout(() => active && active.remove(), 150);
@@ -104,16 +123,18 @@
             pop.style.left = (window.scrollX + ar.left) + 'px';
             requestAnimationFrame(() => pop.classList.add('is-visible'));
             active = pop; anchor = el;
+            // Keep-alive on popover hover — lets the user reach any
+            // links / buttons inside without the hide timer firing.
+            pop.addEventListener('mouseenter', cancelHide);
+            pop.addEventListener('mouseleave', scheduleHide);
         }
         spans.forEach(span => {
             if (!resolveEntry(span, manifest)) return;
             span.classList.add('g-anchor');
             span.setAttribute('tabindex', '0');
-            span.addEventListener('mouseenter', () => show(span));
-            span.addEventListener('mouseleave', () => setTimeout(() => {
-                if (active && !active.matches(':hover')) hide();
-            }, 120));
-            span.addEventListener('focus', () => show(span));
+            span.addEventListener('mouseenter', () => { cancelHide(); show(span); });
+            span.addEventListener('mouseleave', scheduleHide);
+            span.addEventListener('focus', () => { cancelHide(); show(span); });
             span.addEventListener('blur', hide);
         });
         document.addEventListener('keydown', (e) => { if (e.key === 'Escape') hide(); });
