@@ -119,6 +119,36 @@ html.editing main { padding-top: 0 !important; margin: 0 !important; }
 }
 .editor-toast-action:hover { background: color-mix(in srgb, var(--ctp-lavender, #7287fd) 80%, white); }
 
+/* Conflict banner — shown when a hard save hits a stale base_version.
+ * Rendered above the editor-bar so the author can't miss it. */
+.editor-conflict-banner {
+    padding: 10px 16px;
+    background: color-mix(in srgb, var(--ctp-peach, #fab387) 14%, var(--ctp-mantle, #181825));
+    color: var(--ctp-text, #cdd6f4);
+    border-bottom: 1px solid var(--ctp-peach, #fab387);
+    font-size: 0.88rem;
+    font-family: 'Inter', system-ui, sans-serif;
+    display: flex; align-items: center; gap: 16px; flex-wrap: wrap;
+}
+.editor-conflict-banner strong { color: var(--ctp-peach, #fab387); }
+.editor-conflict-actions { display: inline-flex; gap: 10px; margin-left: auto; }
+.editor-conflict-actions button,
+.editor-conflict-actions a {
+    appearance: none;
+    padding: 5px 12px; font-size: 0.82rem; font-weight: 600;
+    background: var(--ctp-peach, #fab387);
+    color: var(--ctp-base, #1e1e2e);
+    border: 0; border-radius: 6px;
+    cursor: pointer; text-decoration: none;
+    font-family: inherit;
+}
+.editor-conflict-actions a {
+    background: transparent;
+    color: var(--ctp-text, #cdd6f4);
+    border: 1px solid var(--ctp-surface1, #45475a);
+}
+.editor-conflict-actions a:hover { border-color: var(--ctp-peach, #fab387); color: var(--ctp-peach, #fab387); }
+
 /* Notation glossary manager in the Details drawer. */
 .fm-notation-label {
     display: flex; flex-direction: column; gap: 3px;
@@ -637,6 +667,26 @@ html.editing main { padding-top: 0 !important; margin: 0 !important; }
 {% block content %}
 <form class="editor-shell" id="editor-form" method="post" action="{% url 'blog_edit' post.slug %}">
     {% csrf_token %}
+    {# Optimistic-concurrency token. Echoed on every save / autosave;
+       server 409s if it's behind the post's current modified_at. The
+       hidden "overwrite" companion starts empty and flips to the
+       sentinel 'overwrite' when the conflict dialog's "Use mine" wins. #}
+    <input type="hidden" name="base_version" id="editor-base-version" value="{{ base_version }}">
+
+    {% if conflict %}
+    <div class="editor-conflict-banner" role="alert">
+        <strong>Conflict detected.</strong>
+        A co-editor saved newer changes while you were editing. Your unsaved edits are preserved below; pick how to resolve:
+        <div class="editor-conflict-actions">
+            <button type="submit" name="base_version_override" value="overwrite"
+                    formaction="{% url 'blog_edit' post.slug %}"
+                    onclick="document.getElementById('editor-base-version').value='overwrite';">
+                Overwrite theirs
+            </button>
+            <a href="{% url 'blog_edit' post.slug %}">Reload (discard mine)</a>
+        </div>
+    </div>
+    {% endif %}
     <div class="editor-bar">
         <a href="{% url 'blog_post' post.slug %}" class="secondary" title="View live">←</a>
         <input type="text" name="title" class="title-input" value="{{ post.title }}" placeholder="Post title">
@@ -1068,9 +1118,14 @@ html.editing main { padding-top: 0 !important; margin: 0 !important; }
         } catch (e) { /* quota or private mode — ignore */ }
     }
 
+    // When true, autosave stops firing — set after a 409 conflict so
+    // we don't machine-gun the server with known-stale saves. The
+    // banner + Save button are what the author uses to resolve.
+    let autosavePaused = false;
+
     async function autosaveNow() {
+        if (autosavePaused) return;
         if (autosaveInflight) {
-            // Coalesce: re-schedule once the in-flight save returns.
             scheduleAutosave();
             return;
         }
@@ -1081,10 +1136,22 @@ html.editing main { padding-top: 0 !important; margin: 0 !important; }
             const r = await fetch('{% url "blog_autosave" post.slug %}', {
                 method: 'POST', body: fd, credentials: 'same-origin',
             });
+            if (r.status === 409) {
+                // Co-editor saved newer content since we loaded.
+                autosavePaused = true;
+                const data = await r.json().catch(() => ({}));
+                showConflictToast(data);
+                markError('conflict');
+                return;
+            }
             const data = await r.json();
             if (data.ok) {
                 markSaved(data.saved_at);
                 try { localStorage.removeItem('editor-draft:' + slug); } catch (e) {}
+                // Roll base_version forward so the next autosave doesn't
+                // conflict against our own prior save.
+                const bv = document.getElementById('editor-base-version');
+                if (bv && data.base_version) bv.value = data.base_version;
             } else {
                 markError(data.error || 'unknown');
             }
@@ -1093,6 +1160,32 @@ html.editing main { padding-top: 0 !important; margin: 0 !important; }
         } finally {
             autosaveInflight = false;
         }
+    }
+
+    function showConflictToast(data) {
+        const who = (data && data.server_title) ? ('"' + data.server_title + '"') : 'this post';
+        showToast('Conflict: someone else saved ' + who + ' while you were editing.', {
+            label: 'Resolve',
+            onClick: function () {
+                // Two clear paths. "Reload" discards local edits (server
+                // wins); "Overwrite" resubmits with a sentinel so the
+                // server accepts our version despite the stale base.
+                const choice = window.confirm(
+                    'Choose how to resolve:\n\n' +
+                    '  OK  = Overwrite (discard their changes, save yours)\n' +
+                    '  Cancel = Reload (discard your changes, see theirs)'
+                );
+                if (choice) {
+                    const bv = document.getElementById('editor-base-version');
+                    if (bv) bv.value = 'overwrite';
+                    autosavePaused = false;
+                    autosaveNow();
+                } else {
+                    window.location.reload();
+                }
+            },
+            duration: 30000,
+        });
     }
 
     // Save before unload if dirty (synchronous beacon)

@@ -110,6 +110,24 @@ def blog_edit(request, slug):
         return redirect(f'/accounts/login/?next=/blog/{slug}/edit/')
 
     if request.method == 'POST':
+        # Tier-1 conflict detection: compare the `base_version` the
+        # editor loaded against the post's current modified_at. If a
+        # co-editor has saved in between, render the editor with a
+        # conflict banner + the server-side body so the author can
+        # diff and decide. Explicit "overwrite" resubmits with
+        # base_version='overwrite' to bypass the check.
+        server_version = _iso(post.modified_at)
+        client_version = (request.POST.get('base_version') or '').strip()
+        force = client_version == 'overwrite'
+        if not force and client_version and client_version != server_version:
+            return render(request, 'portfolio/blog_edit.html', _edit_context(
+                post, tag_csv=', '.join(t.name for t in post.tags.all()),
+                conflict={
+                    'server_version': server_version,
+                    'your_body': request.POST.get('body', ''),
+                    'your_title': request.POST.get('title', ''),
+                },
+            ))
         _apply_post_fields(post, request.POST)
         post.save()
         if request.POST.get('tags') is not None:
@@ -120,17 +138,35 @@ def blog_edit(request, slug):
             return redirect('blog_post', slug=post.slug)
         return redirect('blog_edit', slug=post.slug)
 
+    return render(request, 'portfolio/blog_edit.html', _edit_context(
+        post, tag_csv=', '.join(t.name for t in post.tags.all()),
+    ))
+
+
+def _iso(dt):
+    """Stable millisecond-precision ISO-8601 rep for optimistic-
+    concurrency comparisons. Uses the DB's `modified_at` so clients
+    echoing it back always match what the server rendered."""
+    if dt is None:
+        return ''
+    return dt.isoformat()
+
+
+def _edit_context(post, tag_csv='', conflict=None):
+    """Shared context builder for the editor template — used both on
+    GET render and on the conflict re-render path. `conflict`, when
+    provided, carries the server-side version + the author's in-flight
+    edits so the template can show a diff banner."""
     import json as _json
-    return render(request, 'portfolio/blog_edit.html', {
+    return {
         'post': post,
         'is_new': False,
-        'tag_csv': ', '.join(t.name for t in post.tags.all()),
+        'tag_csv': tag_csv,
         'demos': DEMOS,
-        # Serialised so the client-side notation manager can hydrate
-        # from a single hidden `name="notation"` input rather than a
-        # dynamic array of Django form fields.
         'notation_json': _json.dumps(post.notation or []),
-    })
+        'base_version': _iso(post.modified_at),
+        'conflict': conflict,
+    }
 
 
 # ─── /blog/<slug>/autosave/ ──────────────────────────────────────────
@@ -148,6 +184,22 @@ def blog_autosave(request, slug):
         return JsonResponse({'ok': False, 'error': 'not found'}, status=404)
     if not _can_edit(request, post=post):
         return JsonResponse({'ok': False, 'error': 'unauthorized'}, status=403)
+
+    # Tier-1 conflict detection. Autosave is silent in the happy path,
+    # but if a co-editor has saved newer content since this browser
+    # loaded, we MUST reject (409) rather than quietly clobber. Client
+    # surfaces a conflict banner + Reload/Overwrite actions.
+    server_version = _iso(post.modified_at)
+    client_version = (request.POST.get('base_version') or '').strip()
+    force = client_version == 'overwrite'
+    if not force and client_version and client_version != server_version:
+        return JsonResponse({
+            'ok': False,
+            'error': 'conflict',
+            'server_version': server_version,
+            'server_title': post.title,
+        }, status=409)
+
     try:
         _apply_post_fields(post, request.POST)
         # Autosave runs every 1.5s. The full render pipeline (pyfig
@@ -162,7 +214,15 @@ def blog_autosave(request, slug):
             tag_str = request.POST.get('tags', '').strip()
             tag_list = [t.strip() for t in tag_str.split(',') if t.strip()] if tag_str else []
             post.tags.set(tag_list)
-        return JsonResponse({'ok': True, 'saved_at': timezone.now().isoformat()})
+        # Return the new modified_at so the client can roll its
+        # `base_version` forward — otherwise the NEXT autosave would
+        # still carry the stale version and conflict against itself.
+        post.refresh_from_db(fields=['modified_at'])
+        return JsonResponse({
+            'ok': True,
+            'saved_at': timezone.now().isoformat(),
+            'base_version': _iso(post.modified_at),
+        })
     except Exception as e:
         return JsonResponse({'ok': False, 'error': str(e)}, status=500)
 
