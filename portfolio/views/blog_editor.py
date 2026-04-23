@@ -97,9 +97,16 @@ def _apply_post_fields(post, data):
 
 def blog_edit(request, slug):
     """In-browser WYSIWYG-ish editor for a single Post.
-    Two-column layout: markdown source on the left, live server-rendered
-    preview on the right. Auth: staff, or a user listed in
-    `post.collaborators`."""
+
+    Pessimistic per-post locking: a user opening the editor acquires a
+    cache-backed lock (120s TTL, refreshed by heartbeat every 60s from
+    the client). A second session hitting the editor while the lock is
+    held sees a read-only view with "Take over" — no optimistic merge,
+    no race. This is a single-author blog with occasional collaborators;
+    simplicity beats CRDT.
+
+    Auth: staff, or a user listed in `post.collaborators`.
+    """
     from portfolio.models import Post
     try:
         post = Post.objects.get(slug=slug)
@@ -109,25 +116,33 @@ def blog_edit(request, slug):
     if not _can_edit(request, post=post):
         return redirect(f'/accounts/login/?next=/blog/{slug}/edit/')
 
-    if request.method == 'POST':
-        # Tier-1 conflict detection: compare the `base_version` the
-        # editor loaded against the post's current modified_at. If a
-        # co-editor has saved in between, render the editor with a
-        # conflict banner + the server-side body so the author can
-        # diff and decide. Explicit "overwrite" resubmits with
-        # base_version='overwrite' to bypass the check.
-        server_version = _iso(post.modified_at)
-        client_version = (request.POST.get('base_version') or '').strip()
-        force = client_version == 'overwrite'
-        if not force and client_version and client_version != server_version:
-            return render(request, 'portfolio/blog_edit.html', _edit_context(
-                post, tag_csv=', '.join(t.name for t in post.tags.all()),
-                conflict={
-                    'server_version': server_version,
-                    'your_body': request.POST.get('body', ''),
-                    'your_title': request.POST.get('title', ''),
-                },
-            ))
+    # ── Edit lock ────────────────────────────────────────────────────
+    # Identify this specific browser tab with a sticky session token so
+    # the same user in two tabs counts as two different sessions for
+    # lock purposes.
+    tab_token = request.session.get('editor_tab_token')
+    if not tab_token:
+        import secrets
+        tab_token = secrets.token_urlsafe(10)
+        request.session['editor_tab_token'] = tab_token
+
+    takeover = request.method == 'POST' and request.POST.get('takeover') == '1'
+    lock = _read_edit_lock(slug)
+    if lock and not _lock_is_ours(lock, request, tab_token) and not takeover:
+        # Another session holds the lock — show a read-only screen with
+        # a take-over button. The author sees exactly why they can't
+        # edit, and can reclaim the lock if the other session is dead.
+        return render(request, 'portfolio/blog_edit_locked.html', {
+            'post': post,
+            'lock': lock,
+            'age_s': max(0, int((timezone.now().timestamp() - lock['acquired_at']))),
+        })
+
+    # We own the lock (or are stealing it). Refresh it on every
+    # editor-page load so the 120s TTL never lapses mid-session.
+    _write_edit_lock(slug, request, tab_token)
+
+    if request.method == 'POST' and not takeover:
         _apply_post_fields(post, request.POST)
         post.save()
         if request.POST.get('tags') is not None:
@@ -143,20 +158,91 @@ def blog_edit(request, slug):
     ))
 
 
-def _iso(dt):
-    """Stable millisecond-precision ISO-8601 rep for optimistic-
-    concurrency comparisons. Uses the DB's `modified_at` so clients
-    echoing it back always match what the server rendered."""
-    if dt is None:
-        return ''
-    return dt.isoformat()
+# ── Edit-lock helpers ───────────────────────────────────────────────
+# One active editor per post at a time. Lock lives in Django cache
+# (auto-expires without cleanup), is refreshed by a heartbeat from the
+# editor client, and released on unload. Key per slug; value carries
+# the holder's identity so a second session can show "X is editing now"
+# and offer a Take-over button.
+
+_LOCK_TTL_SECONDS = 120
 
 
-def _edit_context(post, tag_csv='', conflict=None):
-    """Shared context builder for the editor template — used both on
-    GET render and on the conflict re-render path. `conflict`, when
-    provided, carries the server-side version + the author's in-flight
-    edits so the template can show a diff banner."""
+def _lock_key(slug: str) -> str:
+    return f'edit_lock:{slug}'
+
+
+def _read_edit_lock(slug: str):
+    from django.core.cache import cache
+    return cache.get(_lock_key(slug))
+
+
+def _write_edit_lock(slug: str, request, tab_token: str):
+    """Set or refresh the lock for `slug` with the current session's
+    identity. Called on editor page load + by heartbeat."""
+    from django.core.cache import cache
+    now_ts = timezone.now().timestamp()
+    existing = cache.get(_lock_key(slug))
+    acquired_at = (existing or {}).get('acquired_at', now_ts) if (
+        existing and _lock_is_ours(existing, request, tab_token)
+    ) else now_ts
+    cache.set(_lock_key(slug), {
+        'user_id': request.user.pk,
+        'username': request.user.username,
+        'tab_token': tab_token,
+        'acquired_at': acquired_at,
+        'last_heartbeat': now_ts,
+    }, timeout=_LOCK_TTL_SECONDS)
+
+
+def _lock_is_ours(lock: dict, request, tab_token: str) -> bool:
+    """A lock is 'ours' if the same authed user holds it AND it's the
+    same browser tab (identified by session-scoped tab_token). Two tabs
+    of the same user count as two editors — avoids the user stepping on
+    their own toes in split windows."""
+    return (
+        lock.get('user_id') == request.user.pk
+        and lock.get('tab_token') == tab_token
+    )
+
+
+def _release_edit_lock(slug: str, request, tab_token: str):
+    from django.core.cache import cache
+    existing = cache.get(_lock_key(slug))
+    if existing and _lock_is_ours(existing, request, tab_token):
+        cache.delete(_lock_key(slug))
+
+
+def blog_edit_heartbeat(request, slug):
+    """POST /blog/<slug>/edit/heartbeat/ — client pings every 60s to
+    refresh the TTL. Also used to release on unload (body {action:
+    'release'}). Silent no-op if someone else now holds the lock."""
+    if request.method != 'POST':
+        return JsonResponse({'ok': False, 'error': 'POST required'}, status=405)
+    from portfolio.models import Post
+    try:
+        post = Post.objects.get(slug=slug)
+    except Post.DoesNotExist:
+        return JsonResponse({'ok': False, 'error': 'not found'}, status=404)
+    if not _can_edit(request, post=post):
+        return JsonResponse({'ok': False, 'error': 'unauthorized'}, status=403)
+    tab_token = request.session.get('editor_tab_token')
+    if not tab_token:
+        return JsonResponse({'ok': False, 'error': 'no session token'}, status=400)
+
+    action = request.POST.get('action', 'refresh')
+    if action == 'release':
+        _release_edit_lock(slug, request, tab_token)
+        return JsonResponse({'ok': True, 'released': True})
+
+    _write_edit_lock(slug, request, tab_token)
+    return JsonResponse({'ok': True})
+
+
+def _edit_context(post, tag_csv=''):
+    """Shared context builder for the editor template. The old Tier-1
+    `base_version` / `conflict` bits were removed once we switched to
+    pessimistic per-post locking — see `_write_edit_lock`."""
     import json as _json
     return {
         'post': post,
@@ -164,8 +250,6 @@ def _edit_context(post, tag_csv='', conflict=None):
         'tag_csv': tag_csv,
         'demos': DEMOS,
         'notation_json': _json.dumps(post.notation or []),
-        'base_version': _iso(post.modified_at),
-        'conflict': conflict,
     }
 
 
@@ -207,14 +291,9 @@ def blog_autosave(request, slug):
             tag_str = request.POST.get('tags', '').strip()
             tag_list = [t.strip() for t in tag_str.split(',') if t.strip()] if tag_str else []
             post.tags.set(tag_list)
-        # Return the new modified_at so the client can roll its
-        # `base_version` forward — otherwise the NEXT autosave would
-        # still carry the stale version and conflict against itself.
-        post.refresh_from_db(fields=['modified_at'])
         return JsonResponse({
             'ok': True,
             'saved_at': timezone.now().isoformat(),
-            'base_version': _iso(post.modified_at),
         })
     except Exception as e:
         return JsonResponse({'ok': False, 'error': str(e)}, status=500)

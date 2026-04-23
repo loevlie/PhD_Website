@@ -44,6 +44,7 @@ from .blog_public import (
 from .blog_editor import (
     blog_new,
     blog_edit,
+    blog_edit_heartbeat,
     blog_preview,
     blog_upload_image,
     blog_autosave,

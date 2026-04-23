@@ -119,35 +119,6 @@ html.editing main { padding-top: 0 !important; margin: 0 !important; }
 }
 .editor-toast-action:hover { background: color-mix(in srgb, var(--ctp-lavender, #7287fd) 80%, white); }
 
-/* Conflict banner — shown when a hard save hits a stale base_version.
- * Rendered above the editor-bar so the author can't miss it. */
-.editor-conflict-banner {
-    padding: 10px 16px;
-    background: color-mix(in srgb, var(--ctp-peach, #fab387) 14%, var(--ctp-mantle, #181825));
-    color: var(--ctp-text, #cdd6f4);
-    border-bottom: 1px solid var(--ctp-peach, #fab387);
-    font-size: 0.88rem;
-    font-family: 'Inter', system-ui, sans-serif;
-    display: flex; align-items: center; gap: 16px; flex-wrap: wrap;
-}
-.editor-conflict-banner strong { color: var(--ctp-peach, #fab387); }
-.editor-conflict-actions { display: inline-flex; gap: 10px; margin-left: auto; }
-.editor-conflict-actions button,
-.editor-conflict-actions a {
-    appearance: none;
-    padding: 5px 12px; font-size: 0.82rem; font-weight: 600;
-    background: var(--ctp-peach, #fab387);
-    color: var(--ctp-base, #1e1e2e);
-    border: 0; border-radius: 6px;
-    cursor: pointer; text-decoration: none;
-    font-family: inherit;
-}
-.editor-conflict-actions a {
-    background: transparent;
-    color: var(--ctp-text, #cdd6f4);
-    border: 1px solid var(--ctp-surface1, #45475a);
-}
-.editor-conflict-actions a:hover { border-color: var(--ctp-peach, #fab387); color: var(--ctp-peach, #fab387); }
 
 /* Brief attention-flash used by scrollPreviewToSlug — so the author
  * sees exactly where the new sidenote landed in the rendered preview. */
@@ -680,22 +651,6 @@ html.editing main { padding-top: 0 !important; margin: 0 !important; }
 {% block content %}
 <form class="editor-shell" id="editor-form" method="post" action="{% url 'blog_edit' post.slug %}">
     {% csrf_token %}
-    <input type="hidden" name="base_version" id="editor-base-version" value="{{ base_version }}">
-
-    {% if conflict %}
-    <div class="editor-conflict-banner" role="alert">
-        <strong>Conflict detected.</strong>
-        A co-editor saved newer changes while you were editing. Your unsaved edits are preserved below; pick how to resolve:
-        <div class="editor-conflict-actions">
-            <button type="submit" name="base_version_override" value="overwrite"
-                    formaction="{% url 'blog_edit' post.slug %}"
-                    onclick="document.getElementById('editor-base-version').value='overwrite';">
-                Overwrite theirs
-            </button>
-            <a href="{% url 'blog_edit' post.slug %}">Reload (discard mine)</a>
-        </div>
-    </div>
-    {% endif %}
     <div class="editor-bar">
         <a href="{% url 'blog_post' post.slug %}" class="secondary" title="View live">←</a>
         <input type="text" name="title" class="title-input" value="{{ post.title }}" placeholder="Post title">
@@ -1137,10 +1092,6 @@ html.editing main { padding-top: 0 !important; margin: 0 !important; }
             if (data.ok) {
                 markSaved(data.saved_at);
                 try { localStorage.removeItem('editor-draft:' + slug); } catch (e) {}
-                // Roll base_version forward so a subsequent explicit
-                // Save doesn't wrongly 409 against our own prior save.
-                const bv = document.getElementById('editor-base-version');
-                if (bv && data.base_version) bv.value = data.base_version;
             } else {
                 markError(data.error || 'unknown');
             }
@@ -1158,6 +1109,25 @@ html.editing main { padding-top: 0 !important; margin: 0 !important; }
         fd.set('csrfmiddlewaretoken', csrf);
         // sendBeacon is best-effort and async-safe during unload
         navigator.sendBeacon('{% url "blog_autosave" post.slug %}', fd);
+    });
+
+    // ── Edit-lock heartbeat ─────────────────────────────────────────
+    // Refresh the per-post lock every 60s while this tab is open; the
+    // server expires the lock after ~120s of silence so a closed tab
+    // frees the post. Also fire a `release` beacon on unload.
+    const HEARTBEAT_URL = '{% url "blog_edit_heartbeat" post.slug %}';
+    setInterval(function () {
+        const fd = new FormData();
+        fd.set('csrfmiddlewaretoken', csrf);
+        fetch(HEARTBEAT_URL, { method: 'POST', body: fd, credentials: 'same-origin' })
+            .catch(function () {});  // heartbeat failures are silent
+    }, 60_000);
+    window.addEventListener('beforeunload', function () {
+        const fd = new FormData();
+        fd.set('csrfmiddlewaretoken', csrf);
+        fd.set('action', 'release');
+        // sendBeacon so the browser doesn't drop the request on close.
+        try { navigator.sendBeacon(HEARTBEAT_URL, fd); } catch (e) {}
     });
 
     // Word/char count + reading-time estimate in toolbar
@@ -1397,12 +1367,13 @@ html.editing main { padding-top: 0 !important; margin: 0 !important; }
             function choose(key) {
                 const idx = nextCiteIndex();
                 const snippet = '<cite class="ref" data-key="' + key + '">[' + idx + ']</cite>';
-                body.value = body.value.slice(0, pinnedStart) + snippet + body.value.slice(pinnedEnd);
-                const caret = pinnedStart + snippet.length;
-                body.focus();
-                body.setSelectionRange(caret, caret);
-                body.dispatchEvent(new Event('input', { bubbles: true }));
+                // Close first — <dialog> focus-trap blocks execCommand.
                 try { dlg.close(); } catch (e) {}
+                body.focus();
+                body.setSelectionRange(pinnedStart, pinnedEnd);
+                document.execCommand('insertText', false, snippet);
+                const caret = pinnedStart + snippet.length;
+                body.setSelectionRange(caret, caret);
                 showToast('Citation [' + idx + '] inserted · ' + key);
             }
 
@@ -1478,15 +1449,16 @@ html.editing main { padding-top: 0 !important; margin: 0 !important; }
             if (!term) { termInp.focus(); return; }
             const isLatex = document.getElementById('notation-kind-latex').checked;
             const esc = function (s) { return s.replace(/"/g, '&quot;').replace(/</g, '&lt;'); };
-            // For LaTeX kind we keep the `$…$` delimiters (so KaTeX
-            // picks them up) inside a hover span.
             const visible = isLatex ? '$' + term + '$' : term;
             const snippet = '<span class="g" data-g="' + esc(defn || term) + '">' + esc(visible) + '</span>';
-            body.value = body.value.slice(0, pinnedStart) + snippet + body.value.slice(pinnedEnd);
-            const caret = pinnedStart + snippet.length;
+            // Close the dialog BEFORE inserting — native <dialog>
+            // focus-trap otherwise swallows the insertText command.
+            cleanup();
             body.focus();
+            body.setSelectionRange(pinnedStart, pinnedEnd);
+            document.execCommand('insertText', false, snippet);
+            const caret = pinnedStart + snippet.length;
             body.setSelectionRange(caret, caret);
-            body.dispatchEvent(new Event('input', { bubbles: true }));
             // Optional: persist to Post.notation via the Details-drawer
             // manager so this term reappears in the glossary card.
             if (saveChk && saveChk.checked && defn) {
@@ -1504,7 +1476,6 @@ html.editing main { padding-top: 0 !important; margin: 0 !important; }
                     } catch (e) {}
                 }
             }
-            cleanup();
             showToast('Notation inserted — hover to read');
         }
         function onCancel(ev) { ev.preventDefault(); cleanup(); }
@@ -1630,11 +1601,16 @@ html.editing main { padding-top: 0 !important; margin: 0 !important; }
                 ? pinnedStart
                 : paraStart;   // fall through to START of next paragraph
 
-            // Using execCommand('insertText') preserves the native
-            // textarea undo history — a raw `body.value = …` would
-            // silently wipe it, so Cmd+Z couldn't roll back the insert.
-            // Deprecated but still the only portable way to mutate a
-            // textarea with undo intact.
+            // CLOSE the dialog BEFORE touching the textarea. Native
+            // <dialog> maintains focus trap while open — body.focus()
+            // is a silent no-op, so execCommand('insertText') fires
+            // without a focused target and inserts nothing. Cleanup
+            // first, THEN insert.
+            cleanup();
+
+            // execCommand('insertText') preserves the native textarea
+            // undo stack — raw `body.value = …` wipes it, breaking
+            // Cmd+Z for the programmatic insert.
             body.focus();
             body.setSelectionRange(tagInsertAt, tagInsertAt);
             document.execCommand('insertText', false, tag);
@@ -1660,7 +1636,6 @@ html.editing main { padding-top: 0 !important; margin: 0 !important; }
                 });
                 scrollPreviewToSlug(slugN);
             }, 30);
-            cleanup();
         }
         function onCancel(ev) { ev.preventDefault(); cleanup(); }
         function onClose() { cleanup(); }

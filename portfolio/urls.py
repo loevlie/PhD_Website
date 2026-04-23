@@ -29,6 +29,7 @@ urlpatterns = [
     path('blog/map/', views.blog_map, name='blog_map'),
     path('blog/<slug:slug>/', views.blog_post, name='blog_post'),
     path('blog/<slug:slug>/edit/', views.blog_edit, name='blog_edit'),
+    path('blog/<slug:slug>/edit/heartbeat/', views.blog_edit_heartbeat, name='blog_edit_heartbeat'),
     path('blog/<slug:slug>/autosave/', views.blog_autosave, name='blog_autosave'),
     path('blog/<slug:slug>/cite.bib', views.blog_cite_bib, name='blog_cite_bib'),
     path('blog/<slug:slug>/regenerate-og/', views.regenerate_og_card, name='regenerate_og_card'),
