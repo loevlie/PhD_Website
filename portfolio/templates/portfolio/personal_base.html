@@ -126,16 +126,15 @@
             {% endif %}
             {% endfor %}
         </div>
-        {% if user.is_authenticated %}
+        {% if user.is_authenticated and user.is_staff %}
+        {# Staff-only signal on the portfolio chrome — ordinary visitors
+           (including signed-in collaborators) see the plain nav. The
+           collaborator identity chip lives on the blog nav, which is
+           where non-staff users actually have affordances to click. #}
         <a class="nav-userchip" href="{% url 'accounts_profile' %}" title="Logged in as {{ user.username }} — click for profile">
-            <span class="nav-userchip-dot{% if user.is_staff %} is-staff{% endif %}"></span>
+            <span class="nav-userchip-dot is-staff"></span>
             <span class="nav-userchip-name">{{ user.username }}</span>
-            {% if user.is_staff %}<span class="nav-userchip-badge">staff</span>{% endif %}
-        </a>
-        {% else %}
-        <a class="nav-userchip nav-userchip--anon" href="{% url 'login' %}" title="Log in">
-            <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M15 3h4a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2h-4"/><polyline points="10 17 15 12 10 7"/><line x1="15" y1="12" x2="3" y2="12"/></svg>
-            <span class="nav-userchip-name">Log in</span>
+            <span class="nav-userchip-badge">staff</span>
         </a>
         {% endif %}
         <button class="theme-toggle" id="theme-toggle" aria-label="Toggle light/dark mode">

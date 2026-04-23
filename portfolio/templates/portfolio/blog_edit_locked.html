@@ -5,10 +5,9 @@
 
 {% block acc_content %}
 <p class="acc-eyebrow">Editor busy</p>
-<h1 class="acc-title"><em>Someone</em> is editing this post.</h1>
+<h1 class="acc-title"><em>{{ lock.username }}</em> is editing this post.</h1>
 <p class="acc-sub">
-    <strong>{{ lock.username }}</strong> has the editor open
-    {% if age_s < 60 %}(active {{ age_s }}s ago){% else %}(active ~{{ age_s|divisibleby:60|yesno:"1,2" }} min ago){% endif %}.
+    Active {% if age_s < 60 %}{{ age_s }}s{% else %}~{{ age_s|floatformat:0 }}s{% endif %} ago.
     To keep edits from clobbering each other, only one author can hold the editor at a time.
 </p>
 
@@ -20,14 +19,10 @@
     </ul>
 </div>
 
-<form method="post" action="{% url 'blog_edit' post.slug %}" style="margin-top: 18px;">
-    {% csrf_token %}
-    <input type="hidden" name="takeover" value="1">
-    <menu class="img-dialog-menu" style="display: flex; gap: 10px; padding: 0;">
-        <a href="{% url 'blog_post' post.slug %}" class="secondary" style="padding: 10px 16px; border-radius: 6px; border: 1px solid var(--ctp-surface1, #45475a); color: var(--ctp-text, #cdd6f4); text-decoration: none; font-size: 0.9rem;">View post instead</a>
-        <button type="submit" class="acc-submit" style="flex: 0 0 auto;">Take over the editor</button>
-    </menu>
-</form>
+<div style="display: flex; gap: 10px; margin-top: 18px; justify-content: flex-end;">
+    <a href="{% url 'blog_post' post.slug %}" style="padding: 10px 16px; border-radius: 6px; border: 1px solid var(--ctp-surface1, #45475a); color: var(--ctp-text, #cdd6f4); text-decoration: none; font-size: 0.9rem; font-family: 'Inter', system-ui, sans-serif;">View post instead</a>
+    <a href="{% url 'blog_edit' post.slug %}?takeover=1" class="acc-submit" style="text-decoration: none; display: inline-flex; align-items: center;">Take over the editor</a>
+</div>
 
 <hr class="acc-divider">
 <div class="acc-links">

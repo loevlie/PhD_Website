@@ -1107,8 +1107,26 @@ html.editing main { padding-top: 0 !important; margin: 0 !important; }
         if (!dirty) return;
         const fd = new FormData(form);
         fd.set('csrfmiddlewaretoken', csrf);
-        // sendBeacon is best-effort and async-safe during unload
         navigator.sendBeacon('{% url "blog_autosave" post.slug %}', fd);
+    });
+
+    // ── Edit-lock heartbeat ────────────────────────────────────────
+    // Refresh the click-through lock every 60s so the 120s TTL doesn't
+    // lapse while this tab is still active. Fire a `release` beacon
+    // on unload so a closed tab frees the post within a single request
+    // round-trip — much faster than waiting for the TTL to expire.
+    const HEARTBEAT_URL = '{% url "blog_edit_heartbeat" post.slug %}';
+    setInterval(function () {
+        const fd = new FormData();
+        fd.set('csrfmiddlewaretoken', csrf);
+        fetch(HEARTBEAT_URL, { method: 'POST', body: fd, credentials: 'same-origin' })
+            .catch(function () {});
+    }, 60_000);
+    window.addEventListener('beforeunload', function () {
+        const fd = new FormData();
+        fd.set('csrfmiddlewaretoken', csrf);
+        fd.set('action', 'release');
+        try { navigator.sendBeacon(HEARTBEAT_URL, fd); } catch (e) {}
     });
 
 
