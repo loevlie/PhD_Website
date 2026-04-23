@@ -44,13 +44,26 @@ from portfolio.views.editor_assist import (
 
 # ─── POST-field → Post attribute adapter ─────────────────────────────
 
-def _apply_post_fields(post, data):
+def _apply_post_fields(post, data, files=None):
     """Apply editor POST fields onto a Post instance. Shared by full-save
-    and autosave so behavior stays identical."""
+    and autosave so behavior stays identical. `files` (request.FILES)
+    is optional — autosave never sends files, only the explicit Save
+    carries the multipart payload with a fresh cover image."""
     for field in ('title', 'excerpt', 'body', 'slug', 'series', 'image', 'medium_url'):
         v = data.get(field)
         if v is not None:
             setattr(post, field, v)
+    # Cover image upload — arrives in request.FILES on explicit Save.
+    if files is not None:
+        uploaded = files.get('cover_image')
+        if uploaded is not None:
+            post.cover_image = uploaded
+    # Explicit clear — an empty `cover_image_clear` checkbox on the
+    # editor form removes the existing upload without re-uploading.
+    if data.get('cover_image_clear') == '1':
+        if post.cover_image:
+            post.cover_image.delete(save=False)
+        post.cover_image = None
     # Notation glossary — JSON-encoded list of {term, definition, kind}
     # entries. Silently ignore malformed input; the editor's JS always
     # submits valid JSON, and the admin still accepts direct JSONField
@@ -141,7 +154,7 @@ def blog_edit(request, slug):
         _write_edit_lock(slug, request, tab_token, fresh=not mine)
 
     if request.method == 'POST':
-        _apply_post_fields(post, request.POST)
+        _apply_post_fields(post, request.POST, files=request.FILES)
         post.save()
         if request.POST.get('tags') is not None:
             tag_str = request.POST.get('tags', '').strip()

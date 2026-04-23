@@ -102,8 +102,16 @@ class PostAdmin(admin.ModelAdmin):
             ),
         }),
         ('Display', {
-            'fields': ('kind', 'image', 'tags', 'is_explainer', 'is_paper_companion', 'maturity', 'draft'),
-            'description': 'kind routes the post: essay → /blog/, lab_note → /notebook/. is_explainer = Distill register (sidenotes + citations + wide canvas). is_paper_companion = Asterisk/Works in Progress register (single column, drop cap, real footnotes, pull-quotes). Mutually exclusive in practice.',
+            'fields': ('kind', 'cover_image', 'image', 'tags', 'is_explainer', 'is_paper_companion', 'maturity', 'draft'),
+            'description': (
+                'kind routes the post: essay → /blog/, lab_note → /notebook/. '
+                'Upload the cover under <code>cover_image</code>; the legacy '
+                '<code>image</code> CharField is only read when cover_image is '
+                'empty (kept for posts authored before the upload field existed). '
+                'is_explainer = Distill register (sidenotes + citations + wide canvas). '
+                'is_paper_companion = Asterisk/Works in Progress register (single column, '
+                'drop cap, real footnotes, pull-quotes). Mutually exclusive in practice.'
+            ),
         }),
         ('Series + external', {
             'fields': ('series', 'series_order', 'medium_url'),

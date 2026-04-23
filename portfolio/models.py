@@ -83,7 +83,17 @@ class Post(models.Model):
     date = models.DateField(help_text="Original publication date")
     updated = models.DateField(blank=True, null=True)
     author = models.CharField(max_length=100, default='Dennis Loevlie')
-    image = models.CharField(max_length=300, blank=True, help_text="Static path for cover image, e.g. portfolio/images/blog/cover.jpg")
+    # Cover image — preferred field going forward. Uploaded via the
+    # editor's file picker and stored under MEDIA_ROOT/blog_covers/.
+    cover_image = models.ImageField(
+        upload_to='blog_covers/', blank=True, null=True,
+        help_text="Cover image shown on the post header + listings. Upload via the editor.",
+    )
+    # Legacy static-path cover field. Kept for backward compatibility
+    # with posts authored before the ImageField existed; templates fall
+    # back to `{% static image %}` when `cover_image` is empty. New
+    # edits should use the upload field exclusively.
+    image = models.CharField(max_length=300, blank=True, help_text="Legacy: static path for cover image. Use the uploaded `cover_image` instead.")
     series = models.CharField(max_length=100, blank=True, help_text="Series name, e.g. 'Deep Dive: Multiple Instance Learning'")
     series_order = models.PositiveIntegerField(default=0, help_text="Order within the series (1, 2, 3...)")
     medium_url = models.URLField(blank=True, help_text="Canonical URL if originally published elsewhere")

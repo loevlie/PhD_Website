@@ -67,9 +67,9 @@
             class="indexcard-row">
             <a href="{% url 'blog_post' post.slug %}" class="block group py-4 px-2 -mx-2 rounded-lg hover:bg-surface-1/70 transition-colors">
                 <div class="flex items-start gap-4 md:gap-5">
-                    {% if post.image %}
+                    {% if post.cover_src %}
                     <div class="overflow-hidden rounded-md border border-border/70 flex-shrink-0">
-                        <img src="{% static post.image %}" alt="" loading="lazy"
+                        <img src="{{ post.cover_src }}" alt="" loading="lazy"
                              class="w-20 h-20 md:w-24 md:h-24 object-cover">
                     </div>
                     {% else %}

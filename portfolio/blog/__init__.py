@@ -743,6 +743,18 @@ def _post_to_dict(post_obj, render_html=True):
     # since listings don't show per-author detail and the extra query
     # would N+1 across the list.
     byline_authors = post_obj.byline_authors if render_html and hasattr(post_obj, 'byline_authors') else []
+    # Cover image — prefer the uploaded ImageField (`cover_image`);
+    # fall back to the legacy `image` CharField as a raw /static/ URL
+    # so pre-upload posts still paint without a staticfiles lookup.
+    cover_upload = getattr(post_obj, 'cover_image', None)
+    cover_src = ''
+    if cover_upload:
+        try:
+            cover_src = cover_upload.url
+        except ValueError:
+            cover_src = ''
+    if not cover_src and post_obj.image:
+        cover_src = '/static/' + post_obj.image.lstrip('/')
     return {
         'slug': post_obj.slug,
         'title': post_obj.title,
@@ -750,6 +762,7 @@ def _post_to_dict(post_obj, render_html=True):
         'updated': post_obj.updated,
         'author': post_obj.author,
         'byline_authors': byline_authors,
+        'cover_src': cover_src,
         # Use .all() (not .names()) so this hits the prefetch_related cache
         # set up in _load_all_posts. .names() would issue a fresh query per
         # post and defeat the prefetch entirely (5 queries for 2 posts → 3).
@@ -807,6 +820,7 @@ def _parse_file_post(filepath, render_html=True):
             'bio': 'ELLIS PhD Student at CWI & University of Amsterdam',
             'homepage_url': '/', 'is_primary': True,
         }] if render_html else [],
+        'cover_src': '',
         'tags': post.get('tags', []),
         'excerpt': post.get('excerpt', ''),
         'image': post.get('image', ''),

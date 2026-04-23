@@ -64,9 +64,9 @@
            data-tags="{{ post.tags|join:',' }}"
            x-show="activeTag === '' || '{{ post.tags|join:',' }}'.split(',').includes(activeTag)">
             <article>
-                {% if post.image %}
+                {% if post.cover_src %}
                 <div class="overflow-hidden rounded-2xl border border-border mb-5 shadow-sm">
-                    <img src="{% static post.image %}" alt="" loading="lazy"
+                    <img src="{{ post.cover_src }}" alt="" loading="lazy"
                          class="w-full aspect-[16/9] object-cover transition-transform duration-500 group-hover:scale-[1.02]">
                 </div>
                 {% endif %}

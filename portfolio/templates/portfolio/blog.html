@@ -681,9 +681,9 @@
                     {% endfor %}
                 </div>
             </div>
-            {% if post.image %}
+            {% if post.cover_src %}
             <div class="polaroid">
-                <img src="{% static post.image %}" alt=""
+                <img src="{{ post.cover_src }}" alt=""
                      loading="{% if forloop.first %}eager{% else %}lazy{% endif %}">
             </div>
             {% endif %}

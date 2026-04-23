@@ -188,6 +188,29 @@ html.editing main { padding-top: 0 !important; margin: 0 !important; }
     color: var(--ctp-red, #f38ba8);
     border-color: var(--ctp-red, #f38ba8);
 }
+/* Cover-image upload row in the Details drawer. */
+.fm-cover-row {
+    display: flex; gap: 12px; align-items: flex-start;
+    padding: 8px; border-radius: 8px;
+    background: var(--ctp-base, #1e1e2e);
+    border: 1px solid var(--ctp-surface0, #313244);
+}
+.fm-cover-preview {
+    width: 80px; height: 60px; flex: none;
+    object-fit: cover;
+    border-radius: 4px;
+    background: var(--ctp-surface0, #313244);
+    display: inline-flex; align-items: center; justify-content: center;
+    color: var(--ctp-subtext0, #a6adc8);
+    font-family: 'Fira Code', ui-monospace, monospace;
+}
+.fm-cover-preview--legacy {
+    outline: 1px dashed var(--ctp-yellow, #f9e2af);
+}
+.fm-cover-controls { flex: 1; display: flex; flex-direction: column; gap: 6px; }
+.fm-cover-hint { font-size: 0.72rem; color: var(--ctp-subtext0, #a6adc8); }
+.fm-cover-clear { font-size: 0.76rem; color: var(--ctp-subtext1, #bac2de); display: inline-flex; gap: 6px; align-items: center; }
+
 .fm-notation-add {
     padding: 5px 10px;
     font-size: 0.78rem;
@@ -687,7 +710,7 @@ html.editing main { padding-top: 0 !important; margin: 0 !important; }
 {% endblock %}
 
 {% block content %}
-<form class="editor-shell" id="editor-form" method="post" action="{% url 'blog_edit' post.slug %}">
+<form class="editor-shell" id="editor-form" method="post" action="{% url 'blog_edit' post.slug %}" enctype="multipart/form-data">
     {% csrf_token %}
     <div class="editor-bar">
         <a href="{% url 'blog_post' post.slug %}" class="secondary" title="View live">←</a>
@@ -854,9 +877,26 @@ html.editing main { padding-top: 0 !important; margin: 0 !important; }
                 <label for="fm-series">Series</label>
                 <input id="fm-series" name="series" type="text" value="{{ post.series }}" placeholder="e.g. Deep Dive: MIL">
             </div>
-            <div class="fm-field">
-                <label for="fm-image">Cover image</label>
-                <input id="fm-image" name="image" type="text" value="{{ post.image }}" placeholder="portfolio/images/blog/cover.jpg">
+            <div class="fm-field fm-cover">
+                <label for="fm-cover">Cover image</label>
+                <div class="fm-cover-row">
+                    {% if post.cover_image %}
+                    <img src="{{ post.cover_image.url }}" alt="Current cover" class="fm-cover-preview" id="fm-cover-preview">
+                    {% elif post.image %}
+                    <img src="{% static post.image %}" alt="Current cover (legacy static path)" class="fm-cover-preview fm-cover-preview--legacy" id="fm-cover-preview" title="Legacy static path — uploading replaces it with a managed file.">
+                    {% else %}
+                    <span class="fm-cover-preview fm-cover-preview--empty" id="fm-cover-preview" aria-hidden="true">—</span>
+                    {% endif %}
+                    <div class="fm-cover-controls">
+                        <input id="fm-cover" name="cover_image" type="file" accept="image/*">
+                        {% if post.cover_image or post.image %}
+                        <label class="fm-cover-clear">
+                            <input type="checkbox" name="cover_image_clear" value="1"> Remove current cover on save
+                        </label>
+                        {% endif %}
+                        <span class="fm-cover-hint">Square-ish or 16:9 works best · 2 MB max</span>
+                    </div>
+                </div>
             </div>
             <div class="fm-field">
                 <label for="fm-medium">Canonical URL</label>

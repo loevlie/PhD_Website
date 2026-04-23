@@ -65,7 +65,7 @@
         "day": "{{ post.date|date:'j' }}",
         "reading_time": {{ post.reading_time }},
         "tags": [{% for t in post.tags %}"{{ t|escapejs }}"{% if not forloop.last %},{% endif %}{% endfor %}],
-        "image": "{% if post.image %}{% load static %}{% static post.image %}{% endif %}",
+        "image": "{{ post.cover_src|default:'' }}",
         "url": "{% url 'blog_post' post.slug %}",
         "draft": {% if post.draft %}true{% else %}false{% endif %}
     }{% if not forloop.last %},{% endif %}

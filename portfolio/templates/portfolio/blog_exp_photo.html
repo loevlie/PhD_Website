@@ -167,8 +167,8 @@
     <div class="photo-grid" id="photo-grid">
         {% for post in posts %}
         <a href="{% url 'blog_post' post.slug %}" class="photo-tile" data-slug="{{ post.slug }}">
-            {% if post.image %}
-            <img src="{% static post.image %}" alt="" loading="lazy">
+            {% if post.cover_src %}
+            <img src="{{ post.cover_src }}" alt="" loading="lazy">
             {% else %}
             <span class="typeset">{{ post.title }}</span>
             {% endif %}
