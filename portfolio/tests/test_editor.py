@@ -210,7 +210,9 @@ class BlogNewTests(StaffClientMixin, TestCase):
             self.assertContains(r, label, msg_prefix=f'{label!r} not in picker')
 
     def test_template_creates_post_and_redirects(self):
-        r = self.staff_client.get('/blog/new/?template=explainer')
+        # POST-only: a GET creating posts spawns duplicates on browser
+        # refresh / back-nav / link prefetch.
+        r = self.staff_client.post('/blog/new/', {'template': 'explainer'})
         self.assertEqual(r.status_code, 302)
         self.assertIn('/edit/', r.headers['Location'])
         # The created post should be a draft + an explainer
@@ -221,9 +223,20 @@ class BlogNewTests(StaffClientMixin, TestCase):
         self.assertEqual(p.maturity, 'budding')
 
     def test_unknown_template_falls_back_to_picker(self):
-        r = self.staff_client.get('/blog/new/?template=nonsense')
+        # Unknown template via POST still renders the picker (no create).
+        r = self.staff_client.post('/blog/new/', {'template': 'nonsense'})
         self.assertEqual(r.status_code, 200)
         self.assertContains(r, 'Choose a template')
+
+    def test_get_never_creates_post(self):
+        """GET /blog/new/?template=X must NOT create a draft, no matter
+        what the query string says. Regression guard for the duplicate-
+        draft bug: browsers prefetch / back-navigate to this URL, which
+        used to spawn a new post on every hit."""
+        before = Post.objects.count()
+        r = self.staff_client.get('/blog/new/?template=explainer')
+        self.assertEqual(r.status_code, 200)
+        self.assertEqual(Post.objects.count(), before)
 
     def test_anon_redirected_to_login(self):
         r = self.anon_client.get('/blog/new/')

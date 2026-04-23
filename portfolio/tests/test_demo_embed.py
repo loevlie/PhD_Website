@@ -172,9 +172,10 @@ class DemoWriteupTemplateTests(TestCase):
 
     def test_demo_slug_prefills_body_marker(self):
         from portfolio.models import Post
-        r = self.client.get('/blog/new/?template=demo&demo=frozen-forecaster')
+        # New-post creation is POST-only (GET would create a draft
+        # on every browser refresh / prefetch otherwise).
+        r = self.client.post('/blog/new/', {'template': 'demo', 'demo': 'frozen-forecaster'})
         self.assertEqual(r.status_code, 302)
-        # Redirects to /blog/<new-slug>/edit/
         self.assertIn('/edit/', r['Location'])
         p = Post.objects.filter(title__startswith='Demo:').order_by('-id').first()
         self.assertIsNotNone(p)
@@ -184,10 +185,9 @@ class DemoWriteupTemplateTests(TestCase):
     def test_missing_demo_slug_still_creates_draft(self):
         from portfolio.models import Post
         before = Post.objects.count()
-        r = self.client.get('/blog/new/?template=demo')
+        r = self.client.post('/blog/new/', {'template': 'demo'})
         self.assertEqual(r.status_code, 302)
         self.assertEqual(Post.objects.count(), before + 1)
-        # Without ?demo=, the body uses the generic `<slug>` placeholder
         p = Post.objects.order_by('-id').first()
         self.assertIn('<div data-demo="<slug>"></div>', p.body)
 
@@ -195,7 +195,7 @@ class DemoWriteupTemplateTests(TestCase):
         """Typo in ?demo= shouldn't 500; just falls back to the
         generic template with the placeholder still in the body."""
         from portfolio.models import Post
-        r = self.client.get('/blog/new/?template=demo&demo=not-a-real-demo')
+        r = self.client.post('/blog/new/', {'template': 'demo', 'demo': 'not-a-real-demo'})
         self.assertEqual(r.status_code, 302)
         p = Post.objects.order_by('-id').first()
         self.assertIn('<slug>', p.body)
@@ -203,6 +203,8 @@ class DemoWriteupTemplateTests(TestCase):
     def test_studio_lists_demos(self):
         r = self.client.get('/site/studio/')
         self.assertEqual(r.status_code, 200)
-        # Each demo in DEMOS should get a link with its slug.
+        # Studio now submits demo picks via a POST form with a hidden
+        # `template=demo` field and a button per demo with `name="demo"
+        # value="<slug>"`. Assert the per-demo button is present.
         for d in DEMOS:
-            self.assertContains(r, f'?template=demo&demo={d["slug"]}')
+            self.assertContains(r, f'name="demo" value="{d["slug"]}"')

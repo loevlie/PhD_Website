@@ -227,7 +227,8 @@ class NewPostTemplateTests(TestCase):
 
     def test_deepdive_template(self):
         from portfolio.models import Post
-        r = self.client.get('/blog/new/?template=deepdive')
+        # POST-only creation; GET would duplicate drafts on refresh.
+        r = self.client.post('/blog/new/', {'template': 'deepdive'})
         self.assertEqual(r.status_code, 302)
         p = Post.objects.order_by('-id').first()
         self.assertTrue(p.is_explainer)
@@ -236,14 +237,14 @@ class NewPostTemplateTests(TestCase):
 
     def test_livenotes_template(self):
         from portfolio.models import Post
-        r = self.client.get('/blog/new/?template=livenotes')
+        r = self.client.post('/blog/new/', {'template': 'livenotes'})
         self.assertEqual(r.status_code, 302)
         p = Post.objects.order_by('-id').first()
         self.assertIn('**Status:** thinking', p.body)
 
     def test_thread_template(self):
         from portfolio.models import Post
-        r = self.client.get('/blog/new/?template=thread')
+        r = self.client.post('/blog/new/', {'template': 'thread'})
         self.assertEqual(r.status_code, 302)
         p = Post.objects.order_by('-id').first()
         self.assertIn('**1/**', p.body)
@@ -254,7 +255,7 @@ class NewPostTemplateTests(TestCase):
             'title': 'Attention Is All You Need',
             'summary': 'x.', 'authors': ['A'], 'year': '2017',
         }):
-            r = self.client.get('/blog/new/?template=arxiv&arxiv=1706.03762')
+            r = self.client.post('/blog/new/', {'template': 'arxiv', 'arxiv': '1706.03762'})
         self.assertEqual(r.status_code, 302)
         p = Post.objects.order_by('-id').first()
         self.assertIn('Attention Is All You Need', p.title)
