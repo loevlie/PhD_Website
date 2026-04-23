@@ -57,6 +57,7 @@ from .studio import studio
 from .reading_quickadd import reading_quickadd
 from .ask import ask_post
 from .embed_card import embed_card
+from .diagnostic import post_state as dl_post_state, version as dl_version
 from .accounts import signup as accounts_signup, profile as accounts_profile
 from .editor_assist import (
     spellcheck as spellcheck_view,

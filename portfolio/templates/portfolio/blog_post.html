@@ -99,6 +99,13 @@ If a post has an explicit cover (post.image), that takes precedence.
         <div class="flex items-center gap-2">
             <button type="button" class="save-for-later" data-reading-mode-toggle>Reading mode</button>
             {% if can_edit_this_post %}
+            {% if save_state.modified_at %}
+            <span class="inline-flex items-center gap-2 text-[0.7rem] font-mono text-content-muted border border-border rounded px-2 py-1" title="DB state — body {{ save_state.body_len }} chars, rendered {{ save_state.rendered_len }} chars">
+                <span title="modified_at">M: <time datetime="{{ save_state.modified_at }}">{{ post.modified_at|timesince }} ago</time></span>
+                <span title="rendered_at">· R: {% if save_state.rendered_at %}<time datetime="{{ save_state.rendered_at }}">{{ post.rendered_at|timesince }} ago</time>{% else %}never{% endif %}</span>
+                <span>· {{ save_state.body_len }}c</span>
+            </span>
+            {% endif %}
             <a href="{% url 'blog_edit' post.slug %}" class="inline-flex items-center gap-1.5 text-xs text-content-muted hover:text-accent transition-colors border border-border rounded px-2 py-1 font-mono" title="Edit this post">
                 <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 20h9"/><path d="M16.5 3.5a2.121 2.121 0 0 1 3 3L7 19l-4 1 1-4L16.5 3.5z"/></svg>
                 edit

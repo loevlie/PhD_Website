@@ -276,6 +276,23 @@ def blog_post(request, slug):
             except Exception:
                 can_edit_this_post = False
 
+    # Diagnostic header for editable viewers — lets the author check
+    # "did my save actually land on the backing DB?" without DevTools
+    # gymnastics. Anon readers never see this header.
+    save_state = {}
+    if can_edit_this_post:
+        from portfolio.models import Post as _Post
+        try:
+            p = _Post.objects.only('modified_at', 'rendered_at', 'body', 'rendered_html').get(slug=slug)
+            save_state = {
+                'modified_at': p.modified_at.isoformat() if p.modified_at else None,
+                'rendered_at': p.rendered_at.isoformat() if p.rendered_at else None,
+                'body_len': len(p.body or ''),
+                'rendered_len': len(p.rendered_html or ''),
+            }
+        except _Post.DoesNotExist:
+            pass
+
     resp = render(request, 'portfolio/blog_post.html', {
         'post': post,
         'series_posts': series_posts,
@@ -285,6 +302,7 @@ def blog_post(request, slug):
         'bibtex': bibtex,
         'cite_id': cite_id,
         'can_edit_this_post': can_edit_this_post,
+        'save_state': save_state,
     })
     # Authors + collaborators must never see a stale cached response
     # for a post they can edit — defeats the "I just saved and the

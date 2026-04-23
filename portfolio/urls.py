@@ -84,4 +84,10 @@ urlpatterns = [
     path('blog/<slug:slug>/ask/', views.ask_post, name='ask_post'),
     path('presentations/<slug:slug>/', views.presentation, name='presentation'),
     path('googled2e3ddb216daf4c4.html', views.google_verify, name='google_verify'),
+
+    # Public diagnostic surface — lightweight JSON snapshots of a post's
+    # DB state so the author can verify Save actually landed without
+    # needing DevTools. No secrets, no full bodies.
+    path('__dl/post/<slug:slug>/', views.dl_post_state, name='dl_post_state'),
+    path('__dl/version/', views.dl_version, name='dl_version'),
 ]
