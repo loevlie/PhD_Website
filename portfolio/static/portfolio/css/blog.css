@@ -1856,6 +1856,61 @@
     color: var(--ctp-red, #f38ba8);
 }
 
+/* ── Blog-prose tables ─────────────────────────────────────────────
+ * Editorial-register table styling: centered, hairline borders, header
+ * row with a subtle accent rule, alternating row tint, right-aligned
+ * numeric columns (via .num helper). Scoped to `.blog-prose` so the
+ * portfolio-side `.prose table` rules above stay as-is. */
+.blog-prose table {
+    margin: 1.8em auto;                 /* auto-center */
+    border-collapse: separate;
+    border-spacing: 0;
+    width: auto;                        /* size to content, not column */
+    max-width: 100%;
+    font-size: 0.92em;
+    line-height: 1.5;
+    border: 1px solid var(--border-color, #e2e2e4);
+    border-radius: 8px;
+    overflow: hidden;                   /* keep rounded corners clean */
+    box-shadow: 0 1px 2px rgba(0, 0, 0, 0.04);
+}
+.blog-prose table thead {
+    background: color-mix(in srgb, var(--accent, #7287fd) 6%, var(--bg-secondary, #fff));
+}
+.blog-prose table th {
+    padding: 8px 14px;
+    text-align: left;
+    font-weight: 600;
+    font-family: 'Inter', system-ui, sans-serif;
+    font-size: 0.72rem;
+    letter-spacing: 0.06em;
+    text-transform: uppercase;
+    color: var(--text-primary, #1a1a1a);
+    border-bottom: 2px solid color-mix(in srgb, var(--accent, #7287fd) 35%, var(--border-color, #e2e2e4));
+}
+.blog-prose table td {
+    padding: 9px 14px;
+    border-bottom: 1px solid color-mix(in srgb, var(--border-color, #e2e2e4) 60%, transparent);
+    color: var(--text-body, var(--text-primary, #1a1a1a));
+}
+.blog-prose table tbody tr:nth-child(odd) td {
+    background: color-mix(in srgb, var(--border-color, #e2e2e4) 18%, transparent);
+}
+.blog-prose table tbody tr:last-child td { border-bottom: 0; }
+/* Numeric columns often look better right-aligned + tabular figures.
+ * Opt-in via `| col1 | col2 {.num} |`-style pandoc attrs; falls back
+ * to default otherwise. */
+.blog-prose table td.num,
+.blog-prose table th.num {
+    text-align: right;
+    font-variant-numeric: tabular-nums;
+    font-feature-settings: 'tnum' 1;
+}
+.blog-prose table code {
+    font-size: 0.88em;
+    padding: 1px 5px;
+}
+
 /* ── Author-inserted <figure> + <figcaption> ───────────────────────── */
 /* Triggered by the editor's image-caption dialog. Centered image, muted
  * serif italic caption with a small-caps prefix to match the editorial

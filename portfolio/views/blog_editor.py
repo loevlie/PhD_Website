@@ -51,6 +51,31 @@ def _apply_post_fields(post, data):
         v = data.get(field)
         if v is not None:
             setattr(post, field, v)
+    # Notation glossary — JSON-encoded list of {term, definition, kind}
+    # entries. Silently ignore malformed input; the editor's JS always
+    # submits valid JSON, and the admin still accepts direct JSONField
+    # edits.
+    if 'notation' in data:
+        import json as _json
+        try:
+            val = _json.loads(data.get('notation') or '[]')
+            if isinstance(val, list):
+                # Normalize shape; drop blank rows.
+                cleaned = []
+                for e in val:
+                    if not isinstance(e, dict):
+                        continue
+                    term = (e.get('term') or '').strip()
+                    defn = (e.get('definition') or '').strip()
+                    if not term or not defn:
+                        continue
+                    kind = e.get('kind', 'text')
+                    if kind not in ('text', 'latex'):
+                        kind = 'text'
+                    cleaned.append({'term': term, 'definition': defn, 'kind': kind})
+                post.notation = cleaned
+        except (ValueError, TypeError):
+            pass
     if 'maturity' in data:
         m = data.get('maturity', '')
         post.maturity = m if m in {'', 'seedling', 'budding', 'evergreen'} else ''
@@ -95,11 +120,16 @@ def blog_edit(request, slug):
             return redirect('blog_post', slug=post.slug)
         return redirect('blog_edit', slug=post.slug)
 
+    import json as _json
     return render(request, 'portfolio/blog_edit.html', {
         'post': post,
         'is_new': False,
         'tag_csv': ', '.join(t.name for t in post.tags.all()),
         'demos': DEMOS,
+        # Serialised so the client-side notation manager can hydrate
+        # from a single hidden `name="notation"` input rather than a
+        # dynamic array of Django form fields.
+        'notation_json': _json.dumps(post.notation or []),
     })
 
 

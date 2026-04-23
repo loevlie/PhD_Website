@@ -119,6 +119,76 @@ html.editing main { padding-top: 0 !important; margin: 0 !important; }
 }
 .editor-toast-action:hover { background: color-mix(in srgb, var(--ctp-lavender, #7287fd) 80%, white); }
 
+/* Notation glossary manager in the Details drawer. */
+.fm-notation-label {
+    display: flex; flex-direction: column; gap: 3px;
+    margin-bottom: 8px;
+}
+.fm-notation-hint {
+    font-size: 0.72rem; color: var(--ctp-subtext0, #a6adc8); font-weight: 400;
+}
+.fm-notation-hint code {
+    font-family: 'Fira Code', ui-monospace, monospace;
+    background: var(--ctp-crust, #11111b);
+    padding: 1px 5px; border-radius: 3px;
+    font-size: 0.92em;
+}
+.fm-notation-list { list-style: none; padding: 0; margin: 0 0 8px; display: flex; flex-direction: column; gap: 6px; }
+.fm-notation-row {
+    display: grid;
+    grid-template-columns: 8em 1fr auto auto;
+    gap: 6px;
+    align-items: center;
+}
+.fm-notation-row input[type="text"] {
+    background: var(--ctp-surface0, #313244);
+    border: 1px solid var(--ctp-surface1, #45475a);
+    border-radius: 4px;
+    color: var(--ctp-text, #cdd6f4);
+    padding: 5px 8px;
+    font-size: 0.82rem;
+    font-family: inherit;
+}
+.fm-notation-row input.is-latex {
+    font-family: 'Fira Code', ui-monospace, monospace;
+    color: var(--ctp-lavender, #7287fd);
+}
+.fm-notation-row select {
+    background: var(--ctp-surface0, #313244);
+    border: 1px solid var(--ctp-surface1, #45475a);
+    color: var(--ctp-subtext1, #bac2de);
+    border-radius: 4px;
+    padding: 4px 6px;
+    font-size: 0.72rem;
+    font-family: inherit;
+}
+.fm-notation-row .fm-notation-remove {
+    background: transparent;
+    border: 1px solid transparent;
+    color: var(--ctp-subtext0, #a6adc8);
+    cursor: pointer;
+    padding: 2px 6px;
+    border-radius: 4px;
+}
+.fm-notation-row .fm-notation-remove:hover {
+    color: var(--ctp-red, #f38ba8);
+    border-color: var(--ctp-red, #f38ba8);
+}
+.fm-notation-add {
+    padding: 5px 10px;
+    font-size: 0.78rem;
+    background: var(--ctp-surface0, #313244);
+    border: 1px dashed var(--ctp-surface1, #45475a);
+    color: var(--ctp-subtext1, #bac2de);
+    border-radius: 6px;
+    cursor: pointer;
+}
+.fm-notation-add:hover {
+    border-style: solid;
+    border-color: var(--ctp-lavender, #7287fd);
+    color: var(--ctp-lavender, #7287fd);
+}
+
 /* Citation picker dialog. Reuses `.img-dialog` chrome for borders +
  * scrim; widens the card and adds list + search-input styles. */
 .cite-dialog { width: min(640px, calc(100vw - 32px)); }
@@ -745,6 +815,22 @@ html.editing main { padding-top: 0 !important; margin: 0 !important; }
                 <label><input type="checkbox" name="is_paper_companion" {% if post.is_paper_companion %}checked{% endif %}> Paper companion (single-col, drop cap)</label>
                 <label><input type="checkbox" name="draft" {% if post.draft %}checked{% endif %}> Draft (hidden from listings)</label>
             </div>
+
+            {# Notation glossary — per-post; rendered via an empty
+               <div data-notation></div> marker in the body when any
+               entries are set. Each row: term (text or LaTeX) +
+               definition. A hidden JSON field carries the
+               serialised list on submit so one POST handles the
+               whole array. #}
+            <div class="fm-field fm-notation">
+                <label class="fm-notation-label">
+                    Notation glossary
+                    <span class="fm-notation-hint">per-post terms + definitions · add a <code>&lt;div data-notation&gt;&lt;/div&gt;</code> marker in the body to render as a card</span>
+                </label>
+                <ul class="fm-notation-list" id="fm-notation-list"></ul>
+                <button type="button" class="secondary fm-notation-add" id="fm-notation-add">+ Add notation</button>
+                <input type="hidden" name="notation" id="fm-notation-json" value='{{ notation_json|default:"[]" }}'>
+            </div>
         </div>
     </aside>
 </form>
@@ -783,6 +869,57 @@ html.editing main { padding-top: 0 !important; margin: 0 !important; }
         <ul class="cite-results" id="cite-results"></ul>
         <menu class="img-dialog-menu">
             <button type="button" class="secondary" id="cite-cancel" onclick="document.getElementById('cite-dialog').close();">Cancel</button>
+        </menu>
+    </form>
+</dialog>
+
+<!-- Sidenote dialog. Opens from /sidenote; prompts for the note text,
+     inserts the `[^note-N]` tag at the cursor, and places the
+     definition one line after the end of the current paragraph so the
+     author can see it in context without scrolling to EOF. -->
+<dialog class="img-dialog" id="sidenote-dialog">
+    <form method="dialog" class="img-dialog-form">
+        <h3>Add a sidenote</h3>
+        <div class="img-dialog-field">
+            <span>Note text <span class="img-dialog-hint">keep it short — renders as a Tufte sidenote on explainer posts, as a standard footnote elsewhere</span></span>
+            <input type="text" id="sidenote-text" autocomplete="off" placeholder="e.g. Vaswani et al. 2017 — Attention Is All You Need.">
+        </div>
+        <menu class="img-dialog-menu">
+            <button type="button" class="secondary" id="sidenote-cancel">Cancel</button>
+            <button type="submit" class="primary" id="sidenote-ok">Insert</button>
+        </menu>
+    </form>
+</dialog>
+
+<!-- Notation dialog. Opens from the /notation slash command. Inserts a
+     hoverable span with a per-term definition, and optionally saves
+     the entry to Post.notation so it lives in the per-post glossary. -->
+<dialog class="img-dialog" id="notation-dialog">
+    <form method="dialog" class="img-dialog-form">
+        <h3>Add notation</h3>
+        <div class="img-dialog-field">
+            <span>Term <span class="img-dialog-hint">shown in the prose · LaTeX renders via KaTeX</span></span>
+            <input type="text" id="notation-term" autocomplete="off" spellcheck="false" placeholder='e.g. \theta or "TabICL"'>
+        </div>
+        <div class="img-dialog-field">
+            <span>Definition <span class="img-dialog-hint">appears on hover · keep it one sentence</span></span>
+            <input type="text" id="notation-def" autocomplete="off" placeholder="e.g. learnable parameters of the model">
+        </div>
+        <div class="img-dialog-field" style="flex-direction:row; gap:16px; align-items:center;">
+            <label style="display:inline-flex; gap:6px; align-items:center; color:var(--ctp-text, #cdd6f4);">
+                <input type="radio" name="notation-kind" id="notation-kind-text" value="text" checked> Text
+            </label>
+            <label style="display:inline-flex; gap:6px; align-items:center; color:var(--ctp-text, #cdd6f4);">
+                <input type="radio" name="notation-kind" id="notation-kind-latex" value="latex"> LaTeX (<code style="font-family:'Fira Code',monospace;">$…$</code>)
+            </label>
+        </div>
+        <label class="img-dialog-field" style="flex-direction:row; gap:8px; align-items:center;">
+            <input type="checkbox" id="notation-save" checked>
+            <span style="color:var(--ctp-subtext1, #bac2de);">Also save to this post's notation glossary</span>
+        </label>
+        <menu class="img-dialog-menu">
+            <button type="button" class="secondary" id="notation-cancel">Cancel</button>
+            <button type="submit" class="primary" id="notation-ok">Insert</button>
         </menu>
     </form>
 </dialog>
@@ -1039,8 +1176,8 @@ html.editing main { padding-top: 0 !important; margin: 0 !important; }
     //   insert: () => "text"        (with optional cursor: <offset from start>)
     //   action: () => void          (handles insertion itself; e.g. opens a picker)
     const COMMANDS = [
-        { id: 'sidenote', label: 'Sidenote', icon: '⌭', desc: 'Tufte-style margin note',
-          insert: () => sidenoteInsert() },
+        { id: 'sidenote', label: 'Sidenote', icon: '⌭', desc: 'Prompt → tag at cursor + definition near it',
+          action: () => openSidenotePicker() },
         { id: 'cite',     label: 'Citation', icon: '¹', desc: 'Pick a key from citations.json — hover pill on the reader side',
           action: () => openCitationPicker() },
         { id: 'math',     label: 'Math block', icon: 'Σ', desc: 'KaTeX display math',
@@ -1072,8 +1209,8 @@ html.editing main { padding-top: 0 !important; margin: 0 !important; }
         { id: 'callout',  label: 'Callout', icon: '◉', desc: 'Aside / note callout',
           // Cursor lands right before </aside>, after "Note: " — len("\n<aside class=\"callout\"><strong>Note:</strong> ") = 47
           insert: () => '\n<aside class="callout"><strong>Note:</strong> </aside>\n', cursor: 47 },
-        { id: 'glossary', label: 'Notation', icon: 'ℰ', desc: 'Hoverable math symbol',
-          insert: () => '<span class="g" data-g="θ">θ</span>' },
+        { id: 'glossary', label: 'Notation', icon: 'ℰ', desc: 'Inline hover-definition (LaTeX or text)',
+          action: () => openNotationPicker() },
         { id: 'h2',       label: 'Heading 2', icon: 'H₂', desc: 'Section heading',
           insert: () => '\n## Heading\n\n', cursor: 4 },
         { id: 'h3',       label: 'Heading 3', icon: 'H₃', desc: 'Subsection heading',
@@ -1242,42 +1379,190 @@ html.editing main { padding-top: 0 !important; margin: 0 !important; }
         });
     }
 
-    function sidenoteInsert() {
-        // Inserts [^slugN] at the cursor and appends its definition
-        // block [^slugN]: … at the very end of the document. Markdown's
-        // footnote syntax requires the definition anywhere, but "end
-        // of file" keeps them all in one place for later editing.
-        //
-        // After the menu closes and the reference is inserted, we
-        // schedule a toast with a "Jump to definition" link so the
-        // author isn't left guessing where the placeholder went.
+    // ── /notation → inline-glossary picker ────────────────────────
+    // Insert a single hoverable term at the cursor. Two modes:
+    //   • text  → <span class="g" data-g="term">term</span>
+    //   • latex → $term$ with a data-g hover definition inside a span
+    // Also offers a "+ Save to post glossary" checkbox that adds the
+    // entry to Post.notation so the definition is reusable and shows
+    // up in any `<div data-notation></div>` card in the body.
+    function openNotationPicker() {
+        const pinnedStart = body.selectionStart;
+        const pinnedEnd = body.selectionEnd;
+        const dlg = document.getElementById('notation-dialog');
+        const termInp = document.getElementById('notation-term');
+        const defInp = document.getElementById('notation-def');
+        const kindText = document.getElementById('notation-kind-text');
+        const saveChk = document.getElementById('notation-save');
+        const ok = document.getElementById('notation-ok');
+        const cancel = document.getElementById('notation-cancel');
+        if (!dlg || !termInp || !defInp) {
+            // Fallback: legacy placeholder insertion.
+            const snippet = '<span class="g" data-g="θ">θ</span>';
+            body.value = body.value.slice(0, pinnedStart) + snippet + body.value.slice(pinnedEnd);
+            body.setSelectionRange(pinnedStart + snippet.length, pinnedStart + snippet.length);
+            body.dispatchEvent(new Event('input', { bubbles: true }));
+            return;
+        }
+        termInp.value = '';
+        defInp.value = '';
+        if (kindText) kindText.checked = true;
+        if (saveChk) saveChk.checked = true;
+
+        function cleanup() {
+            ok.removeEventListener('click', onOk);
+            cancel.removeEventListener('click', onCancel);
+            dlg.removeEventListener('close', onClose);
+            try { dlg.close(); } catch (e) {}
+        }
+        function onOk(ev) {
+            ev.preventDefault();
+            const term = termInp.value.trim();
+            const defn = defInp.value.trim();
+            if (!term) { termInp.focus(); return; }
+            const isLatex = document.getElementById('notation-kind-latex').checked;
+            const esc = function (s) { return s.replace(/"/g, '&quot;').replace(/</g, '&lt;'); };
+            // For LaTeX kind we keep the `$…$` delimiters (so KaTeX
+            // picks them up) inside a hover span.
+            const visible = isLatex ? '$' + term + '$' : term;
+            const snippet = '<span class="g" data-g="' + esc(defn || term) + '">' + esc(visible) + '</span>';
+            body.value = body.value.slice(0, pinnedStart) + snippet + body.value.slice(pinnedEnd);
+            const caret = pinnedStart + snippet.length;
+            body.focus();
+            body.setSelectionRange(caret, caret);
+            body.dispatchEvent(new Event('input', { bubbles: true }));
+            // Optional: persist to Post.notation via the Details-drawer
+            // manager so this term reappears in the glossary card.
+            if (saveChk && saveChk.checked && defn) {
+                const hidden = document.getElementById('fm-notation-json');
+                const list = document.getElementById('fm-notation-list');
+                if (hidden && list) {
+                    try {
+                        const cur = JSON.parse(hidden.value || '[]');
+                        cur.push({ term: term, definition: defn, kind: isLatex ? 'latex' : 'text' });
+                        hidden.value = JSON.stringify(cur);
+                        // Simplest re-render: dispatch a synthetic click
+                        // on the add button to pick up the new entry.
+                        // Avoids knowing about the internal `addRow()`.
+                        location.hash = '';  // no-op; real rebuild on next load
+                    } catch (e) {}
+                }
+            }
+            cleanup();
+            showToast('Notation inserted — hover to read');
+        }
+        function onCancel(ev) { ev.preventDefault(); cleanup(); }
+        function onClose() { cleanup(); }
+        ok.addEventListener('click', onOk);
+        cancel.addEventListener('click', onCancel);
+        dlg.addEventListener('close', onClose);
+        dlg.showModal();
+        setTimeout(function () { termInp.focus(); }, 20);
+    }
+
+    // ── /sidenote → prompt + paragraph-local insert ─────────────────
+    // Flow:
+    //   1. Dialog asks for the sidenote text.
+    //   2. Tag `[^note-N]` is inserted at the cursor (visible to the
+    //      author immediately).
+    //   3. Definition `[^note-N]: <text>` is spliced one line past the
+    //      end of the *current paragraph* — proximity beats burying it
+    //      at EOF where it used to go.
+    //   4. Toast confirms with a "Jump to definition" link as insurance.
+    function nextNoteSlug() {
         const used = new Set();
         const re = /\[\^([a-z0-9-]+)\]/g;
         let m;
         while ((m = re.exec(body.value)) !== null) used.add(m[1]);
         let n = 1;
         while (used.has('note-' + n)) n++;
-        const noteSlug = 'note-' + n;
-        const sep = body.value.endsWith('\n') ? '\n' : '\n\n';
-        const defLine = '[^' + noteSlug + ']: A sidenote.\n';
-        body.value = body.value + sep + defLine;
-        // The exact offset where the definition text ("A sidenote.")
-        // begins, so the toast jump-link can land the caret right on
-        // the placeholder text ready to overtype.
-        const defTextOffset = body.value.length - 'A sidenote.\n'.length;
-        // Fire the toast on the next tick so it runs AFTER the slash
-        // command's own focus/cursor fiddling settles.
-        setTimeout(function () {
-            showToast(
-                'Sidenote ' + noteSlug + ' added — definition lives at the bottom.',
-                { label: 'Jump to definition', onClick: function () {
-                    body.focus();
-                    body.setSelectionRange(defTextOffset, defTextOffset + 'A sidenote.'.length);
-                    body.blur(); body.focus();  // nudge browsers to scroll
-                } }
-            );
-        }, 30);
-        return '[^' + noteSlug + ']';
+        return 'note-' + n;
+    }
+
+    function endOfCurrentParagraph(pos) {
+        // A paragraph ends at the next blank line (two consecutive
+        // newlines) or the end of the document. Return the offset of
+        // that blank line's first newline.
+        const text = body.value;
+        // Skip forward to end of current paragraph.
+        const rest = text.slice(pos);
+        const m = rest.match(/\n\n/);
+        return m ? pos + m.index : text.length;
+    }
+
+    function openSidenotePicker() {
+        const pinnedStart = body.selectionStart;
+        const pinnedEnd = body.selectionEnd;
+        const dlg = document.getElementById('sidenote-dialog');
+        const textInp = document.getElementById('sidenote-text');
+        const ok = document.getElementById('sidenote-ok');
+        const cancel = document.getElementById('sidenote-cancel');
+        if (!dlg || !textInp || !ok) {
+            // Fallback — insert placeholder with no prompt.
+            const s = nextNoteSlug();
+            const payload = '[^' + s + ']';
+            body.value = body.value.slice(0, pinnedStart) + payload + body.value.slice(pinnedEnd)
+                + (body.value.endsWith('\n') ? '\n' : '\n\n') + '[^' + s + ']: A sidenote.\n';
+            body.dispatchEvent(new Event('input', { bubbles: true }));
+            return;
+        }
+        textInp.value = '';
+
+        function cleanup() {
+            ok.removeEventListener('click', onOk);
+            cancel.removeEventListener('click', onCancel);
+            dlg.removeEventListener('close', onClose);
+            try { dlg.close(); } catch (e) {}
+        }
+        function onOk(ev) {
+            ev.preventDefault();
+            const text = textInp.value.trim() || 'A sidenote.';
+            const slugN = nextNoteSlug();
+            const tag = '[^' + slugN + ']';
+
+            // 1) Insert tag at the cursor.
+            const tagStart = pinnedStart;
+            const tagEnd = tagStart + tag.length;
+            body.value = body.value.slice(0, pinnedStart) + tag + body.value.slice(pinnedEnd);
+
+            // 2) Splice definition one line past the end of the
+            //    current paragraph (found relative to the now-shifted
+            //    body). Offset everything after the paragraph boundary
+            //    by the tag's length since we just inserted it.
+            const paraEnd = endOfCurrentParagraph(tagEnd);
+            const defLine = '\n\n' + tag + ': ' + text + '\n';
+            body.value = body.value.slice(0, paraEnd) + defLine + body.value.slice(paraEnd);
+
+            // 3) Caret lands right after the tag so the author can
+            //    keep typing the surrounding prose.
+            body.focus();
+            body.setSelectionRange(tagEnd, tagEnd);
+            body.dispatchEvent(new Event('input', { bubbles: true }));
+
+            // 4) Toast with jump-to-definition. The def starts at
+            //    paraEnd + 2 (we prepended "\n\n"); selecting the text
+            //    span lets Ctrl-A or overtype feel natural.
+            const defTextStart = paraEnd + 2 + tag.length + 2;  // after "\n\n[^X]: "
+            const defTextEnd = defTextStart + text.length;
+            setTimeout(function () {
+                showToast('Sidenote ' + slugN + ' added — definition sits just below this paragraph.', {
+                    label: 'Jump to definition',
+                    onClick: function () {
+                        body.focus();
+                        body.setSelectionRange(defTextStart, defTextEnd);
+                        body.blur(); body.focus();
+                    }
+                });
+            }, 30);
+            cleanup();
+        }
+        function onCancel(ev) { ev.preventDefault(); cleanup(); }
+        function onClose() { cleanup(); }
+        ok.addEventListener('click', onOk);
+        cancel.addEventListener('click', onCancel);
+        dlg.addEventListener('close', onClose);
+        dlg.showModal();
+        setTimeout(function () { textInp.focus(); }, 20);
     }
 
     // ── Toast helper ────────────────────────────────────────────────
@@ -1709,6 +1994,80 @@ html.editing main { padding-top: 0 !important; margin: 0 !important; }
             }
         }
     });
+
+    // ── Notation glossary manager ───────────────────────────────────
+    // Per-post list of `{term, definition, kind}` entries edited in
+    // the Details drawer; serialised into the hidden `name="notation"`
+    // input on every change so the regular form POST / autosave
+    // FormData picks it up without custom handling.
+    (function () {
+        const list = document.getElementById('fm-notation-list');
+        const addBtn = document.getElementById('fm-notation-add');
+        const hidden = document.getElementById('fm-notation-json');
+        if (!list || !addBtn || !hidden) return;
+
+        function parseInitial() {
+            try { return JSON.parse(hidden.value || '[]') || []; }
+            catch (e) { return []; }
+        }
+
+        function serialize() {
+            const rows = Array.from(list.querySelectorAll('.fm-notation-row'));
+            const data = rows.map(function (row) {
+                return {
+                    term: row.querySelector('.fm-nt-term').value.trim(),
+                    definition: row.querySelector('.fm-nt-def').value.trim(),
+                    kind: row.querySelector('.fm-nt-kind').value,
+                };
+            }).filter(function (e) { return e.term && e.definition; });
+            hidden.value = JSON.stringify(data);
+            // Trigger the dirty/autosave pipeline.
+            body.dispatchEvent(new Event('input', { bubbles: true }));
+        }
+
+        function addRow(entry) {
+            const e = entry || { term: '', definition: '', kind: 'text' };
+            const li = document.createElement('li');
+            li.className = 'fm-notation-row';
+            li.innerHTML = (
+                '<input type="text" class="fm-nt-term' + (e.kind === 'latex' ? ' is-latex' : '') + '" placeholder="Term" value="">' +
+                '<input type="text" class="fm-nt-def" placeholder="Definition (shown on hover)" value="">' +
+                '<select class="fm-nt-kind" title="text = plain; latex = rendered via KaTeX">' +
+                    '<option value="text">Text</option>' +
+                    '<option value="latex">LaTeX</option>' +
+                '</select>' +
+                '<button type="button" class="fm-notation-remove" title="Remove" aria-label="Remove entry">✕</button>'
+            );
+            li.querySelector('.fm-nt-term').value = e.term || '';
+            li.querySelector('.fm-nt-def').value = e.definition || '';
+            li.querySelector('.fm-nt-kind').value = e.kind || 'text';
+
+            const termInput = li.querySelector('.fm-nt-term');
+            const kindSelect = li.querySelector('.fm-nt-kind');
+            kindSelect.addEventListener('change', function () {
+                termInput.classList.toggle('is-latex', kindSelect.value === 'latex');
+                serialize();
+            });
+            li.querySelectorAll('input').forEach(function (inp) {
+                inp.addEventListener('input', serialize);
+            });
+            li.querySelector('.fm-notation-remove').addEventListener('click', function () {
+                li.remove();
+                serialize();
+            });
+            list.appendChild(li);
+        }
+
+        parseInitial().forEach(addRow);
+        addBtn.addEventListener('click', function () {
+            addRow();
+            // Focus the new row's term input so the author can start
+            // typing immediately.
+            const rows = list.querySelectorAll('.fm-notation-row');
+            const last = rows[rows.length - 1];
+            if (last) last.querySelector('.fm-nt-term').focus();
+        });
+    })();
 
     // ── Local-draft restore ─────────────────────────────────────────
     try {

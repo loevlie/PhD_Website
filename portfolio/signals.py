@@ -103,6 +103,7 @@ def _render_and_persist(post):
             is_explainer=getattr(post, 'is_explainer', False),
             post_slug=post.slug,
             errors_out=errors,
+            notation_entries=getattr(post, 'notation', None) or [],
         )
     except Exception:
         # Don't break save() if render itself crashes — fall back to

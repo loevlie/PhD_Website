@@ -449,7 +449,39 @@ def _transform_footnotes_to_sidenotes(html):
 # demo, arxiv, github, wiki, quiz, plot, equation in one pass).
 
 
-def render_markdown(content, is_explainer=False, post_slug=None, errors_out=None, preview=False):
+_NOTATION_EMPTY_RE = re.compile(r'<div\s+data-notation[^>]*>\s*</div>', re.IGNORECASE)
+
+
+def _populate_notation_marker(content, notation_entries):
+    """Substitute the author's empty `<div data-notation></div>`
+    markers with a populated glossary block drawn from a post's
+    `notation` JSON field. Each entry is one line of `term: definition`;
+    the existing `notation` embed handler then renders the card.
+
+    LaTeX-kind entries get wrapped in `$…$` so KaTeX picks them up
+    inside the resulting glossary.
+    """
+    if not notation_entries:
+        return content
+    lines = []
+    for e in notation_entries:
+        if not isinstance(e, dict):
+            continue
+        term = (e.get('term') or '').strip()
+        definition = (e.get('definition') or '').strip()
+        if not term or not definition:
+            continue
+        if (e.get('kind') or 'text') == 'latex':
+            term = f'${term}$'
+        lines.append(f'{term}: {definition}')
+    if not lines:
+        return content
+    body = '\n'.join(lines)
+    return _NOTATION_EMPTY_RE.sub(f'<div data-notation>\n{body}\n</div>', content)
+
+
+def render_markdown(content, is_explainer=False, post_slug=None, errors_out=None,
+                    preview=False, notation_entries=None):
     """Convert markdown string to HTML with syntax highlighting, ToC, and
     (for explainer posts) Tufte-style sidenotes from footnote markup.
 
@@ -462,6 +494,11 @@ def render_markdown(content, is_explainer=False, post_slug=None, errors_out=None
     On `is_explainer=True` posts they're transformed into margin notes
     that float in the right gutter on desktop and collapse inline on mobile.
 
+    `notation_entries` (list of {term, definition, kind}) populates any
+    empty `<div data-notation></div>` markers with the post's per-post
+    glossary — see `portfolio/views/blog_editor.py` for the editor-side
+    management and Post.notation for storage.
+
     If `errors_out` is provided (a mutable list), any pyfig rendering
     errors are appended to it. The post_save signal uses this to avoid
     persisting a partial-failure render into Post.rendered_html.
@@ -470,6 +507,10 @@ def render_markdown(content, is_explainer=False, post_slug=None, errors_out=None
     # an inline figure (SVG or base64 PNG), so subsequent passes treat
     # them as ordinary images.
     content = _process_pyfig_blocks(content, post_slug=post_slug, errors_out=errors_out)
+    # Populate empty notation markers from the post's stored entries
+    # BEFORE the embed dispatcher runs — the existing notation handler
+    # then treats it like any other author-filled glossary.
+    content = _populate_notation_marker(content, notation_entries)
     # Run the full marker dispatcher (portfolio/blog/embeds/) — handles
     # data-demo, data-arxiv, data-github, data-wiki, data-quiz, data-plot,
     # data-equation, data-pyodide, etc. The legacy `_expand_demo_embeds`
@@ -582,6 +623,7 @@ def _post_to_dict(post_obj, render_html=True):
             content_html, toc_html = render_markdown(
                 post_obj.body, is_explainer=is_explainer, post_slug=post_obj.slug,
                 errors_out=errors,
+                notation_entries=getattr(post_obj, 'notation', None) or [],
             )
             # Warm the persisted render only when the body actually has
             # an id (not an unsaved instance) and no pyfig errored.

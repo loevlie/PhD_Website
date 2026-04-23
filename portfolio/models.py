@@ -120,6 +120,17 @@ class Post(models.Model):
         max_length=16, choices=KIND_CHOICES, default='essay',
         help_text="Which surface this post belongs to. Essays go to /blog/; lab notes go to /notebook/. Garden is orthogonal.",
     )
+    # Per-post notation glossary — list of `{term, definition, kind}`
+    # entries managed from the editor's Details drawer. When present,
+    # an empty `<div data-notation></div>` marker anywhere in the body
+    # expands to the populated glossary at render time; omit the
+    # marker to skip the visible card while still keeping the entries
+    # available for future inline-hover wrapping.
+    #
+    #   kind: 'latex'  → term is rendered via KaTeX (e.g. "\\theta")
+    #         'text'   → term is shown as-is (e.g. "TabICL")
+    notation = models.JSONField(blank=True, default=list)
+
     # Per-post collaborators: authenticated non-staff users who can
     # edit this specific post (and only this one). Staff + superusers
     # can always edit any post; this M2M is the narrow grant we use
