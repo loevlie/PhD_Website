@@ -154,8 +154,45 @@ def blog_edit(request, slug):
             tag_str = request.POST.get('tags', '').strip()
             tag_list = [t.strip() for t in tag_str.split(',') if t.strip()] if tag_str else []
             post.tags.set(tag_list)
+
+        # Force-refresh the persisted render. The post_save signal
+        # (signals._render_and_persist) silently SKIPS the update if
+        # any pyfig errors, which left `rendered_html` frozen at stale
+        # content even when the body was saving correctly. An explicit
+        # Save click is unambiguous user intent — overwrite the
+        # rendered HTML regardless of pyfig status, so the live page
+        # reflects what the author just typed. Errors in individual
+        # pyfig blocks still render as inline error banners — the
+        # surrounding prose still gets through.
+        try:
+            from portfolio.blog import render_markdown
+            from portfolio.models import Post as _Post
+            errors_out = []
+            html, toc = render_markdown(
+                post.body or '',
+                is_explainer=getattr(post, 'is_explainer', False),
+                post_slug=post.slug,
+                errors_out=errors_out,
+                notation_entries=getattr(post, 'notation', None) or [],
+            )
+            _Post.objects.filter(pk=post.pk).update(
+                rendered_html=html,
+                rendered_toc_html=toc,
+                rendered_at=timezone.now(),
+            )
+        except Exception:
+            # Save of `post.body` already committed above; a render
+            # failure here shouldn't block the redirect. Live-render
+            # fallback in get_post() picks up the slack.
+            pass
+
         if request.POST.get('action') == 'view':
-            return redirect('blog_post', slug=post.slug)
+            # Cache-bust the redirect target so a mid-session browser
+            # cache doesn't serve the old rendered version.
+            from django.http import HttpResponseRedirect
+            from django.urls import reverse
+            t = int(timezone.now().timestamp())
+            return HttpResponseRedirect(f'{reverse("blog_post", args=[post.slug])}?_r={t}')
         return redirect('blog_edit', slug=post.slug)
 
     return render(request, 'portfolio/blog_edit.html', _edit_context(
