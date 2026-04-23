@@ -18,6 +18,11 @@ anthropic>=0.46
 # from the editor JS. Zero runtime impact on reader-facing pages.
 pyspellchecker>=0.8
 
+# HTML walker used by the per-post notation auto-wrap (render pipeline
+# scans post bodies for Post.notation terms and wraps them in hover
+# pills). Called from portfolio/blog/__init__.py :: _wrap_notation_terms.
+beautifulsoup4>=4.12
+
 # Default scientific-Python stack available to /pyfig blocks. Each post
 # can also declare extras via a per-post deps file (see _render_pyfig).
 matplotlib>=3.9

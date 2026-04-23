@@ -494,7 +494,14 @@ def _wrap_notation_terms(html, notation_entries):
     # Longest first so multi-word terms win over their single-word prefixes.
     pairs.sort(key=lambda p: -len(p[0]))
 
-    from bs4 import BeautifulSoup, NavigableString
+    # Graceful skip: auto-wrap requires beautifulsoup4 for safe HTML
+    # traversal. If the runtime doesn't have it (e.g. a deploy that
+    # landed before the requirements bump), degrade to "glossary-card
+    # only" rather than crashing the render.
+    try:
+        from bs4 import BeautifulSoup, NavigableString
+    except ImportError:
+        return html
     soup = BeautifulSoup(html, 'html.parser')
 
     term_map = {t.lower(): (t, d) for t, d in pairs}
