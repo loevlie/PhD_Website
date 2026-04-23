@@ -65,6 +65,11 @@ from .editor_assist import (
     smart_paste as smart_paste_view,
     assist as assist_view,
 )
+from .citations import (
+    manifest as citations_manifest,
+    create_from_bibtex as citations_create,
+    search as citations_search,
+)
 
 __all__ = [
     'index',

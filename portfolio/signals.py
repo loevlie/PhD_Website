@@ -150,3 +150,14 @@ def _user_profile_created(sender, instance, created, raw=False, **kwargs):
     if created:
         from portfolio.models import UserProfile
         UserProfile.objects.get_or_create(user=instance)
+
+
+# ─── Citation manifest cache invalidation ───────────────────────────
+# `/blog/citations.json` caches the serialized manifest for 5 minutes;
+# drop the key on every Citation write so edits land on the next
+# reader fetch without waiting for TTL.
+@receiver(post_save, sender='portfolio.Citation')
+@receiver(post_delete, sender='portfolio.Citation')
+def _citation_changed(sender, **kwargs):
+    from django.core.cache import cache
+    cache.delete('citations:manifest')

@@ -5,8 +5,38 @@ from portfolio.models import (
     Post, PostCollaborator, Pageview, DailySalt, Reading,
     NewsItem, Publication, PublicationLink,
     Project, ProjectLink, TimelineEntry, OpenSourceItem,
-    SocialLink, NowPage, NowSection, UserProfile,
+    SocialLink, NowPage, NowSection, UserProfile, Citation,
 )
+
+
+@admin.register(Citation)
+class CitationAdmin(admin.ModelAdmin):
+    """Manage the `<cite data-key=...>` manifest. Editors normally add
+    citations via the editor's BibTeX-paste dialog; this admin is for
+    curation (fixing a key, tweaking a venue, merging duplicates)."""
+    list_display = ['key', 'year', 'authors_short', 'title_short', 'has_bibtex', 'modified_at']
+    list_filter = ['year']
+    search_fields = ['key', 'title', 'authors', 'doi', 'arxiv_id']
+    readonly_fields = ['created_at', 'modified_at', 'created_by']
+    fieldsets = (
+        (None, {'fields': ('key', 'title', 'authors', 'venue', 'year', 'url')}),
+        ('Identifiers', {'fields': ('arxiv_id', 'doi'), 'classes': ('collapse',)}),
+        ('BibTeX', {'fields': ('bibtex',), 'description': 'Raw BibTeX — shown verbatim in the post popover "Copy BibTeX" button.'}),
+        ('Audit', {'fields': ('created_by', 'created_at', 'modified_at'), 'classes': ('collapse',)}),
+    )
+
+    def authors_short(self, obj):
+        return (obj.authors[:40] + '…') if len(obj.authors) > 40 else obj.authors
+    authors_short.short_description = 'Authors'
+
+    def title_short(self, obj):
+        return (obj.title[:60] + '…') if len(obj.title) > 60 else obj.title
+    title_short.short_description = 'Title'
+
+    def has_bibtex(self, obj):
+        return bool(obj.bibtex)
+    has_bibtex.boolean = True
+    has_bibtex.short_description = 'BibTeX'
 
 
 class PostCollaboratorInline(admin.TabularInline):

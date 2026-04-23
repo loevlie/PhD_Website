@@ -32,6 +32,11 @@ urlpatterns = [
     path('blog/<slug:slug>/edit/heartbeat/', views.blog_edit_heartbeat, name='blog_edit_heartbeat'),
     path('blog/<slug:slug>/autosave/', views.blog_autosave, name='blog_autosave'),
     path('blog/<slug:slug>/cite.bib', views.blog_cite_bib, name='blog_cite_bib'),
+    # Citation manifest + create/search — backs the explainer-post
+    # <cite data-key=...> resolver and the editor "+ Cite" dialog.
+    path('blog/citations.json', views.citations_manifest, name='citations_manifest'),
+    path('blog/citations/create/', views.citations_create, name='citations_create'),
+    path('blog/citations/search/', views.citations_search, name='citations_search'),
     path('blog/<slug:slug>/regenerate-og/', views.regenerate_og_card, name='regenerate_og_card'),
     # Editor-assist: spell-check debounced from the editor JS. Staff-only;
     # pure-Python checker at portfolio/editor_assist/spellcheck.py.

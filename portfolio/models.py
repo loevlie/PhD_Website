@@ -226,6 +226,69 @@ class PostCollaborator(models.Model):
         return f'{self.user} on "{self.post}" (#{self.order})'
 
 
+class Citation(models.Model):
+    """A citable reference (paper / essay / book) used by explainer
+    posts via inline `<cite class="ref" data-key="KEY">[N]</cite>`
+    markers. Global scope — one citation row is reusable across every
+    post.
+
+    Previously lived in `portfolio/static/portfolio/data/citations.json`;
+    the DB is now the source of truth and `/blog/citations.json` serves
+    the same shape so `citations.js` can consume it unchanged. A
+    `seed_citations` management command imports the legacy JSON on
+    first run."""
+    key = models.SlugField(
+        max_length=80, unique=True,
+        help_text="Slug used by <cite data-key=\"...\">. Convention: "
+                  "firstauthor + year + shortword (e.g. vaswani2017attention).",
+    )
+    title = models.CharField(max_length=400)
+    authors = models.CharField(
+        max_length=400,
+        help_text="Display string, e.g. \"E. Harvey, D. Loevlie, M. Hughes\".",
+    )
+    venue = models.CharField(
+        max_length=200, blank=True,
+        help_text="Journal / conference / \"arXiv preprint\".",
+    )
+    year = models.PositiveSmallIntegerField(null=True, blank=True)
+    url = models.URLField(blank=True)
+    bibtex = models.TextField(blank=True)
+    arxiv_id = models.CharField(
+        max_length=40, blank=True, db_index=True,
+        help_text="If this was auto-fetched from arXiv, the bare id (e.g. 2510.25759). "
+                  "Used to dedupe — a second paste of the same arXiv URL reuses this row.",
+    )
+    doi = models.CharField(
+        max_length=120, blank=True, db_index=True,
+        help_text="If this was auto-fetched from CrossRef, the DOI (e.g. 10.1021/acs.accounts.2c00646).",
+    )
+    created_by = models.ForeignKey(
+        'auth.User', on_delete=models.SET_NULL, null=True, blank=True,
+        related_name='citations_created',
+    )
+    created_at = models.DateTimeField(auto_now_add=True)
+    modified_at = models.DateTimeField(auto_now=True)
+
+    class Meta:
+        ordering = ['-year', 'key']
+        verbose_name = 'Citation'
+        verbose_name_plural = 'Citations'
+
+    def __str__(self):
+        return f'{self.key} — {self.title[:60]}'
+
+    def to_manifest_entry(self):
+        """Shape consumed by citations.js (matches the legacy JSON file)."""
+        return {
+            'title': self.title,
+            'authors': self.authors,
+            'venue': self.venue,
+            'url': self.url,
+            'bibtex': self.bibtex,
+        }
+
+
 class Reading(models.Model):
     """A paper / essay / book Dennis is recommending. Drives the /reading/
     page. Independent from Post — these are external recommendations, not

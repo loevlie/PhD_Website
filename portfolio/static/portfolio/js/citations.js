@@ -19,17 +19,30 @@
  *     until they ship the Popover hint type (Safari shipped popover=auto
  *     but not popover=hint as of Safari 18).
  *
- * Both tiers source data from `/static/portfolio/data/citations.json`.
+ * Both tiers source data from `/blog/citations.json` — a DB-backed
+ * manifest matching the legacy static-JSON shape. The static file
+ * is kept as a fallback for dev environments where the DB is empty.
  */
 
 (function () {
-    const MANIFEST_URL = '/static/portfolio/data/citations.json';
+    const MANIFEST_URL = '/blog/citations.json';
+    const FALLBACK_URL = '/static/portfolio/data/citations.json';
     let manifestPromise = null;
 
     function loadManifest() {
         if (manifestPromise) return manifestPromise;
-        manifestPromise = fetch(MANIFEST_URL, { cache: 'force-cache' })
+        manifestPromise = fetch(MANIFEST_URL, { cache: 'no-cache' })
             .then(r => (r.ok ? r.json() : {}))
+            .then(data => {
+                // DB empty → fall back to the bundled static manifest so
+                // the first paint of a legacy post still has metadata.
+                if (data && Object.keys(data).length === 0) {
+                    return fetch(FALLBACK_URL, { cache: 'force-cache' })
+                        .then(r => (r.ok ? r.json() : {}))
+                        .catch(() => ({}));
+                }
+                return data;
+            })
             .catch(() => ({}));
         return manifestPromise;
     }
