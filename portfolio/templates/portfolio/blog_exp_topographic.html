@@ -141,16 +141,9 @@
     </p>
 
     {% if posts %}
-        {# Foundations: evergreen-marked posts; fall back to the oldest 3
-           if no evergreens exist yet. We render exactly the curated list,
-           never auto-sorted, so the framing stays editorial. #}
         {% with foundations=posts|dictsortreversed:"date"|dictsortreversed:"maturity" %}
-        {# We want only evergreens; filter via inline x-show is overkill,
-           do it Python-side via a helper: if any post.maturity == 'evergreen',
-           use those; else, take the latest 2 as the fallback. #}
         {% endwith %}
 
-        {# Compute foundations: posts with maturity 'evergreen', else fallback to first 2. #}
         {% with first_two=posts|slice:":2" %}
         <h2 class="topo-section-h">Foundations</h2>
         <div class="topo-foundations" id="topo-foundations-grid">

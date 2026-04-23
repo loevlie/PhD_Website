@@ -170,8 +170,6 @@
             {% if post.image %}
             <img src="{% static post.image %}" alt="" loading="lazy">
             {% else %}
-            {# Typographic fallback handled by the .no-image class — applied via JS below
-               so we don't duplicate the markup. The <span class="typeset"> contains the title. #}
             <span class="typeset">{{ post.title }}</span>
             {% endif %}
             <div class="photo-caption">
