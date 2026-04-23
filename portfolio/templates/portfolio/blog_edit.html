@@ -1111,24 +1111,6 @@ html.editing main { padding-top: 0 !important; margin: 0 !important; }
         navigator.sendBeacon('{% url "blog_autosave" post.slug %}', fd);
     });
 
-    // ── Edit-lock heartbeat ─────────────────────────────────────────
-    // Refresh the per-post lock every 60s while this tab is open; the
-    // server expires the lock after ~120s of silence so a closed tab
-    // frees the post. Also fire a `release` beacon on unload.
-    const HEARTBEAT_URL = '{% url "blog_edit_heartbeat" post.slug %}';
-    setInterval(function () {
-        const fd = new FormData();
-        fd.set('csrfmiddlewaretoken', csrf);
-        fetch(HEARTBEAT_URL, { method: 'POST', body: fd, credentials: 'same-origin' })
-            .catch(function () {});  // heartbeat failures are silent
-    }, 60_000);
-    window.addEventListener('beforeunload', function () {
-        const fd = new FormData();
-        fd.set('csrfmiddlewaretoken', csrf);
-        fd.set('action', 'release');
-        // sendBeacon so the browser doesn't drop the request on close.
-        try { navigator.sendBeacon(HEARTBEAT_URL, fd); } catch (e) {}
-    });
 
     // Word/char count + reading-time estimate in toolbar
     const wordCountEl = document.getElementById('word-count');

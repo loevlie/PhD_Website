@@ -98,12 +98,12 @@ def _apply_post_fields(post, data):
 def blog_edit(request, slug):
     """In-browser WYSIWYG-ish editor for a single Post.
 
-    Pessimistic per-post locking: a user opening the editor acquires a
-    cache-backed lock (120s TTL, refreshed by heartbeat every 60s from
-    the client). A second session hitting the editor while the lock is
-    held sees a read-only view with "Take over" — no optimistic merge,
-    no race. This is a single-author blog with occasional collaborators;
-    simplicity beats CRDT.
+    Concurrency model: last write wins. An earlier attempt at
+    pessimistic per-post locking (cache-backed with a 120s TTL) caused
+    more problems than it solved — stale locks in multi-worker Django
+    cache would silently block saves, and users had no way to tell
+    why their clicks did nothing. Ripped out; authorised author's
+    explicit Save always commits.
 
     Auth: staff, or a user listed in `post.collaborators`.
     """
@@ -116,38 +116,7 @@ def blog_edit(request, slug):
     if not _can_edit(request, post=post):
         return redirect(f'/accounts/login/?next=/blog/{slug}/edit/')
 
-    # ── Edit lock ────────────────────────────────────────────────────
-    # Identify this specific browser tab with a sticky session token so
-    # the same user in two tabs counts as two different sessions for
-    # lock purposes.
-    tab_token = request.session.get('editor_tab_token')
-    if not tab_token:
-        import secrets
-        tab_token = secrets.token_urlsafe(10)
-        request.session['editor_tab_token'] = tab_token
-
-    takeover = request.method == 'POST' and request.POST.get('takeover') == '1'
-    lock = _read_edit_lock(slug)
-
-    # The lock is a UI-advisory mechanism ONLY: it gates display of the
-    # editor so two sessions don't each think they're the sole editor.
-    # It does NOT block saves — that would silently discard the user's
-    # work when the lock has drifted across sessions/tabs (the exact
-    # bug the user reported: "my edits aren't saving"). If the POST
-    # reaches this view and the author is authorised (`_can_edit`
-    # above), the save is always processed — last write wins.
-    if request.method == 'GET' and lock and not _lock_is_ours(lock, request, tab_token):
-        return render(request, 'portfolio/blog_edit_locked.html', {
-            'post': post,
-            'lock': lock,
-            'age_s': max(0, int((timezone.now().timestamp() - lock['acquired_at']))),
-        })
-
-    # Refresh or claim the lock for THIS session so the next GET from
-    # another tab shows the locked page.
-    _write_edit_lock(slug, request, tab_token)
-
-    if request.method == 'POST' and not takeover:
+    if request.method == 'POST':
         _apply_post_fields(post, request.POST)
         post.save()
         if request.POST.get('tags') is not None:
@@ -210,91 +179,36 @@ def blog_edit(request, slug):
     ))
 
 
-# ── Edit-lock helpers ───────────────────────────────────────────────
-# One active editor per post at a time. Lock lives in Django cache
-# (auto-expires without cleanup), is refreshed by a heartbeat from the
-# editor client, and released on unload. Key per slug; value carries
-# the holder's identity so a second session can show "X is editing now"
-# and offer a Take-over button.
-
-_LOCK_TTL_SECONDS = 120
-
-
-def _lock_key(slug: str) -> str:
-    return f'edit_lock:{slug}'
-
-
-def _read_edit_lock(slug: str):
-    from django.core.cache import cache
-    return cache.get(_lock_key(slug))
-
-
-def _write_edit_lock(slug: str, request, tab_token: str):
-    """Set or refresh the lock for `slug` with the current session's
-    identity. Called on editor page load + by heartbeat."""
-    from django.core.cache import cache
-    now_ts = timezone.now().timestamp()
-    existing = cache.get(_lock_key(slug))
-    acquired_at = (existing or {}).get('acquired_at', now_ts) if (
-        existing and _lock_is_ours(existing, request, tab_token)
-    ) else now_ts
-    cache.set(_lock_key(slug), {
-        'user_id': request.user.pk,
-        'username': request.user.username,
-        'tab_token': tab_token,
-        'acquired_at': acquired_at,
-        'last_heartbeat': now_ts,
-    }, timeout=_LOCK_TTL_SECONDS)
-
-
-def _lock_is_ours(lock: dict, request, tab_token: str) -> bool:
-    """A lock is 'ours' if the same authed user holds it AND it's the
-    same browser tab (identified by session-scoped tab_token). Two tabs
-    of the same user count as two editors — avoids the user stepping on
-    their own toes in split windows."""
-    return (
-        lock.get('user_id') == request.user.pk
-        and lock.get('tab_token') == tab_token
-    )
-
-
-def _release_edit_lock(slug: str, request, tab_token: str):
-    from django.core.cache import cache
-    existing = cache.get(_lock_key(slug))
-    if existing and _lock_is_ours(existing, request, tab_token):
-        cache.delete(_lock_key(slug))
-
-
 def blog_edit_heartbeat(request, slug):
-    """POST /blog/<slug>/edit/heartbeat/ — client pings every 60s to
-    refresh the TTL. Also used to release on unload (body {action:
-    'release'}). Silent no-op if someone else now holds the lock."""
+    """Kept as a harmless 200 no-op so any editor sessions loaded
+    before the lock system was torn out don't 404 on their 60s
+    heartbeat pings. Will retire once no in-flight sessions exist."""
     if request.method != 'POST':
         return JsonResponse({'ok': False, 'error': 'POST required'}, status=405)
-    from portfolio.models import Post
-    try:
-        post = Post.objects.get(slug=slug)
-    except Post.DoesNotExist:
-        return JsonResponse({'ok': False, 'error': 'not found'}, status=404)
-    if not _can_edit(request, post=post):
-        return JsonResponse({'ok': False, 'error': 'unauthorized'}, status=403)
-    tab_token = request.session.get('editor_tab_token')
-    if not tab_token:
-        return JsonResponse({'ok': False, 'error': 'no session token'}, status=400)
-
-    action = request.POST.get('action', 'refresh')
-    if action == 'release':
-        _release_edit_lock(slug, request, tab_token)
-        return JsonResponse({'ok': True, 'released': True})
-
-    _write_edit_lock(slug, request, tab_token)
     return JsonResponse({'ok': True})
 
 
+# Opportunistic cleanup: wipe any existing edit-lock cache entries on
+# module import so stale locks from an earlier deploy can't interfere
+# with the fresh "last write wins" semantics. Runs once per worker start.
+def _wipe_legacy_edit_locks():
+    try:
+        from django.core.cache import cache
+        from portfolio.models import Post
+        slugs = Post.objects.values_list('slug', flat=True)
+        cache.delete_many([f'edit_lock:{s}' for s in slugs])
+    except Exception:
+        pass  # cache / DB may not be initialised at import time
+
+
+try:
+    _wipe_legacy_edit_locks()
+except Exception:
+    pass
+
+
 def _edit_context(post, tag_csv=''):
-    """Shared context builder for the editor template. The old Tier-1
-    `base_version` / `conflict` bits were removed once we switched to
-    pessimistic per-post locking — see `_write_edit_lock`."""
+    """Shared context builder for the editor template."""
     import json as _json
     return {
         'post': post,
