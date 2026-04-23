@@ -274,6 +274,44 @@ html.editing main { padding-top: 0 !important; margin: 0 !important; }
     font-style: italic;
 }
 .cite-empty code { font-style: normal; }
+
+/* BibTeX-paste disclosure inside the citation picker. */
+.cite-bibtex { margin-top: 12px; }
+.cite-bibtex-head {
+    cursor: pointer;
+    font-size: 0.82rem;
+    color: var(--ctp-lavender, #c6a0f6);
+    padding: 6px 0;
+    user-select: none;
+}
+.cite-bibtex[open] .cite-bibtex-head { color: var(--ctp-text, #cdd6f4); }
+.cite-bibtex-body { padding-top: 8px; display: flex; flex-direction: column; gap: 8px; }
+.cite-bibtex-input {
+    width: 100%;
+    min-height: 140px;
+    padding: 10px 12px;
+    background: var(--ctp-base, #1e1e2e);
+    border: 1px solid var(--ctp-surface0, #313244);
+    border-radius: 6px;
+    color: var(--ctp-text, #cdd6f4);
+    font-family: 'Fira Code', ui-monospace, monospace;
+    font-size: 0.8rem;
+    line-height: 1.5;
+    resize: vertical;
+}
+.cite-bibtex-input:focus {
+    outline: none;
+    border-color: var(--ctp-lavender, #c6a0f6);
+}
+.cite-bibtex-meta {
+    display: flex; align-items: center; gap: 12px;
+    justify-content: flex-end;
+}
+.cite-bibtex-status {
+    flex: 1;
+    font-size: 0.78rem;
+    color: var(--ctp-subtext0, #a6adc8);
+}
 .paste-format-body { font-size: 0.85rem; color: var(--ctp-subtext1, #bac2de); }
 .paste-format-marker {
     padding: 6px 10px; margin: 2px 0 8px;
@@ -866,15 +904,30 @@ html.editing main { padding-top: 0 !important; margin: 0 !important; }
     </form>
 </dialog>
 
-<!-- Citation picker. Opens from the /cite slash command. Reads
-     /static/portfolio/data/citations.json, lets the author search
-     across key / title / authors / venue, inserts the chosen ref. -->
+<!-- Citation picker. Opens from the /cite slash command. Reads the
+     DB-backed manifest at /blog/citations.json; if the source isn't
+     in the list, authors can paste a BibTeX entry in the "Add new"
+     disclosure — the server parses it, creates a Citation row, and
+     returns the key we insert at the cursor. -->
 <dialog class="img-dialog cite-dialog" id="cite-dialog">
     <form method="dialog" class="img-dialog-form">
         <h3>Insert citation</h3>
-        <p class="paste-format-body" style="margin:0;">Pick a key from <code>citations.json</code>. New source? Add it to the file and reload.</p>
+        <p class="paste-format-body" style="margin:0;">Search existing citations — or paste a BibTeX entry to add a new one.</p>
         <input type="text" id="cite-search" class="cite-search-input" placeholder="Search title, author, venue, or key…" autocomplete="off" spellcheck="false">
         <ul class="cite-results" id="cite-results"></ul>
+
+        <details class="cite-bibtex" id="cite-bibtex">
+            <summary class="cite-bibtex-head">+ Add new from BibTeX</summary>
+            <div class="cite-bibtex-body">
+                <textarea id="cite-bibtex-input" class="cite-bibtex-input" spellcheck="false" autocomplete="off"
+                    placeholder="@article{smith2024title, author={Smith, Jane and Doe, John}, title={...}, journal={Nature}, year={2024}, url={https://...}}"></textarea>
+                <div class="cite-bibtex-meta">
+                    <span id="cite-bibtex-status" class="cite-bibtex-status" aria-live="polite"></span>
+                    <button type="button" class="primary" id="cite-bibtex-add">Add &amp; insert</button>
+                </div>
+            </div>
+        </details>
+
         <menu class="img-dialog-menu">
             <button type="button" class="secondary" id="cite-cancel" onclick="document.getElementById('cite-dialog').close();">Cancel</button>
         </menu>
@@ -1292,12 +1345,24 @@ html.editing main { padding-top: 0 !important; margin: 0 !important; }
     // where N is the running index of cite tags in the post — so the
     // visible numeric matches the author's intended order of appearance.
     let _citationsCache = null;
-    function loadCitations() {
-        if (_citationsCache) return Promise.resolve(_citationsCache);
-        return fetch('/static/portfolio/data/citations.json', { cache: 'force-cache' })
+    function loadCitations(force) {
+        if (_citationsCache && !force) return Promise.resolve(_citationsCache);
+        return fetch('/blog/citations.json', { cache: 'no-cache' })
             .then(function (r) { return r.ok ? r.json() : {}; })
             .then(function (data) { _citationsCache = data || {}; return _citationsCache; })
             .catch(function () { _citationsCache = {}; return _citationsCache; });
+    }
+
+    function insertCiteKey(key, pinnedStart, pinnedEnd, dlg) {
+        const idx = nextCiteIndex();
+        const snippet = '<cite class="ref" data-key="' + key + '">[' + idx + ']</cite>';
+        try { dlg && dlg.close(); } catch (e) {}
+        body.focus();
+        body.setSelectionRange(pinnedStart, pinnedEnd);
+        document.execCommand('insertText', false, snippet);
+        const caret = pinnedStart + snippet.length;
+        body.setSelectionRange(caret, caret);
+        showToast('Citation [' + idx + '] inserted · ' + key);
     }
 
     function nextCiteIndex() {
@@ -1333,7 +1398,7 @@ html.editing main { padding-top: 0 !important; margin: 0 !important; }
                     return (e.key + ' ' + e.title + ' ' + e.authors + ' ' + e.venue).toLowerCase().indexOf(ql) !== -1;
                 });
                 if (!filtered.length) {
-                    list.innerHTML = '<li class="cite-empty">No matches. Add the entry to <code>portfolio/static/portfolio/data/citations.json</code>, then reload.</li>';
+                    list.innerHTML = '<li class="cite-empty">No matches. Paste a BibTeX entry in <em>+ Add new</em> below to add and insert it.</li>';
                     active = -1;
                     return;
                 }
@@ -1365,16 +1430,53 @@ html.editing main { padding-top: 0 !important; margin: 0 !important; }
             }
 
             function choose(key) {
-                const idx = nextCiteIndex();
-                const snippet = '<cite class="ref" data-key="' + key + '">[' + idx + ']</cite>';
-                // Close first — <dialog> focus-trap blocks execCommand.
-                try { dlg.close(); } catch (e) {}
-                body.focus();
-                body.setSelectionRange(pinnedStart, pinnedEnd);
-                document.execCommand('insertText', false, snippet);
-                const caret = pinnedStart + snippet.length;
-                body.setSelectionRange(caret, caret);
-                showToast('Citation [' + idx + '] inserted · ' + key);
+                insertCiteKey(key, pinnedStart, pinnedEnd, dlg);
+            }
+
+            // ── BibTeX-paste pane ──────────────────────────────
+            // Author types /cite, doesn't find the source in the
+            // search list, expands "+ Add new from BibTeX", pastes
+            // an entry, clicks Add & insert. Server parses it,
+            // upserts a Citation row, returns the key — we reuse
+            // insertCiteKey() to drop the `<cite>` at the cursor.
+            const bibtexInp = document.getElementById('cite-bibtex-input');
+            const bibtexBtn = document.getElementById('cite-bibtex-add');
+            const bibtexStatus = document.getElementById('cite-bibtex-status');
+            function onBibtexAdd() {
+                const raw = (bibtexInp.value || '').trim();
+                if (!raw) {
+                    bibtexStatus.textContent = 'Paste a BibTeX entry first.';
+                    return;
+                }
+                bibtexStatus.textContent = 'Parsing…';
+                bibtexBtn.disabled = true;
+                fetch('/blog/citations/create/', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'X-CSRFToken': csrf,
+                    },
+                    credentials: 'same-origin',
+                    body: JSON.stringify({ bibtex: raw }),
+                }).then(function (r) {
+                    return r.json().then(function (j) { return { ok: r.ok, body: j }; });
+                }).then(function (res) {
+                    bibtexBtn.disabled = false;
+                    if (!res.ok) {
+                        bibtexStatus.textContent = res.body.error || 'Could not parse BibTeX.';
+                        return;
+                    }
+                    bibtexStatus.textContent = res.body.created ? 'Added · ' + res.body.key : 'Reused · ' + res.body.key;
+                    _citationsCache = null;  // invalidate so next open shows the new key
+                    insertCiteKey(res.body.key, pinnedStart, pinnedEnd, dlg);
+                }).catch(function () {
+                    bibtexBtn.disabled = false;
+                    bibtexStatus.textContent = 'Network error — try again.';
+                });
+            }
+            if (bibtexBtn && !bibtexBtn._wired) {
+                bibtexBtn.addEventListener('click', onBibtexAdd);
+                bibtexBtn._wired = true;
             }
 
             function onKey(ev) {
