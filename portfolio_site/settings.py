@@ -25,9 +25,29 @@ import dj_database_url
 
 BASE_DIR = Path(__file__).resolve().parent.parent
 
-SECRET_KEY = os.environ.get('SECRET_KEY', 'django-insecure-n_z2npd=%kxjemo*yjj77xusvdu_b46f(*e%qo643z#sz2-@6(')
+# SECRET_KEY MUST come from the environment in production. In dev
+# (DEBUG=True, the default) we use a constant LOCAL-ONLY sentinel so
+# `manage.py test` and `runserver` don't need any setup. The sentinel
+# is deliberately *not* a valid-looking secret — GitGuardian scanners
+# trip on `django-insecure-<random>` because many people ship that
+# fallback to production by accident, and a leaked real-looking
+# fallback is a cross-deployment replay risk.
+#
+# Generate a fresh production key with:
+#     python -c "from django.core.management.utils import get_random_secret_key; print(get_random_secret_key())"
+# then set SECRET_KEY in the Render dashboard → Environment.
+_DEBUG = os.environ.get('DEBUG', 'True').lower() == 'true'
+if os.environ.get('SECRET_KEY'):
+    SECRET_KEY = os.environ['SECRET_KEY']
+elif _DEBUG:
+    SECRET_KEY = 'local-dev-only-not-a-real-secret'
+else:
+    raise RuntimeError(
+        'SECRET_KEY env var is required when DEBUG=False. '
+        'Set it in the Render dashboard → Environment.'
+    )
 
-DEBUG = os.environ.get('DEBUG', 'True').lower() == 'true'
+DEBUG = _DEBUG
 
 ALLOWED_HOSTS = os.environ.get('ALLOWED_HOSTS', '*').split(',')
 
