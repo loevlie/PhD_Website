@@ -1959,3 +1959,57 @@
     color: var(--text-secondary, #5c5f77);
     margin-right: 0.15em;
 }
+
+/* ── Identity chip on the blog nav ─────────────────────────────────
+ * Tuned lighter than the portfolio variant so it matches the blog
+ * nav's typographic density — no full pill border, subtle colored dot
+ * + username + optional staff badge. Clicks through to /accounts/profile/.
+ * Anon readers see an icon-only affordance elsewhere in the nav (not
+ * styled here). */
+.nav-userchip {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    padding: 4px 8px;
+    background: transparent;
+    border: 1px solid transparent;
+    border-radius: 6px;
+    color: var(--text-muted, #6c7086);
+    font-family: 'Inter', system-ui, sans-serif;
+    font-size: 0.78rem;
+    text-decoration: none;
+    line-height: 1;
+    transition: border-color 120ms, color 120ms, background 120ms;
+}
+.nav-userchip:hover {
+    border-color: var(--ctp-surface1, #bcc0cc);
+    color: var(--text, var(--ctp-text, #4c4f69));
+    background: color-mix(in srgb, var(--ctp-lavender, #7287fd) 6%, transparent);
+}
+.nav-userchip-dot {
+    width: 6px; height: 6px; border-radius: 50%;
+    background: var(--text-muted, #6c7086);
+    flex: none;
+}
+.nav-userchip-dot.is-staff {
+    background: var(--ctp-lavender, #7287fd);
+    box-shadow: 0 0 0 3px color-mix(in srgb, var(--ctp-lavender, #7287fd) 18%, transparent);
+}
+.nav-userchip-name {
+    font-weight: 500;
+    max-width: 9ch;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
+.nav-userchip-badge {
+    font-family: 'Fira Code', ui-monospace, monospace;
+    font-size: 0.58rem;
+    font-weight: 700;
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
+    padding: 1px 5px;
+    border-radius: 3px;
+    background: color-mix(in srgb, var(--ctp-lavender, #7287fd) 15%, transparent);
+    color: var(--ctp-lavender, #7287fd);
+}

@@ -529,15 +529,22 @@
                     <svg width="16" height="16" viewBox="0 0 24 24" fill="currentColor"><path d="M6.503 20.752c0 1.794-1.456 3.248-3.251 3.248-1.796 0-3.252-1.454-3.252-3.248 0-1.794 1.456-3.248 3.252-3.248 1.795.001 3.251 1.454 3.251 3.248zm-6.503-12.572v4.811c6.05.062 10.96 4.966 11.022 11.009h4.817c-.062-8.71-7.118-15.758-15.839-15.82zm0-8.18v4.819c12.951.115 23.357 10.629 23.461 23.465h4.539c-.11-15.629-12.862-28.326-28-28.284z"/></svg>
                 </a>
                 {% if user.is_authenticated %}
+                {# Authed users get the chip so they see who they are
+                   and have a click-target to their profile. Anon users
+                   get a subdued icon-only affordance that blends with
+                   the RSS icon — present for collaborators who need
+                   it, invisible to casual readers. #}
                 <a class="nav-userchip" href="{% url 'accounts_profile' %}" title="Logged in as {{ user.username }} — click for profile">
                     <span class="nav-userchip-dot{% if user.is_staff %} is-staff{% endif %}"></span>
                     <span class="nav-userchip-name">{{ user.username }}</span>
                     {% if user.is_staff %}<span class="nav-userchip-badge">staff</span>{% endif %}
                 </a>
                 {% else %}
-                <a class="nav-userchip nav-userchip--anon" href="{% url 'login' %}?next={{ request.path }}" title="Log in">
-                    <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M15 3h4a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2h-4"/><polyline points="10 17 15 12 10 7"/><line x1="15" y1="12" x2="3" y2="12"/></svg>
-                    <span class="nav-userchip-name">Log in</span>
+                <a href="{% url 'login' %}?next={{ request.path }}"
+                   class="text-content-muted hover:text-text transition-colors opacity-60 hover:opacity-100"
+                   title="Log in (collaborators only)"
+                   aria-label="Log in">
+                    <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M15 3h4a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2h-4"/><polyline points="10 17 15 12 10 7"/><line x1="15" y1="12" x2="3" y2="12"/></svg>
                 </a>
                 {% endif %}
                 <div class="relative" x-data="{ open: false }">
