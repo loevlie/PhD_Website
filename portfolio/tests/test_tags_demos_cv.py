@@ -27,9 +27,15 @@ class TagPagesTests(TestCase):
     def test_tag_detail_filters_to_matching_posts(self):
         r = self.client.get('/tags/ml/')
         self.assertEqual(r.status_code, 200)
-        self.assertContains(r, 'Post one')
-        self.assertContains(r, 'Post two')
-        self.assertNotContains(r, 'Post three')
+        # The tag-detail page now ships the global Cmd-K command palette
+        # (matched on every layout so ⌘K works on 404, tags, etc.), and
+        # its JSON payload includes every blog post as a searchable
+        # nav entry. That's fine for search but breaks naive
+        # assertContains checks against post titles — scope the
+        # assertion to the visible article list instead.
+        self.assertContains(r, 'href="/blog/post-1/"')
+        self.assertContains(r, 'href="/blog/post-2/"')
+        self.assertNotContains(r, 'href="/blog/post-3/"')
 
     def test_tag_detail_unknown_returns_404(self):
         r = self.client.get('/tags/no-such-tag-xyz/')
