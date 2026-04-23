@@ -41,7 +41,20 @@ class PostAdmin(admin.ModelAdmin):
             'fields': ('series', 'series_order', 'medium_url'),
             'classes': ('collapse',),
         }),
+        ('Collaborators', {
+            'fields': ('collaborators',),
+            'description': (
+                'Non-staff users granted edit access to this specific post. '
+                'Assign a signed-up user here and share the editor URL '
+                '<code>/blog/&lt;slug&gt;/edit/</code> plus the per-post '
+                'analytics at <code>/site/insights/blog/&lt;slug&gt;/</code>. '
+                'They cannot create new posts or edit other posts.'
+            ),
+            'classes': ('collapse',),
+        }),
     )
+
+    filter_horizontal = ('collaborators',)
 
     def tag_list(self, obj):
         return ', '.join(o.name for o in obj.tags.all())

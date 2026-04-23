@@ -723,6 +723,7 @@ html.editing main { padding-top: 0 !important; margin: 0 !important; }
         const fd = new FormData();
         fd.append('body', text);
         fd.append('is_explainer', isExp);
+        fd.append('slug', slug);
         fd.append('csrfmiddlewaretoken', csrf);
         try {
             const r = await fetch('{% url "blog_preview" %}', {
@@ -1286,6 +1287,7 @@ html.editing main { padding-top: 0 !important; margin: 0 !important; }
         const fd = new FormData();
         fd.append('image', file);
         fd.append('alt', suggestedAlt);
+        fd.append('slug', slug);
         fd.append('csrfmiddlewaretoken', csrf);
         try {
             const r = await fetch('{% url "blog_upload_image" %}', {

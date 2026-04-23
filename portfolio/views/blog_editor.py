@@ -28,11 +28,14 @@ from portfolio.data import DEMOS
 
 
 # ─── Auth helper ─────────────────────────────────────────────────────
+# Shared with the editor_assist endpoints so post-collaborator checks
+# stay in exactly one place. Pass `post=<Post>` for slug-scoped views
+# (editor, autosave, spellcheck, assist); omit it for slug-less helpers
+# (preview, upload_image, smart_paste) — those fall back to "user has
+# ANY collaborator post" which is fine because the damage a stray call
+# can do is bounded by other slug-scoped views.
 
-def _can_edit(request):
-    """True if the request is authenticated as a staff/superuser. Used to
-    gate the in-browser editor at /blog/<slug>/edit/ and /blog/new/."""
-    return request.user.is_authenticated and request.user.is_staff
+from portfolio.views.editor_assist import _can_edit
 
 
 # ─── POST-field → Post attribute adapter ─────────────────────────────
@@ -66,15 +69,16 @@ def _apply_post_fields(post, data):
 def blog_edit(request, slug):
     """In-browser WYSIWYG-ish editor for a single Post.
     Two-column layout: markdown source on the left, live server-rendered
-    preview on the right. Auth: staff only."""
-    if not _can_edit(request):
-        return redirect(f'/admin/login/?next=/blog/{slug}/edit/')
-
+    preview on the right. Auth: staff, or a user listed in
+    `post.collaborators`."""
     from portfolio.models import Post
     try:
         post = Post.objects.get(slug=slug)
     except Post.DoesNotExist:
         raise Http404("Post not found")
+
+    if not _can_edit(request, post=post):
+        return redirect(f'/accounts/login/?next=/blog/{slug}/edit/')
 
     if request.method == 'POST':
         _apply_post_fields(post, request.POST)
@@ -101,8 +105,6 @@ def blog_autosave(request, slug):
     """Background autosave for the editor. Same field handling as
     blog_edit POST but returns JSON, doesn't redirect, and never fails
     loud (always 200 with {ok, saved_at})."""
-    if not _can_edit(request):
-        return JsonResponse({'ok': False, 'error': 'unauthorized'}, status=403)
     if request.method != 'POST':
         return JsonResponse({'ok': False, 'error': 'POST required'}, status=405)
     from portfolio.models import Post
@@ -110,6 +112,8 @@ def blog_autosave(request, slug):
         post = Post.objects.get(slug=slug)
     except Post.DoesNotExist:
         return JsonResponse({'ok': False, 'error': 'not found'}, status=404)
+    if not _can_edit(request, post=post):
+        return JsonResponse({'ok': False, 'error': 'unauthorized'}, status=403)
     try:
         _apply_post_fields(post, request.POST)
         # Autosave runs every 1.5s. The full render pipeline (pyfig
@@ -455,12 +459,25 @@ def _preview_render(body: str, is_explainer: bool) -> tuple[str, str]:
 
 def blog_preview(request):
     """Server-renders a markdown payload to HTML for the live-preview
-    pane in the editor. POST {body, is_explainer} -> {html, toc}.
+    pane in the editor. POST {body, is_explainer, slug?} -> {html, toc}.
+
+    `slug` is optional but the editor always sends it when available —
+    the auth gate uses it to decide whether a collaborator can run a
+    preview for *this* post (vs. any post), which lets staff keep the
+    slug-less behaviour for ad-hoc previews.
 
     Hot-path: heavy markers stripped, cosmetic passes skipped, result
     memoised per (body_hash, is_explainer). A Server-Timing header
     reports render milliseconds (view it in DevTools → Network)."""
-    if not _can_edit(request):
+    slug = request.POST.get('slug', '').strip()
+    post = None
+    if slug:
+        from portfolio.models import Post
+        try:
+            post = Post.objects.get(slug=slug)
+        except Post.DoesNotExist:
+            post = None
+    if not _can_edit(request, post=post):
         return JsonResponse({'error': 'unauthorized'}, status=403)
     body = request.POST.get('body', '')
     is_explainer = request.POST.get('is_explainer') == 'true'
@@ -483,10 +500,18 @@ def blog_upload_image(request):
     Production caveat: ephemeral filesystems (Render free tier) lose
     these on every redeploy. Move MEDIA_ROOT to S3 or equivalent
     before relying on this in prod."""
-    if not _can_edit(request):
-        return JsonResponse({'error': 'unauthorized'}, status=403)
     if request.method != 'POST':
         return JsonResponse({'error': 'POST required'}, status=405)
+    slug = request.POST.get('slug', '').strip()
+    post = None
+    if slug:
+        from portfolio.models import Post
+        try:
+            post = Post.objects.get(slug=slug)
+        except Post.DoesNotExist:
+            post = None
+    if not _can_edit(request, post=post):
+        return JsonResponse({'error': 'unauthorized'}, status=403)
     f = request.FILES.get('image')
     if not f:
         return JsonResponse({'error': 'no file'}, status=400)

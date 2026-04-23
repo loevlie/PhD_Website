@@ -140,3 +140,14 @@ MEDIA_ROOT = BASE_DIR / 'media'
 DEFAULT_AUTO_FIELD = 'django.db.models.BigAutoField'
 
 TAGGIT_CASE_INSENSITIVE = True
+
+# Public auth routes (portfolio/urls.py wires `accounts/`):
+#   /accounts/login/        login (Django built-in)
+#   /accounts/logout/       logout
+#   /accounts/signup/       custom public signup
+#   /accounts/profile/      post-login landing
+# After login or signup send users to the profile page, which lists
+# any posts they've been granted edit access to.
+LOGIN_URL = '/accounts/login/'
+LOGIN_REDIRECT_URL = '/accounts/profile/'
+LOGOUT_REDIRECT_URL = '/'

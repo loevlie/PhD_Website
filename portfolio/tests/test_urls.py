@@ -172,7 +172,10 @@ class StaffOnlyUrlsTests(StaffClientMixin, TestCase):
         post = make_post(slug='edit-me')
         r = self.anon_client.get(f'/blog/{post.slug}/edit/')
         self.assertEqual(r.status_code, 302)
-        self.assertIn('/admin/login/', r.headers.get('Location', ''))
+        # Now public signup exists, the editor redirects anon visitors to
+        # /accounts/login/ instead of /admin/login/ — collaborators log in
+        # through the public flow, not the Django admin.
+        self.assertIn('/accounts/login/', r.headers.get('Location', ''))
 
     def test_blog_edit_staff_ok(self):
         post = make_post(slug='edit-me-too')

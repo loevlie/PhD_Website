@@ -120,6 +120,19 @@ class Post(models.Model):
         max_length=16, choices=KIND_CHOICES, default='essay',
         help_text="Which surface this post belongs to. Essays go to /blog/; lab notes go to /notebook/. Garden is orthogonal.",
     )
+    # Per-post collaborators: authenticated non-staff users who can
+    # edit this specific post (and only this one). Staff + superusers
+    # can always edit any post; this M2M is the narrow grant we use
+    # when handing a single post off to a guest contributor.
+    #
+    # The reverse accessor on User is `user.edit_posts` — used by the
+    # editor helper endpoints that aren't slug-scoped (smart_paste,
+    # check_word) to decide whether the caller has *any* editable post.
+    collaborators = models.ManyToManyField(
+        'auth.User', blank=True, related_name='edit_posts',
+        help_text="Non-staff users who can edit this specific post.",
+    )
+
     created_at = models.DateTimeField(auto_now_add=True)
     modified_at = models.DateTimeField(auto_now=True)
 

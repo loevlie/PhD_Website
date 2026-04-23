@@ -20,8 +20,24 @@ from portfolio.editor_assist import smart_paste as smart_paste_mod
 from portfolio.editor_assist import spellcheck as spellcheck_mod
 
 
-def _can_edit(request) -> bool:
-    return request.user.is_authenticated and request.user.is_staff
+def _can_edit(request, post=None) -> bool:
+    """Unified auth gate for every editor endpoint.
+
+    * Staff + superusers → yes, always.
+    * Authenticated collaborator on `post` → yes.
+    * Authenticated collaborator on *any* post → yes for slug-less
+      helper endpoints (smart-paste, check-word) whose output isn't
+      post-specific; the caller still has to land an actual edit via
+      a slug-scoped view to do damage.
+    * Anyone else → no.
+    """
+    if not request.user.is_authenticated:
+        return False
+    if request.user.is_staff:
+        return True
+    if post is not None:
+        return post.collaborators.filter(pk=request.user.pk).exists()
+    return request.user.edit_posts.exists()
 
 
 # AI-assist rate limits are per-user (not per-IP) because the editor
@@ -67,13 +83,14 @@ def spellcheck(request, slug):
     a per-post "ignored words" list if that proves useful. Today the
     slug is just used to confirm the post exists + the caller is a
     legit author."""
-    if not _can_edit(request):
-        return JsonResponse({'ok': False, 'error': 'unauthorized'}, status=403)
-
-    # Post must exist (or be a draft). We don't load it; just 404
-    # early on a mistyped slug so callers see a clean error.
+    # Resolve the post first so the auth gate can check collaborator
+    # membership against it. Mistyped slugs still 404 before the auth
+    # check — but that's fine; slug existence isn't sensitive.
     from portfolio.models import Post
-    get_object_or_404(Post, slug=slug)
+    post = get_object_or_404(Post, slug=slug)
+
+    if not _can_edit(request, post=post):
+        return JsonResponse({'ok': False, 'error': 'unauthorized'}, status=403)
 
     try:
         payload = json.loads(request.body or b'{}')
@@ -163,11 +180,11 @@ def assist(request, slug, action):
     JSON parsing, and status-code mapping; everything else — prompt
     building, the Anthropic call, response parsing — lives in the
     module so the logic is unit-testable without hitting the network."""
-    if not _can_edit(request):
-        return JsonResponse({'ok': False, 'error': 'unauthorized'}, status=403)
-
     from portfolio.models import Post
-    get_object_or_404(Post, slug=slug)
+    post = get_object_or_404(Post, slug=slug)
+
+    if not _can_edit(request, post=post):
+        return JsonResponse({'ok': False, 'error': 'unauthorized'}, status=403)
 
     try:
         payload = json.loads(request.body or b'{}')

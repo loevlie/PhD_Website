@@ -1,0 +1,13 @@
+{% extends "portfolio/accounts/_base.html" %}
+
+{% block title %}Logged out — dl.blog{% endblock %}
+
+{% block acc_content %}
+<h1 class="acc-title">Logged out</h1>
+<p class="acc-sub">You're signed out of this browser.</p>
+<div class="acc-links">
+    <a href="{% url 'login' %}">Log in again</a>
+    &nbsp;·&nbsp;
+    <a href="/">Home</a>
+</div>
+{% endblock %}

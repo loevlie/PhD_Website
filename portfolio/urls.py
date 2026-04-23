@@ -1,5 +1,5 @@
 from django.contrib.sitemaps.views import sitemap
-from django.urls import path
+from django.urls import include, path
 
 from . import views, analytics, analytics_dashboard
 from .feeds import BlogFeed
@@ -63,6 +63,14 @@ urlpatterns = [
     path('a/p', analytics.beacon_pageview, name='analytics_beacon_pageview'),
     path('a/u', analytics.beacon_update, name='analytics_beacon_update'),
     path('site/insights/', analytics_dashboard.dashboard, name='analytics_dashboard'),
+    # Per-post analytics — staff or any collaborator on this post.
+    path('site/insights/blog/<slug:slug>/', analytics_dashboard.post_dashboard, name='analytics_post_dashboard'),
+    # Public auth: signup / login / logout / password-reset via Django's
+    # built-in views. New signups default to non-staff; editor access
+    # requires an admin to add them to Post.collaborators.
+    path('accounts/signup/', views.accounts_signup, name='accounts_signup'),
+    path('accounts/profile/', views.accounts_profile, name='accounts_profile'),
+    path('accounts/', include('django.contrib.auth.urls')),
     # Unified admin Studio landing — one dashboard for New post / Edit reading
     # / etc. Reuses the staff-only auth pattern (see views/studio.py).
     path('site/studio/', views.studio, name='studio'),

@@ -1,0 +1,35 @@
+{% extends "portfolio/accounts/_base.html" %}
+
+{% block title %}Sign up — dl.blog{% endblock %}
+
+{% block acc_content %}
+<h1 class="acc-title">Create an account</h1>
+<p class="acc-sub">New accounts start with no edit access. An admin will assign specific posts to you after signup.</p>
+
+<form method="post" class="acc-form" novalidate>
+    {% csrf_token %}
+    {% if next %}<input type="hidden" name="next" value="{{ next }}">{% endif %}
+    {% for field in form %}
+    <div class="acc-field">
+        <label for="{{ field.id_for_label }}">{{ field.label }}</label>
+        {{ field }}
+        {% if field.help_text %}<span class="helptext">{{ field.help_text|safe }}</span>{% endif %}
+        {% if field.errors %}
+        <ul class="acc-errors">
+            {% for err in field.errors %}<li>{{ err }}</li>{% endfor %}
+        </ul>
+        {% endif %}
+    </div>
+    {% endfor %}
+    {% if form.non_field_errors %}
+    <ul class="acc-errors">
+        {% for err in form.non_field_errors %}<li>{{ err }}</li>{% endfor %}
+    </ul>
+    {% endif %}
+    <button type="submit" class="acc-submit">Sign up</button>
+</form>
+
+<div class="acc-links">
+    Already have an account? <a href="{% url 'login' %}">Log in</a>
+</div>
+{% endblock %}
