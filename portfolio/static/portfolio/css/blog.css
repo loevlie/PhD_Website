@@ -1918,6 +1918,28 @@
     background: color-mix(in srgb, var(--border-color, #e2e2e4) 18%, transparent);
 }
 .blog-prose table tbody tr:last-child td { border-bottom: 0; }
+
+/* Dark-mode contrast bump. The shared `--border-color` is very close
+ * to the page background in dark mode, which makes the outer frame,
+ * the row rules, and the zebra tint all blend together — readable
+ * but flat. Lift each band by a couple of L-steps so the structure
+ * reads as clearly as it does in light mode. */
+:root.dark-mode .blog-prose table {
+    border-color: color-mix(in srgb, var(--border-color) 60%, var(--text-muted));
+    box-shadow: 0 1px 3px rgba(0, 0, 0, 0.35);
+}
+:root.dark-mode .blog-prose table thead {
+    background: color-mix(in srgb, var(--accent) 14%, var(--bg-secondary));
+}
+:root.dark-mode .blog-prose table th {
+    border-bottom-color: color-mix(in srgb, var(--accent) 55%, var(--border-color));
+}
+:root.dark-mode .blog-prose table td {
+    border-bottom-color: color-mix(in srgb, var(--border-color) 45%, var(--text-muted));
+}
+:root.dark-mode .blog-prose table tbody tr:nth-child(odd) td {
+    background: color-mix(in srgb, var(--bg-tertiary) 55%, transparent);
+}
 /* Numeric columns often look better right-aligned + tabular figures.
  * Opt-in via `| col1 | col2 {.num} |`-style pandoc attrs; falls back
  * to default otherwise. */
