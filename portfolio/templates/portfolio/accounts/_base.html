@@ -275,6 +275,33 @@
     letter-spacing: 0.06em;
 }
 
+/* Save-success toast — shown after a successful profile save
+ * (view redirects with ?saved=1). Subtle green band above the
+ * session banner; no auto-dismiss, just disappears on next nav. */
+.acc-toast {
+    display: flex; align-items: center; gap: 10px;
+    padding: 10px 14px;
+    background: color-mix(in srgb, var(--ctp-green, #40a02b) 14%, transparent);
+    border: 1px solid color-mix(in srgb, var(--ctp-green, #40a02b) 42%, transparent);
+    border-radius: 8px;
+    margin-bottom: 14px;
+    font-family: 'Inter', system-ui, sans-serif;
+    font-size: 0.86rem;
+    color: var(--ctp-text, #4c4f69);
+    animation: acc-toast-in 180ms ease-out;
+}
+.acc-toast-dot {
+    width: 8px; height: 8px; border-radius: 50%;
+    background: var(--ctp-green, #40a02b);
+    flex: none;
+    box-shadow: 0 0 0 3px color-mix(in srgb, var(--ctp-green, #40a02b) 25%, transparent);
+}
+.acc-toast-text { line-height: 1.4; }
+@keyframes acc-toast-in {
+    from { opacity: 0; transform: translateY(-4px); }
+    to   { opacity: 1; transform: translateY(0); }
+}
+
 /* ── Profile-edit disclosure — lets a collaborator set their
  * display name / avatar / bio / homepage. Shown below the assigned-
  * posts list (or welcome panel on staff). Auto-expanded on first

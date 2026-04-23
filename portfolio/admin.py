@@ -2,11 +2,24 @@ from django.contrib import admin
 from django.utils.html import format_html
 
 from portfolio.models import (
-    Post, Pageview, DailySalt, Reading,
+    Post, PostCollaborator, Pageview, DailySalt, Reading,
     NewsItem, Publication, PublicationLink,
     Project, ProjectLink, TimelineEntry, OpenSourceItem,
     SocialLink, NowPage, NowSection, UserProfile,
 )
+
+
+class PostCollaboratorInline(admin.TabularInline):
+    """Inline editor for the per-post byline. Each row = one author
+    slot with a position number; the primary author (post.author
+    CharField) sits at post.author_order."""
+    model = PostCollaborator
+    extra = 1
+    autocomplete_fields = ['user']
+    fields = ('user', 'order', 'added_at')
+    readonly_fields = ('added_at',)
+    verbose_name = 'Collaborator (auto-credited in byline)'
+    verbose_name_plural = 'Collaborators (auto-credited in byline)'
 
 
 @admin.register(UserProfile)
@@ -34,9 +47,18 @@ class PostAdmin(admin.ModelAdmin):
     date_hierarchy = 'date'
     save_on_top = True
 
+    inlines = [PostCollaboratorInline]
+
     fieldsets = (
         ('Post', {
-            'fields': ('title', 'slug', 'date', 'updated', 'author'),
+            'fields': ('title', 'slug', 'date', 'updated', 'author', 'author_order'),
+            'description': (
+                'author_order = byline position for the primary author '
+                '(<code>post.author</code>). 1 = first (default). Bump to 2/3 '
+                'to demote Dennis behind a collaborator. Add collaborators in '
+                'the inline table at the bottom — each row auto-credits that '
+                'user in the byline and grants edit access.'
+            ),
         }),
         ('Content', {
             'fields': ('excerpt', 'body'),
@@ -56,25 +78,7 @@ class PostAdmin(admin.ModelAdmin):
             'fields': ('series', 'series_order', 'medium_url'),
             'classes': ('collapse',),
         }),
-        ('Collaborators', {
-            'fields': ('collaborators',),
-            'description': (
-                'Non-staff users granted edit access to <strong>this specific '
-                'post</strong>. Assign a signed-up user here and share the '
-                'editor URL <code>/blog/&lt;slug&gt;/edit/</code> plus the '
-                'per-post analytics at <code>/site/insights/blog/&lt;slug&gt;/</code>. '
-                'By default they cannot create new posts or edit other posts. '
-                '<br><br>To let a collaborator create <em>new</em> posts, open '
-                'their user record under <em>Authentication and Authorization '
-                '→ Users</em>, scroll to "User permissions," and add '
-                '<code>portfolio | post | Can add post</code>. Revoke the same '
-                'way.'
-            ),
-            'classes': ('collapse',),
-        }),
     )
-
-    filter_horizontal = ('collaborators',)
 
     def tag_list(self, obj):
         return ', '.join(o.name for o in obj.tags.all())

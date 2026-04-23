@@ -639,12 +639,18 @@ def _post_to_dict(post_obj, render_html=True):
                 )
     else:
         content_html, toc_html = '', ''
+    # Byline list — primary author + collaborators, pre-sorted. Computed
+    # only when rendering the full single-post view (`render_html=True`)
+    # since listings don't show per-author detail and the extra query
+    # would N+1 across the list.
+    byline_authors = post_obj.byline_authors if render_html and hasattr(post_obj, 'byline_authors') else []
     return {
         'slug': post_obj.slug,
         'title': post_obj.title,
         'date': post_obj.date,
         'updated': post_obj.updated,
         'author': post_obj.author,
+        'byline_authors': byline_authors,
         # Use .all() (not .names()) so this hits the prefetch_related cache
         # set up in _load_all_posts. .names() would issue a fresh query per
         # post and defeat the prefetch entirely (5 queries for 2 posts → 3).
@@ -689,12 +695,18 @@ def _parse_file_post(filepath, render_html=True):
     if isinstance(post_date, str):
         post_date = date.fromisoformat(post_date)
 
+    author_name = post.get('author', 'Dennis Loevlie')
     return {
         'slug': slug,
         'title': post.get('title', slug.replace('-', ' ').title()),
         'date': post_date,
         'updated': post.get('updated'),
-        'author': post.get('author', 'Dennis Loevlie'),
+        'author': author_name,
+        'byline_authors': [{
+            'order': 1, 'name': author_name, 'avatar_url': None,
+            'bio': 'ELLIS PhD Student at CWI & University of Amsterdam',
+            'homepage_url': '/', 'is_primary': True,
+        }] if render_html else [],
         'tags': post.get('tags', []),
         'excerpt': post.get('excerpt', ''),
         'image': post.get('image', ''),

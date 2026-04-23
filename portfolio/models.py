@@ -132,16 +132,28 @@ class Post(models.Model):
     notation = models.JSONField(blank=True, default=list)
 
     # Per-post collaborators: authenticated non-staff users who can
-    # edit this specific post (and only this one). Staff + superusers
-    # can always edit any post; this M2M is the narrow grant we use
-    # when handing a single post off to a guest contributor.
+    # edit this specific post (and only this one), AND are credited in
+    # the post byline. Staff + superusers can always edit any post;
+    # this M2M is the narrow grant we use when handing a single post
+    # off to a guest contributor.
     #
-    # The reverse accessor on User is `user.edit_posts` — used by the
-    # editor helper endpoints that aren't slug-scoped (smart_paste,
-    # check_word) to decide whether the caller has *any* editable post.
+    # Uses an explicit through model (`PostCollaborator`) so each
+    # collaborator has a byline position. The primary author
+    # (`post.author` CharField) is slotted at `post.author_order`, and
+    # the list is rendered in merged ascending order.
     collaborators = models.ManyToManyField(
-        'auth.User', blank=True, related_name='edit_posts',
-        help_text="Non-staff users who can edit this specific post.",
+        'auth.User', through='PostCollaborator', blank=True,
+        related_name='edit_posts',
+        help_text="Non-staff users who can edit AND are auto-credited on this post.",
+    )
+
+    # Byline slot for the primary author (`post.author` CharField).
+    # Collaborators default to order=2 so Dennis appears first unless
+    # explicitly demoted. Lower = earlier in the byline.
+    author_order = models.PositiveSmallIntegerField(
+        default=1,
+        help_text="Byline position for the primary author (post.author). 1 = first. "
+                  "Collaborators default to 2. Use 3/4/5… to demote Dennis.",
     )
 
     created_at = models.DateTimeField(auto_now_add=True)
@@ -166,6 +178,59 @@ class Post(models.Model):
 
     def get_absolute_url(self):
         return reverse('blog_post', args=[self.slug])
+
+    @property
+    def byline_authors(self):
+        """Ordered list of author dicts for the byline — primary author
+        (`post.author` CharField) slotted at `author_order`, plus every
+        collaborator at their own `PostCollaborator.order`. Merged and
+        sorted ascending so the template can just iterate."""
+        items = [{
+            'order': self.author_order,
+            'name': self.author,
+            'avatar_url': None,
+            'bio': 'ELLIS PhD Student at CWI & University of Amsterdam',
+            'homepage_url': '/',
+            'is_primary': True,
+        }]
+        rel = self.postcollaborator_set.select_related('user__profile').order_by('order', 'id')
+        for pc in rel:
+            prof = getattr(pc.user, 'profile', None)
+            items.append({
+                'order': pc.order,
+                'name': (prof.display if prof else pc.user.username),
+                'avatar_url': (prof.avatar.url if (prof and prof.avatar) else None),
+                'bio': (prof.bio if prof else ''),
+                'homepage_url': (prof.homepage_url if prof else ''),
+                'is_primary': False,
+            })
+        items.sort(key=lambda i: (i['order'], 0 if i['is_primary'] else 1))
+        return items
+
+
+class PostCollaborator(models.Model):
+    """Through-model for `Post.collaborators` — carries the byline
+    position so admins can slot a collaborator first/second/third
+    relative to the primary author.
+
+    Grants edit access AND auto-inclusion in the rendered byline."""
+    post = models.ForeignKey('Post', on_delete=models.CASCADE)
+    user = models.ForeignKey('auth.User', on_delete=models.CASCADE)
+    order = models.PositiveSmallIntegerField(
+        default=2,
+        help_text="Byline position. 1 = first author, 2 = second, 3 = third. "
+                  "Primary author (post.author) defaults to 1.",
+    )
+    added_at = models.DateTimeField(auto_now_add=True)
+
+    class Meta:
+        ordering = ['order', 'id']
+        unique_together = [('post', 'user')]
+        verbose_name = 'Post collaborator'
+        verbose_name_plural = 'Post collaborators'
+
+    def __str__(self):
+        return f'{self.user} on "{self.post}" (#{self.order})'
 
 
 class Reading(models.Model):

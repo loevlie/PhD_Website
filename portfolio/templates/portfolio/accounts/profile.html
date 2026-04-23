@@ -3,6 +3,12 @@
 {% block title %}Profile — dl.blog{% endblock %}
 
 {% block acc_content %}
+{% if just_saved %}
+<div class="acc-toast" role="status">
+    <span class="acc-toast-dot"></span>
+    <span class="acc-toast-text">Profile saved. Your name and avatar will appear on posts you co-author.</span>
+</div>
+{% endif %}
 {% comment %}Session banner — pinned above everything so the author
    never wonders "which user am I logged in as?" Matches the
    nav-userchip styling (dot colour mirrors privilege level).{% endcomment %}
@@ -74,13 +80,15 @@
 <p class="acc-sub">Your account is live, but no posts have been assigned to you yet.</p>
 
 <div class="acc-note">
-    <strong>Next step:</strong> share your username <code>{{ request.user.username }}</code> with the admin. They'll add you as a collaborator on a specific post, and it'll show up here with editor + analytics links.
+    <strong>Next step:</strong> share your username <code>{{ request.user.username }}</code> with the admin. They'll add you as a collaborator on a specific post, and it'll appear here with editor + analytics links.
+    <br><br>
+    <strong>Tip:</strong> while you wait, <a href="#profile-edit-anchor">set your display name + avatar</a> below — they'll be credited on any post you're added to, without any extra step from the admin.
 </div>
 {% endif %}
 
 <hr class="acc-divider">
 
-<details class="profile-edit" {% if not profile.display_name and not profile.avatar %}open{% endif %}>
+<details class="profile-edit" id="profile-edit-anchor" {% if not profile.display_name and not profile.avatar %}open{% endif %}>
     <summary class="profile-edit-head">
         Edit profile
         <span class="profile-edit-hint">

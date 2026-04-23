@@ -819,6 +819,11 @@
     text-align: left;
 }
 
+.explainer-meta-authors {
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+}
 .explainer-meta-author {
     display: flex;
     align-items: center;

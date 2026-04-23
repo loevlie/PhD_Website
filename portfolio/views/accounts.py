@@ -70,10 +70,15 @@ def signup(request):
     })
 
 
+_AVATAR_MAX_BYTES = 2 * 1024 * 1024  # 2 MB
+
+
 class _UserProfileForm(forms.ModelForm):
     """Trim the auto-generated ModelForm down to the fields we actually
     surface on the self-serve edit page. Validation relies on the
-    model's own field constraints."""
+    model's own field constraints, plus a size ceiling on the avatar
+    upload so a 20 MB camera-roll dump doesn't end up in object
+    storage."""
     class Meta:
         from portfolio.models import UserProfile
         model = UserProfile
@@ -83,6 +88,17 @@ class _UserProfileForm(forms.ModelForm):
             'display_name': forms.TextInput(attrs={'placeholder': 'e.g. Alice Young'}),
             'homepage_url': forms.URLInput(attrs={'placeholder': 'https://alice.example'}),
         }
+        help_texts = {
+            'avatar': 'Square image works best (cropped to a circle). 2 MB max. JPEG / PNG / WebP.',
+        }
+
+    def clean_avatar(self):
+        f = self.cleaned_data.get('avatar')
+        if f and hasattr(f, 'size') and f.size > _AVATAR_MAX_BYTES:
+            raise forms.ValidationError(
+                f'Avatar is {f.size // 1024} KB — please keep it under 2 MB.'
+            )
+        return f
 
 
 def profile(request):
@@ -103,7 +119,7 @@ def profile(request):
         form = _UserProfileForm(request.POST, request.FILES, instance=profile_obj)
         if form.is_valid():
             form.save()
-            return redirect('accounts_profile')
+            return redirect(f"{request.path}?saved=1")
     else:
         form = _UserProfileForm(instance=profile_obj)
 
@@ -114,4 +130,5 @@ def profile(request):
         'editable': editable,
         'profile': profile_obj,
         'profile_form': form,
+        'just_saved': request.GET.get('saved') == '1',
     })
