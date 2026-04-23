@@ -1450,7 +1450,7 @@ html.editing main { padding-top: 0 !important; margin: 0 !important; }
             const isLatex = document.getElementById('notation-kind-latex').checked;
             const esc = function (s) { return s.replace(/"/g, '&quot;').replace(/</g, '&lt;'); };
             const visible = isLatex ? '$' + term + '$' : term;
-            const snippet = '<span class="g" data-g="' + esc(defn || term) + '">' + esc(visible) + '</span>';
+            const snippet = '<span class="g" data-g="' + esc(term) + '" data-def="' + esc(defn) + '">' + esc(visible) + '</span>';
             // Close the dialog BEFORE inserting — native <dialog>
             // focus-trap otherwise swallows the insertText command.
             cleanup();

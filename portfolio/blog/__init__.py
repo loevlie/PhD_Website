@@ -427,11 +427,17 @@ def _transform_footnotes_to_sidenotes(html):
         body = notes.get(slug, '')
         if not body:
             return sup_html
+        # `<span>` (not `<aside>`) is intentional: the browser auto-closes
+        # a `<p>` when it encounters a block-level element inside, which
+        # splits the surrounding sentence onto a new line visually. A
+        # span stays inline in the DOM even though CSS paints it as a
+        # floated margin note, preserving the "…text continues after the
+        # superscript…" reading flow the author writes.
         return (
             f'{sup_html}'
-            f'<aside class="sidenote sidenote-{slug}">'
+            f'<span class="sidenote sidenote-{slug}">'
             f'<span class="sidenote-num">{num}.</span> {body}'
-            f'</aside>'
+            f'</span>'
         )
     html = _FOOTNOTE_SUP_RE.sub(insert_aside, html)
 
@@ -450,6 +456,95 @@ def _transform_footnotes_to_sidenotes(html):
 
 
 _NOTATION_EMPTY_RE = re.compile(r'<div\s+data-notation[^>]*>\s*</div>', re.IGNORECASE)
+
+
+_NOTATION_WRAP_SKIP_TAGS = {
+    'pre', 'code', 'script', 'style', 'a', 'math', 'abbr',
+    'h1', 'h2', 'h3', 'h4', 'h5', 'h6',  # headings stay clean
+}
+
+
+def _wrap_notation_terms(html, notation_entries):
+    """Wrap plain-text occurrences of each post notation term in a
+    `<span class="g" data-g="term" data-def="…">…</span>` so the
+    reader-side math-glossary.js turns them into hover popovers.
+
+    Skips text inside code / script / headings / existing `.g` spans
+    / anchor tags / KaTeX output so we don't double-wrap or mangle
+    structural content. Matches are case-insensitive but wrap the
+    author's original capitalization.
+
+    LaTeX-kind entries are left alone — they're intended for the
+    glossary card and for inline KaTeX, not for prose auto-wrap.
+    """
+    if not notation_entries:
+        return html
+    pairs = []
+    for e in notation_entries:
+        if not isinstance(e, dict):
+            continue
+        if e.get('kind') == 'latex':
+            continue
+        term = (e.get('term') or '').strip()
+        defn = (e.get('definition') or '').strip()
+        if term and defn:
+            pairs.append((term, defn))
+    if not pairs:
+        return html
+    # Longest first so multi-word terms win over their single-word prefixes.
+    pairs.sort(key=lambda p: -len(p[0]))
+
+    from bs4 import BeautifulSoup, NavigableString
+    soup = BeautifulSoup(html, 'html.parser')
+
+    term_map = {t.lower(): (t, d) for t, d in pairs}
+    pattern = re.compile(
+        r'(?<!\w)(' + '|'.join(re.escape(t) for t, _ in pairs) + r')(?!\w)',
+        re.IGNORECASE,
+    )
+
+    def _skip(node):
+        for parent in node.parents:
+            name = getattr(parent, 'name', None)
+            if not name:
+                continue
+            if name in _NOTATION_WRAP_SKIP_TAGS:
+                return True
+            classes = parent.get('class') or []
+            if name == 'span' and ('g' in classes or any('katex' in c for c in classes)):
+                return True
+        return False
+
+    for node in list(soup.find_all(string=True)):
+        if not isinstance(node, NavigableString):
+            continue
+        if _skip(node):
+            continue
+        text = str(node)
+        if not pattern.search(text):
+            continue
+        replacements = []
+        cursor = 0
+        for m in pattern.finditer(text):
+            start, end = m.span()
+            matched = m.group(0)
+            canonical, defn = term_map.get(matched.lower(), (matched, ''))
+            if cursor < start:
+                replacements.append(text[cursor:start])
+            span = soup.new_tag('span')
+            span['class'] = ['g']
+            span['data-g'] = canonical
+            span['data-def'] = defn
+            span.string = matched
+            replacements.append(span)
+            cursor = end
+        if cursor < len(text):
+            replacements.append(text[cursor:])
+        for frag in replacements:
+            node.insert_before(frag)
+        node.extract()
+
+    return str(soup)
 
 
 def _populate_notation_marker(content, notation_entries):
@@ -534,6 +629,10 @@ def render_markdown(content, is_explainer=False, post_slug=None, errors_out=None
     if is_explainer:
         html = _transform_footnotes_to_sidenotes(html)
     html = _restore_latex(html, latex_placeholders)
+    # Auto-wrap per-post notation terms in the prose. Done AFTER markdown
+    # + LaTeX restore so the matcher sees the final rendered text,
+    # including KaTeX output which is skipped via the class guard.
+    html = _wrap_notation_terms(html, notation_entries)
     # Add loading="lazy" to all images
     html = html.replace('<img ', '<img loading="lazy" ')
     if not preview:

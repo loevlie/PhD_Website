@@ -45,13 +45,26 @@
         `;
     }
 
+    function resolveEntry(span, manifest) {
+        // Prefer an inline `data-def` attribute (per-post notation
+        // entries carry the definition directly) so the popover works
+        // even when the symbol isn't in the global manifest.
+        const sym = span.dataset.g || span.textContent.trim();
+        const inlineDef = span.dataset.def || '';
+        if (inlineDef) {
+            return { symbol: sym, name: '', meaning: inlineDef, example: '' };
+        }
+        const entry = manifest[sym];
+        if (!entry) return null;
+        entry.symbol = sym;
+        return entry;
+    }
+
     function attachNative(spans, manifest) {
         let id = 0;
         spans.forEach(span => {
-            const sym = span.dataset.g || span.textContent.trim();
-            const entry = manifest[sym];
+            const entry = resolveEntry(span, manifest);
             if (!entry) return;
-            entry.symbol = sym;
             id += 1;
             const popoverId = `g-pop-${id}`;
             const btn = document.createElement('button');
@@ -79,10 +92,8 @@
             active = null; anchor = null;
         }
         function show(el) {
-            const sym = el.dataset.g || el.textContent.trim();
-            const entry = manifest[sym];
+            const entry = resolveEntry(el, manifest);
             if (!entry) return;
-            entry.symbol = sym;
             hide();
             const pop = document.createElement('div');
             pop.className = 'cite-popover g-popover';
@@ -95,8 +106,7 @@
             active = pop; anchor = el;
         }
         spans.forEach(span => {
-            const sym = span.dataset.g || span.textContent.trim();
-            if (!manifest[sym]) return;
+            if (!resolveEntry(span, manifest)) return;
             span.classList.add('g-anchor');
             span.setAttribute('tabindex', '0');
             span.addEventListener('mouseenter', () => show(span));
@@ -113,7 +123,7 @@
         const explicit = Array.from(document.querySelectorAll('.blog-prose .g'));
         if (!explicit.length) return;
         loadManifest().then(manifest => {
-            const present = explicit.filter(s => manifest[s.dataset.g || s.textContent.trim()]);
+            const present = explicit.filter(s => resolveEntry(s, manifest));
             if (!present.length) return;
             if (supportsInterestFor()) attachNative(present, manifest);
             else attachJsFallback(present, manifest);

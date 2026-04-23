@@ -1195,12 +1195,12 @@
     font-style: normal;
 }
 
-/* Desktop: float into right margin only on explainer posts.
-   The blog grid is `1fr | 220px`. We float into the gutter past
-   the right edge of the prose column and partially into the ToC
-   column (acceptable; ToC is sticky and short). */
+/* Desktop: float every sidenote into the right margin so the
+   surrounding sentence flows past the superscript without a line
+   break. Applies to all blog posts, not just `.is-explainer` —
+   non-explainer posts benefit from the same gutter treatment. */
 @media (min-width: 1024px) {
-    .is-explainer .blog-prose .sidenote {
+    .blog-prose .sidenote {
         float: right;
         clear: right;
         width: 220px;
@@ -1215,7 +1215,7 @@
 
 /* Even wider screens: more margin, more breathing room */
 @media (min-width: 1440px) {
-    .is-explainer .blog-prose .sidenote {
+    .blog-prose .sidenote {
         width: 240px;
         margin-right: -280px;
     }
