@@ -81,6 +81,115 @@ html.editing main { padding-top: 0 !important; margin: 0 !important; }
     border-color: transparent; font-weight: 600;
 }
 .img-dialog-menu button:hover { border-color: var(--ctp-lavender, #7287fd); }
+
+/* Editor toast — transient feedback after a slash-command insertion.
+ * Docks bottom-center so it's visible regardless of which pane the
+ * author's focus is in. One at a time. */
+.editor-toast {
+    position: fixed;
+    bottom: 28px;
+    left: 50%;
+    transform: translateX(-50%) translateY(10px);
+    z-index: 60;
+    display: flex; align-items: center; gap: 14px;
+    padding: 9px 14px;
+    background: var(--ctp-mantle, #181825);
+    color: var(--ctp-text, #cdd6f4);
+    border: 1px solid var(--ctp-surface1, #45475a);
+    border-radius: 10px;
+    box-shadow: 0 12px 32px -8px rgba(0, 0, 0, 0.5);
+    font-family: 'Inter', system-ui, sans-serif;
+    font-size: 0.85rem;
+    opacity: 0;
+    pointer-events: none;
+    transition: opacity 160ms ease, transform 160ms ease;
+}
+.editor-toast.is-open { opacity: 1; transform: translateX(-50%) translateY(0); pointer-events: auto; }
+.editor-toast-action {
+    appearance: none;
+    padding: 4px 10px;
+    font-size: 0.8rem;
+    font-family: inherit;
+    font-weight: 500;
+    color: var(--ctp-base, #1e1e2e);
+    background: var(--ctp-lavender, #7287fd);
+    border: 0;
+    border-radius: 6px;
+    cursor: pointer;
+}
+.editor-toast-action:hover { background: color-mix(in srgb, var(--ctp-lavender, #7287fd) 80%, white); }
+
+/* Citation picker dialog. Reuses `.img-dialog` chrome for borders +
+ * scrim; widens the card and adds list + search-input styles. */
+.cite-dialog { width: min(640px, calc(100vw - 32px)); }
+.cite-search-input {
+    padding: 10px 13px;
+    font-size: 0.95rem;
+    font-family: inherit;
+    background: var(--ctp-mantle, #e6e9ef);
+    border: 1px solid var(--ctp-surface1, #bcc0cc);
+    border-radius: 8px;
+    color: var(--ctp-text, #4c4f69);
+    outline: none;
+}
+.cite-search-input:focus {
+    border-color: var(--ctp-lavender, #7287fd);
+    box-shadow: 0 0 0 3px color-mix(in srgb, var(--ctp-lavender, #7287fd) 20%, transparent);
+}
+.cite-results {
+    list-style: none; padding: 0; margin: 0;
+    max-height: 360px;
+    overflow-y: auto;
+    border: 1px solid var(--ctp-surface0, #313244);
+    border-radius: 8px;
+    background: var(--ctp-base, #1e1e2e);
+}
+.cite-row {
+    display: flex; align-items: flex-start; gap: 12px;
+    padding: 10px 12px;
+    border-bottom: 1px solid color-mix(in srgb, var(--ctp-surface0, #313244) 70%, transparent);
+    cursor: pointer;
+}
+.cite-row:last-child { border-bottom: none; }
+.cite-row:hover, .cite-row.active {
+    background: color-mix(in srgb, var(--ctp-lavender, #7287fd) 10%, transparent);
+}
+.cite-key {
+    font-family: 'Fira Code', ui-monospace, monospace;
+    font-size: 0.72rem;
+    color: var(--ctp-lavender, #7287fd);
+    background: var(--ctp-mantle, #181825);
+    padding: 2px 7px; border-radius: 4px;
+    flex: 0 0 auto;
+    max-width: 12em;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
+.cite-body { flex: 1 1 auto; min-width: 0; }
+.cite-title {
+    font-size: 0.88rem;
+    color: var(--ctp-text, #cdd6f4);
+    font-weight: 500;
+    line-height: 1.4;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    display: -webkit-box;
+    -webkit-line-clamp: 2;
+    -webkit-box-orient: vertical;
+}
+.cite-meta {
+    font-size: 0.76rem;
+    color: var(--ctp-subtext0, #a6adc8);
+    margin-top: 2px;
+}
+.cite-empty {
+    padding: 16px 14px;
+    color: var(--ctp-subtext0, #a6adc8);
+    font-size: 0.85rem;
+    font-style: italic;
+}
+.cite-empty code { font-style: normal; }
 .paste-format-body { font-size: 0.85rem; color: var(--ctp-subtext1, #bac2de); }
 .paste-format-marker {
     padding: 6px 10px; margin: 2px 0 8px;
@@ -663,6 +772,21 @@ html.editing main { padding-top: 0 !important; margin: 0 !important; }
     </form>
 </dialog>
 
+<!-- Citation picker. Opens from the /cite slash command. Reads
+     /static/portfolio/data/citations.json, lets the author search
+     across key / title / authors / venue, inserts the chosen ref. -->
+<dialog class="img-dialog cite-dialog" id="cite-dialog">
+    <form method="dialog" class="img-dialog-form">
+        <h3>Insert citation</h3>
+        <p class="paste-format-body" style="margin:0;">Pick a key from <code>citations.json</code>. New source? Add it to the file and reload.</p>
+        <input type="text" id="cite-search" class="cite-search-input" placeholder="Search title, author, venue, or key…" autocomplete="off" spellcheck="false">
+        <ul class="cite-results" id="cite-results"></ul>
+        <menu class="img-dialog-menu">
+            <button type="button" class="secondary" id="cite-cancel" onclick="document.getElementById('cite-dialog').close();">Cancel</button>
+        </menu>
+    </form>
+</dialog>
+
 <!-- Image-caption dialog. Opens after a successful drop/paste upload.
      Native <dialog> gives us Esc-close + focus trap + scrim for free. -->
 <dialog class="img-dialog" id="img-dialog">
@@ -917,8 +1041,8 @@ html.editing main { padding-top: 0 !important; margin: 0 !important; }
     const COMMANDS = [
         { id: 'sidenote', label: 'Sidenote', icon: '⌭', desc: 'Tufte-style margin note',
           insert: () => sidenoteInsert() },
-        { id: 'cite',     label: 'Citation', icon: '¹', desc: 'Hover-revealing citation pill',
-          insert: () => '<cite class="ref" data-key="key2024">[1]</cite>' },
+        { id: 'cite',     label: 'Citation', icon: '¹', desc: 'Pick a key from citations.json — hover pill on the reader side',
+          action: () => openCitationPicker() },
         { id: 'math',     label: 'Math block', icon: 'Σ', desc: 'KaTeX display math',
           // Layout: \n$$\n\n$$\n — cursor lands on the empty middle line.
           insert: () => '\n$$\n\n$$\n', cursor: 4 },
@@ -997,19 +1121,199 @@ html.editing main { padding-top: 0 !important; margin: 0 !important; }
         getFigurePicker().click();
     }
 
+    // ── /cite → citation picker ────────────────────────────────────
+    // Reads /static/portfolio/data/citations.json (same manifest the
+    // reader-side citations.js hydrates) and shows a searchable list
+    // of known keys. Picking inserts
+    //     <cite class="ref" data-key="KEY">[N]</cite>
+    // where N is the running index of cite tags in the post — so the
+    // visible numeric matches the author's intended order of appearance.
+    let _citationsCache = null;
+    function loadCitations() {
+        if (_citationsCache) return Promise.resolve(_citationsCache);
+        return fetch('/static/portfolio/data/citations.json', { cache: 'force-cache' })
+            .then(function (r) { return r.ok ? r.json() : {}; })
+            .then(function (data) { _citationsCache = data || {}; return _citationsCache; })
+            .catch(function () { _citationsCache = {}; return _citationsCache; });
+    }
+
+    function nextCiteIndex() {
+        const matches = body.value.match(/<cite\s[^>]*class="ref"/g) || [];
+        return matches.length + 1;
+    }
+
+    function openCitationPicker() {
+        const pinnedStart = body.selectionStart;
+        const pinnedEnd = body.selectionEnd;
+        loadCitations().then(function (cites) {
+            const dlg = document.getElementById('cite-dialog');
+            const input = document.getElementById('cite-search');
+            const list = document.getElementById('cite-results');
+            if (!dlg || !input || !list) {
+                // No dialog in the DOM (stale cached page?) — fall back
+                // to the legacy placeholder so the command isn't silent.
+                const snippet = '<cite class="ref" data-key="key2024">[' + nextCiteIndex() + ']</cite>';
+                body.value = body.value.slice(0, pinnedStart) + snippet + body.value.slice(pinnedEnd);
+                body.setSelectionRange(pinnedStart + snippet.length, pinnedStart + snippet.length);
+                body.dispatchEvent(new Event('input', { bubbles: true }));
+                return;
+            }
+            const entries = Object.keys(cites).sort().map(function (k) {
+                const e = cites[k] || {};
+                return { key: k, title: e.title || '(no title)', authors: e.authors || '', venue: e.venue || '' };
+            });
+            let active = 0;
+
+            function render(q) {
+                const ql = (q || '').toLowerCase();
+                const filtered = !ql ? entries : entries.filter(function (e) {
+                    return (e.key + ' ' + e.title + ' ' + e.authors + ' ' + e.venue).toLowerCase().indexOf(ql) !== -1;
+                });
+                if (!filtered.length) {
+                    list.innerHTML = '<li class="cite-empty">No matches. Add the entry to <code>portfolio/static/portfolio/data/citations.json</code>, then reload.</li>';
+                    active = -1;
+                    return;
+                }
+                if (active >= filtered.length) active = 0;
+                list.innerHTML = filtered.map(function (e, i) {
+                    return '<li class="cite-row' + (i === active ? ' active' : '') + '" data-i="' + i + '" data-key="' + e.key + '">'
+                        + '<code class="cite-key">' + e.key + '</code>'
+                        + '<div class="cite-body"><div class="cite-title">' + escapeHtml(e.title) + '</div>'
+                        + '<div class="cite-meta">' + escapeHtml(e.authors) + (e.venue ? ' · ' + escapeHtml(e.venue) : '') + '</div></div>'
+                        + '</li>';
+                }).join('');
+                Array.from(list.children).forEach(function (li) {
+                    li.addEventListener('mousedown', function (ev) {
+                        ev.preventDefault();
+                        choose(li.dataset.key);
+                    });
+                    li.addEventListener('mouseenter', function () {
+                        Array.from(list.children).forEach(function (c) { c.classList.remove('active'); });
+                        li.classList.add('active');
+                        active = parseInt(li.dataset.i, 10);
+                    });
+                });
+            }
+
+            function escapeHtml(s) {
+                return (s || '').replace(/[&<>"']/g, function (c) {
+                    return { '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c];
+                });
+            }
+
+            function choose(key) {
+                const idx = nextCiteIndex();
+                const snippet = '<cite class="ref" data-key="' + key + '">[' + idx + ']</cite>';
+                body.value = body.value.slice(0, pinnedStart) + snippet + body.value.slice(pinnedEnd);
+                const caret = pinnedStart + snippet.length;
+                body.focus();
+                body.setSelectionRange(caret, caret);
+                body.dispatchEvent(new Event('input', { bubbles: true }));
+                try { dlg.close(); } catch (e) {}
+                showToast('Citation [' + idx + '] inserted · ' + key);
+            }
+
+            function onKey(ev) {
+                const items = list.querySelectorAll('.cite-row');
+                if (ev.key === 'ArrowDown') {
+                    ev.preventDefault();
+                    active = Math.min(active + 1, items.length - 1);
+                } else if (ev.key === 'ArrowUp') {
+                    ev.preventDefault();
+                    active = Math.max(active - 1, 0);
+                } else if (ev.key === 'Enter' && items[active]) {
+                    ev.preventDefault();
+                    choose(items[active].dataset.key);
+                    return;
+                } else { return; }
+                items.forEach(function (c) { c.classList.remove('active'); });
+                if (items[active]) {
+                    items[active].classList.add('active');
+                    items[active].scrollIntoView({ block: 'nearest' });
+                }
+            }
+
+            input.value = '';
+            render('');
+            input.oninput = function () { active = 0; render(input.value); };
+            input.onkeydown = onKey;
+            dlg.showModal();
+            setTimeout(function () { input.focus(); }, 20);
+        });
+    }
+
     function sidenoteInsert() {
-        // Inserts [^slugN] at cursor and appends [^slugN]: ... at the end.
+        // Inserts [^slugN] at the cursor and appends its definition
+        // block [^slugN]: … at the very end of the document. Markdown's
+        // footnote syntax requires the definition anywhere, but "end
+        // of file" keeps them all in one place for later editing.
+        //
+        // After the menu closes and the reference is inserted, we
+        // schedule a toast with a "Jump to definition" link so the
+        // author isn't left guessing where the placeholder went.
         const used = new Set();
         const re = /\[\^([a-z0-9-]+)\]/g;
         let m;
         while ((m = re.exec(body.value)) !== null) used.add(m[1]);
         let n = 1;
         while (used.has('note-' + n)) n++;
-        const slug = 'note-' + n;
-        // Append definition at end (avoid double newline if already ends with one)
+        const noteSlug = 'note-' + n;
         const sep = body.value.endsWith('\n') ? '\n' : '\n\n';
-        body.value = body.value + sep + '[^' + slug + ']: A sidenote.\n';
-        return '[^' + slug + ']';
+        const defLine = '[^' + noteSlug + ']: A sidenote.\n';
+        body.value = body.value + sep + defLine;
+        // The exact offset where the definition text ("A sidenote.")
+        // begins, so the toast jump-link can land the caret right on
+        // the placeholder text ready to overtype.
+        const defTextOffset = body.value.length - 'A sidenote.\n'.length;
+        // Fire the toast on the next tick so it runs AFTER the slash
+        // command's own focus/cursor fiddling settles.
+        setTimeout(function () {
+            showToast(
+                'Sidenote ' + noteSlug + ' added — definition lives at the bottom.',
+                { label: 'Jump to definition', onClick: function () {
+                    body.focus();
+                    body.setSelectionRange(defTextOffset, defTextOffset + 'A sidenote.'.length);
+                    body.blur(); body.focus();  // nudge browsers to scroll
+                } }
+            );
+        }, 30);
+        return '[^' + noteSlug + ']';
+    }
+
+    // ── Toast helper ────────────────────────────────────────────────
+    // Small transient notifications with an optional action link. Used
+    // by /sidenote (jump-to-definition), /cite (prompt-for-key outcome),
+    // etc. One at a time — a newer call replaces the visible one.
+    let toastEl = null;
+    let toastTimer = null;
+    function showToast(message, opts) {
+        opts = opts || {};
+        if (!toastEl) {
+            toastEl = document.createElement('div');
+            toastEl.className = 'editor-toast';
+            document.body.appendChild(toastEl);
+        }
+        toastEl.innerHTML = '';
+        const text = document.createElement('span');
+        text.textContent = message;
+        toastEl.appendChild(text);
+        if (opts.label && opts.onClick) {
+            const btn = document.createElement('button');
+            btn.type = 'button';
+            btn.className = 'editor-toast-action';
+            btn.textContent = opts.label;
+            btn.addEventListener('click', function () {
+                opts.onClick();
+                hideToast();
+            });
+            toastEl.appendChild(btn);
+        }
+        toastEl.classList.add('is-open');
+        clearTimeout(toastTimer);
+        toastTimer = setTimeout(hideToast, opts.duration || 6000);
+    }
+    function hideToast() {
+        if (toastEl) toastEl.classList.remove('is-open');
     }
 
     const menu = document.getElementById('slash-menu');
@@ -1207,6 +1511,32 @@ html.editing main { padding-top: 0 !important; margin: 0 !important; }
     });
 
     body.addEventListener('keydown', (e) => {
+        // Tab → insert a literal tab (2 spaces) instead of moving focus
+        // off the textarea. Only runs when the slash menu is NOT open
+        // (below the early-return); with the menu open Tab still
+        // executes the active item.
+        if (menuTriggerStart < 0 && e.key === 'Tab' && !e.shiftKey && !e.metaKey && !e.ctrlKey) {
+            e.preventDefault();
+            const s = body.selectionStart;
+            const end = body.selectionEnd;
+            const indent = '  ';
+            if (s !== end) {
+                // Selection spans lines → indent each line at the start
+                // of its line (like a code editor). Find the start of
+                // the first selected line.
+                const lineStart = body.value.lastIndexOf('\n', s - 1) + 1;
+                const selected = body.value.slice(lineStart, end);
+                const indented = selected.replace(/^/gm, indent);
+                body.value = body.value.slice(0, lineStart) + indented + body.value.slice(end);
+                body.selectionStart = lineStart;
+                body.selectionEnd = lineStart + indented.length;
+            } else {
+                body.value = body.value.slice(0, s) + indent + body.value.slice(s);
+                body.selectionStart = body.selectionEnd = s + indent.length;
+            }
+            body.dispatchEvent(new Event('input', { bubbles: true }));
+            return;
+        }
         if (menuTriggerStart < 0) return;
         if (e.key === 'ArrowDown') {
             e.preventDefault();
@@ -1278,8 +1608,16 @@ html.editing main { padding-top: 0 !important; margin: 0 !important; }
         });
     }
 
-    async function uploadFile(file) {
+    async function uploadFile(file, pinnedPos) {
+        // `pinnedPos` is the textarea offset where the image should
+        // land. The caption dialog steals focus + clears the selection
+        // during its lifecycle, so reading `body.selectionStart` after
+        // the dialog closes would (correctly per browser semantics)
+        // return 0 — the image would insert at the top. Pinning the
+        // position up-front and splicing into `body.value` directly
+        // sidesteps the focus/selection dance.
         if (!file || !file.type.startsWith('image/')) return false;
+        if (pinnedPos == null) pinnedPos = body.selectionStart;
         sourcePane.classList.add('uploading');
         status.textContent = 'uploading ' + file.name + '…';
         status.classList.add('is-dirty');
@@ -1311,7 +1649,12 @@ html.editing main { padding-top: 0 !important; margin: 0 !important; }
             } else {
                 md = '![' + alt + '](' + data.url + ')';
             }
-            insertAtCursor('\n\n' + md + '\n\n');
+            const payload = '\n\n' + md + '\n\n';
+            body.value = body.value.slice(0, pinnedPos) + payload + body.value.slice(pinnedPos);
+            const caret = pinnedPos + payload.length;
+            body.focus();
+            body.setSelectionRange(caret, caret);
+            body.dispatchEvent(new Event('input', { bubbles: true }));
             status.textContent = 'image inserted — unsaved';
         } catch (e) {
             status.textContent = 'upload failed: ' + e.message;
@@ -1332,26 +1675,28 @@ html.editing main { padding-top: 0 !important; margin: 0 !important; }
     ['dragleave', 'dragend', 'drop'].forEach(ev =>
         sourcePane.addEventListener(ev, () => sourcePane.classList.remove('drop-target'))
     );
-    // Move the textarea caret to the drop coordinates so the image
-    // lands where the author aimed, not wherever the cursor happened
-    // to be (usually at the top of the document after a page load).
-    function moveCaretToDropPoint(evt) {
-        if (!document.caretPositionFromPoint) return;
-        const pos = document.caretPositionFromPoint(evt.clientX, evt.clientY);
-        if (!pos) return;
-        // Chrome/Firefox both return the textarea element as offsetNode
-        // with a character offset when the point is inside a <textarea>.
+    function caretOffsetFromPoint(x, y) {
+        // Compute the textarea character offset under a screen-space
+        // (x, y) point so drag-drop lands the image where the author
+        // aimed. Returns null when unsupported or outside the textarea.
+        if (!document.caretPositionFromPoint) return null;
+        const pos = document.caretPositionFromPoint(x, y);
+        if (!pos) return null;
         if (pos.offsetNode === body || (pos.offsetNode && pos.offsetNode.nodeName === 'TEXTAREA')) {
-            body.focus();
-            body.setSelectionRange(pos.offset, pos.offset);
+            return pos.offset;
         }
+        return null;
     }
 
     sourcePane.addEventListener('drop', async (e) => {
         if (!e.dataTransfer.files || !e.dataTransfer.files.length) return;
         e.preventDefault();
-        moveCaretToDropPoint(e);
-        for (const f of e.dataTransfer.files) await uploadFile(f);
+        // Capture the drop coordinates → textarea offset NOW, before
+        // the async upload + caption dialog churn. Passing this down
+        // lets us splice the insertion at the right spot even after
+        // the dialog has stolen focus and wiped selection.
+        const pinnedPos = caretOffsetFromPoint(e.clientX, e.clientY);
+        for (const f of e.dataTransfer.files) await uploadFile(f, pinnedPos);
     });
     body.addEventListener('paste', async (e) => {
         const items = e.clipboardData && e.clipboardData.items;
