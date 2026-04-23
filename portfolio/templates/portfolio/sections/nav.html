@@ -28,9 +28,6 @@
             <span class="nav-cmdk-text">Search</span>
             <kbd class="nav-cmdk-kbd"><span class="nav-cmdk-mod">⌘</span>K</kbd>
         </button>
-        {# Identity chip — visible proof of who the browser is logged in
-           as. Staff users get a small "staff" badge so it's obvious
-           when the session is privileged. Click → /accounts/profile/. #}
         {% if user.is_authenticated %}
         <a class="nav-userchip" href="{% url 'accounts_profile' %}" title="Logged in as {{ user.username }} — click for profile">
             <span class="nav-userchip-dot{% if user.is_staff %} is-staff{% endif %}"></span>
