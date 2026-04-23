@@ -111,11 +111,67 @@
 
 @media (min-width: 768px) {
     .nav-cmdk { display: inline-flex; }
-    .navbar-inner { grid-template-columns: auto 1fr auto auto; }
+    .navbar-inner { grid-template-columns: auto 1fr auto auto auto; }
     .navbar-inner > .nav-cmdk { transform: none; grid-column: 3; }
-    .navbar-inner > .theme-toggle { grid-column: 4; }
-    .navbar-inner > .hamburger { grid-column: 4; }
+    .navbar-inner > .nav-userchip { grid-column: 4; }
+    .navbar-inner > .theme-toggle { grid-column: 5; }
+    .navbar-inner > .hamburger { grid-column: 5; }
 }
+
+/* Identity chip — always-on proof of "who this browser is logged in
+ * as." On staff sessions the leading dot turns lavender and the
+ * "staff" pill appears, so there's visible signal when the session has
+ * elevated privileges (preventing the "wait, why can I edit everything
+ * as a test user?" confusion). Anon state → compact "Log in" link. */
+.nav-userchip {
+    display: inline-flex;
+    align-items: center;
+    gap: 7px;
+    padding: 6px 10px;
+    background: transparent;
+    border: 1px solid var(--border-color);
+    border-radius: 8px;
+    color: var(--text-muted);
+    font-family: var(--font-family);
+    font-size: 0.8125rem;
+    text-decoration: none;
+    line-height: 1;
+    transition: border-color 150ms ease, color 150ms ease, background 150ms ease;
+}
+.nav-userchip:hover {
+    border-color: var(--accent);
+    color: var(--accent);
+    background: var(--accent-bg-subtle);
+}
+.nav-userchip-name {
+    font-weight: 500;
+    max-width: 10ch;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
+.nav-userchip-dot {
+    width: 7px; height: 7px; border-radius: 50%;
+    background: var(--text-muted);
+    flex: none;
+}
+.nav-userchip-dot.is-staff {
+    background: var(--accent);
+    box-shadow: 0 0 0 3px color-mix(in srgb, var(--accent) 18%, transparent);
+}
+.nav-userchip-badge {
+    font-family: var(--font-mono);
+    font-size: 0.6rem;
+    font-weight: 700;
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
+    padding: 1px 5px;
+    border-radius: 3px;
+    background: color-mix(in srgb, var(--accent) 15%, transparent);
+    color: var(--accent);
+}
+.nav-userchip--anon { color: var(--text-muted); }
+.nav-userchip--anon svg { opacity: 0.85; }
 
 /* ============================================================
    Section rail — fixed left-edge in-page nav (homepage only).

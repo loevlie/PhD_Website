@@ -232,6 +232,48 @@
 }
 .acc-post-actions a.subdued { color: var(--ctp-subtext1, #5c5f77); font-weight: 400; }
 .acc-post-actions a:hover { text-decoration: underline; }
+
+/* Session banner — restates "who this browser is" above every profile
+ * section so there's no doubt about the active identity. */
+.acc-session {
+    display: flex; align-items: center; gap: 10px;
+    padding: 8px 12px;
+    background: var(--ctp-mantle, #e6e9ef);
+    border: 1px solid var(--ctp-surface0, #ccd0da);
+    border-radius: 8px;
+    margin-bottom: 20px;
+    font-family: 'Inter', system-ui, sans-serif;
+    font-size: 0.82rem;
+}
+.acc-session-dot {
+    width: 8px; height: 8px; border-radius: 50%;
+    background: var(--ctp-subtext1, #5c5f77);
+    flex: none;
+}
+.acc-session-dot.is-staff {
+    background: var(--ctp-lavender, #7287fd);
+    box-shadow: 0 0 0 3px color-mix(in srgb, var(--ctp-lavender, #7287fd) 20%, transparent);
+}
+.acc-session-label {
+    color: var(--ctp-subtext0, #6c7086);
+    font-size: 0.72rem;
+    text-transform: uppercase;
+    letter-spacing: 0.08em;
+    font-family: 'Fira Code', ui-monospace, monospace;
+}
+.acc-session-name {
+    color: var(--ctp-text, #4c4f69);
+    font-weight: 600;
+    font-family: 'Fira Code', ui-monospace, monospace;
+}
+.acc-session-role {
+    margin-left: auto;
+    color: var(--ctp-subtext1, #5c5f77);
+    font-size: 0.72rem;
+    font-family: 'Fira Code', ui-monospace, monospace;
+    text-transform: uppercase;
+    letter-spacing: 0.06em;
+}
 </style>
 {% endblock %}
 

@@ -3,6 +3,21 @@
 {% block title %}Profile — dl.blog{% endblock %}
 
 {% block acc_content %}
+{% comment %}Session banner — pinned above everything so the author
+   never wonders "which user am I logged in as?" Matches the
+   nav-userchip styling (dot colour mirrors privilege level).{% endcomment %}
+<div class="acc-session">
+    <span class="acc-session-dot{% if request.user.is_staff %} is-staff{% endif %}"></span>
+    <span class="acc-session-label">Logged in as</span>
+    <span class="acc-session-name">{{ request.user.username }}</span>
+    <span class="acc-session-role">
+        {% if request.user.is_superuser %}superuser
+        {% elif request.user.is_staff %}staff
+        {% elif editable %}collaborator · {{ editable|length }} post{{ editable|length|pluralize }}
+        {% else %}regular · no assignments{% endif %}
+    </span>
+</div>
+
 {% if request.user.is_staff %}
 <p class="acc-eyebrow">Staff</p>
 <h1 class="acc-title">Welcome, <em>{{ request.user.username }}</em>.</h1>
