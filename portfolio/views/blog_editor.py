@@ -128,18 +128,23 @@ def blog_edit(request, slug):
 
     takeover = request.method == 'POST' and request.POST.get('takeover') == '1'
     lock = _read_edit_lock(slug)
-    if lock and not _lock_is_ours(lock, request, tab_token) and not takeover:
-        # Another session holds the lock — show a read-only screen with
-        # a take-over button. The author sees exactly why they can't
-        # edit, and can reclaim the lock if the other session is dead.
+
+    # The lock is a UI-advisory mechanism ONLY: it gates display of the
+    # editor so two sessions don't each think they're the sole editor.
+    # It does NOT block saves — that would silently discard the user's
+    # work when the lock has drifted across sessions/tabs (the exact
+    # bug the user reported: "my edits aren't saving"). If the POST
+    # reaches this view and the author is authorised (`_can_edit`
+    # above), the save is always processed — last write wins.
+    if request.method == 'GET' and lock and not _lock_is_ours(lock, request, tab_token):
         return render(request, 'portfolio/blog_edit_locked.html', {
             'post': post,
             'lock': lock,
             'age_s': max(0, int((timezone.now().timestamp() - lock['acquired_at']))),
         })
 
-    # We own the lock (or are stealing it). Refresh it on every
-    # editor-page load so the 120s TTL never lapses mid-session.
+    # Refresh or claim the lock for THIS session so the next GET from
+    # another tab shows the locked page.
     _write_edit_lock(slug, request, tab_token)
 
     if request.method == 'POST' and not takeover:
