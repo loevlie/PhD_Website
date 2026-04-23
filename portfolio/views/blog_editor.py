@@ -35,7 +35,11 @@ from portfolio.data import DEMOS
 # ANY collaborator post" which is fine because the damage a stray call
 # can do is bounded by other slug-scoped views.
 
-from portfolio.views.editor_assist import _can_edit
+from portfolio.views.editor_assist import (
+    _can_edit,
+    _can_create_post,
+    _staff_redirect,
+)
 
 
 # ─── POST-field → Post attribute adapter ─────────────────────────────
@@ -309,9 +313,15 @@ def blog_new(request):
     """Create a new draft post and redirect to its editor.
     GET without ?template=: show the template-picker page.
     GET with ?template=<key>: create a draft from that template.
+
+    Access: staff by default. Non-staff users need the explicit
+    `portfolio.add_post` permission (granted in /admin/ on the user
+    detail page) — a plain collaborator assignment is NOT enough, by
+    design. Otherwise assigning a guest author to one post would
+    silently let them create more.
     """
-    if not _can_edit(request):
-        return redirect('/admin/login/?next=/blog/new/')
+    if not _can_create_post(request):
+        return _staff_redirect(request, '/blog/new/')
 
     template_key = request.GET.get('template')
     if template_key not in _POST_TEMPLATES:

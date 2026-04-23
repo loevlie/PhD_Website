@@ -44,11 +44,16 @@ class PostAdmin(admin.ModelAdmin):
         ('Collaborators', {
             'fields': ('collaborators',),
             'description': (
-                'Non-staff users granted edit access to this specific post. '
-                'Assign a signed-up user here and share the editor URL '
-                '<code>/blog/&lt;slug&gt;/edit/</code> plus the per-post '
-                'analytics at <code>/site/insights/blog/&lt;slug&gt;/</code>. '
-                'They cannot create new posts or edit other posts.'
+                'Non-staff users granted edit access to <strong>this specific '
+                'post</strong>. Assign a signed-up user here and share the '
+                'editor URL <code>/blog/&lt;slug&gt;/edit/</code> plus the '
+                'per-post analytics at <code>/site/insights/blog/&lt;slug&gt;/</code>. '
+                'By default they cannot create new posts or edit other posts. '
+                '<br><br>To let a collaborator create <em>new</em> posts, open '
+                'their user record under <em>Authentication and Authorization '
+                '→ Users</em>, scroll to "User permissions," and add '
+                '<code>portfolio | post | Can add post</code>. Revoke the same '
+                'way.'
             ),
             'classes': ('collapse',),
         }),

@@ -12,9 +12,12 @@ from django.shortcuts import redirect, render
 
 def studio(request):
     if not (request.user.is_authenticated and request.user.is_staff):
-        # Not authenticated: bounce through Django admin login so we
-        # inherit Django's CSRF / rate limiting / audit log.
-        return redirect(f'/admin/login/?next={request.path}')
+        # Route through the public /accounts/ flow so a logged-in
+        # non-staff collaborator lands on their own profile (which
+        # shows what they DO have access to) rather than getting a
+        # misleading "invalid credentials" on the admin login form.
+        from portfolio.views.editor_assist import _staff_redirect
+        return _staff_redirect(request, request.path)
 
     # Quick counts to make the tiles feel alive. Cheap queries; the
     # dashboard is expected to be visited rarely.

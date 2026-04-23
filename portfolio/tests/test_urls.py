@@ -158,7 +158,10 @@ class StaffOnlyUrlsTests(StaffClientMixin, TestCase):
             with self.subTest(url=url):
                 r = self.anon_client.get(url)
                 self.assertEqual(r.status_code, 302, msg=f'{url} did not redirect')
-                self.assertIn('/admin/login/', r.headers.get('Location', ''),
+                # Staff-only URLs now route through the public /accounts/
+                # flow so logged-in non-staff users can land cleanly on
+                # their profile. Anon visitors go to /accounts/login/.
+                self.assertIn('/accounts/login/', r.headers.get('Location', ''),
                               msg=f'{url} did not redirect to login')
 
     def test_staff_only_urls_staff_ok(self):

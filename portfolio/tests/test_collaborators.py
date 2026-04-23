@@ -165,6 +165,53 @@ class CollaboratorAuthTests(TestCase):
         self.assertEqual(r.status_code, 200)
 
 
+class NewPostGateTests(TestCase):
+    """/blog/new/ is staff-only by default; collaborator assignments
+    alone do NOT grant post-creation rights. An admin can grant the
+    `portfolio.add_post` permission to a user to opt them in."""
+
+    def setUp(self):
+        self.staff = make_staff_user()
+        self.collab = make_plain_user(username='alice')
+        self.plain = make_plain_user(username='bob')
+        self.post = make_post(slug='scope', title='Scope')
+        self.post.collaborators.add(self.collab)
+
+    def test_staff_can_create_new(self):
+        c = Client(); c.force_login(self.staff)
+        r = c.get('/blog/new/')
+        self.assertEqual(r.status_code, 200)
+
+    def test_collaborator_alone_cannot_create_new(self):
+        # Security regression guard: being a collaborator on one post
+        # must NOT let the user hit the new-post page.
+        c = Client(); c.force_login(self.collab)
+        r = c.get('/blog/new/')
+        self.assertEqual(r.status_code, 302)
+        # Logged-in non-staff bounces to the public profile, not admin
+        # login (which would reject them with a misleading error).
+        self.assertIn('/accounts/profile/', r['Location'])
+
+    def test_anon_redirected_to_public_login(self):
+        r = Client().get('/blog/new/')
+        self.assertEqual(r.status_code, 302)
+        self.assertIn('/accounts/login/', r['Location'])
+
+    def test_collaborator_with_add_post_perm_can_create(self):
+        # Explicit opt-in: admin grants `portfolio.add_post` → user
+        # can now create new posts on top of their collaborator
+        # assignments.
+        from django.contrib.auth.models import Permission
+        from django.contrib.contenttypes.models import ContentType
+        from portfolio.models import Post
+        ct = ContentType.objects.get_for_model(Post)
+        perm = Permission.objects.get(codename='add_post', content_type=ct)
+        self.collab.user_permissions.add(perm)
+        c = Client(); c.force_login(self.collab)
+        r = c.get('/blog/new/')
+        self.assertEqual(r.status_code, 200)
+
+
 class PublicSignupTests(TestCase):
 
     def test_signup_form_renders(self):

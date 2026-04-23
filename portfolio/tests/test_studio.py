@@ -22,10 +22,13 @@ class StudioAccessTests(StaffClientMixin, TestCase):
         self.assertContains(r, 'name="title"')
         self.assertContains(r, 'action="/site/reading/add/"')
 
-    def test_anon_redirects_to_admin_login(self):
+    def test_anon_redirects_to_login(self):
         r = self.anon_client.get('/site/studio/')
         self.assertEqual(r.status_code, 302)
-        self.assertIn('/admin/login/', r['Location'])
+        # After the collaborator-permission refactor, staff-only pages
+        # route through the public auth flow (not admin login) so a
+        # logged-in non-staff user can land on their profile cleanly.
+        self.assertIn('/accounts/login/', r['Location'])
         self.assertIn('next=/site/studio/', r['Location'])
 
     def test_studio_shows_counts_and_recent_activity(self):

@@ -30,6 +30,12 @@ def _can_edit(request, post=None) -> bool:
       post-specific; the caller still has to land an actual edit via
       a slug-scoped view to do damage.
     * Anyone else → no.
+
+    NOTE: This helper is for editing existing posts + running helper
+    endpoints scoped by an already-saved slug. For endpoints that
+    *create* posts (blog_new) or expose admin-level surfaces (studio,
+    analytics dashboard), use `_is_staff(request)` instead — the
+    collaborator fallback here would wrongly let them in.
     """
     if not request.user.is_authenticated:
         return False
@@ -38,6 +44,44 @@ def _can_edit(request, post=None) -> bool:
     if post is not None:
         return post.collaborators.filter(pk=request.user.pk).exists()
     return request.user.edit_posts.exists()
+
+
+def _is_staff(request) -> bool:
+    """Strict staff-only gate. Use this for studio + admin dashboards
+    — surfaces that aren't scoped to a specific post."""
+    return request.user.is_authenticated and request.user.is_staff
+
+
+def _can_create_post(request) -> bool:
+    """Gate for creating *new* posts (blog_new).
+
+    Default deny. Staff always pass. Non-staff users pass only if an
+    admin has explicitly granted them Django's built-in
+    `portfolio.add_post` permission — toggled on the user detail page
+    in /admin/ under "User permissions." This keeps the default a
+    collaborator assignment grants edit access to one post ONLY, not
+    the run-of-the-house.
+    """
+    if not request.user.is_authenticated:
+        return False
+    if request.user.is_staff:
+        return True
+    return request.user.has_perm('portfolio.add_post')
+
+
+def _staff_redirect(request, next_path):
+    """Redirect helper for staff-only views.
+
+    Anon visitors → /accounts/login/?next=<path>.
+    Authenticated non-staff → /accounts/profile/ (so they can see
+      what they DO have access to, rather than hitting the admin
+      login form and getting a misleading "invalid credentials"
+      error — Django's admin rejects non-staff on login).
+    """
+    from django.shortcuts import redirect
+    if request.user.is_authenticated:
+        return redirect('/accounts/profile/')
+    return redirect(f'/accounts/login/?next={next_path}')
 
 
 # AI-assist rate limits are per-user (not per-IP) because the editor

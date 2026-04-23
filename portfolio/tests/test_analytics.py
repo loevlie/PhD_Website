@@ -179,7 +179,10 @@ class DashboardTests(StaffClientMixin, TestCase):
     def test_dashboard_anon_redirected(self):
         r = self.anon_client.get('/site/insights/')
         self.assertEqual(r.status_code, 302)
-        self.assertIn('/admin/login/', r.headers['Location'])
+        # Analytics dashboard now bounces anon visitors through the
+        # public login (not admin login) so a non-staff user with
+        # per-post analytics access can reach their profile cleanly.
+        self.assertIn('/accounts/login/', r.headers['Location'])
 
     def test_dashboard_staff_renders_empty_state(self):
         r = self.staff_client.get('/site/insights/')

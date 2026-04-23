@@ -228,7 +228,9 @@ class BlogNewTests(StaffClientMixin, TestCase):
     def test_anon_redirected_to_login(self):
         r = self.anon_client.get('/blog/new/')
         self.assertEqual(r.status_code, 302)
-        self.assertIn('/admin/login/', r.headers['Location'])
+        # blog_new now gates on the `portfolio.add_post` permission and
+        # routes anon visitors through the public auth flow.
+        self.assertIn('/accounts/login/', r.headers['Location'])
 
 
 class BlogUploadImageTests(StaffClientMixin, TestCase):

@@ -145,7 +145,12 @@ def _build_stats(base_qs, *, include_post_engagement=True, slug=None):
 def dashboard(request):
     """/site/insights/ — staff-only stats dashboard."""
     if not _is_staff(request):
-        return HttpResponseRedirect('/admin/login/?next=/site/insights/')
+        # Route through /accounts/ so a logged-in non-staff user
+        # lands on their profile (which lists any per-post analytics
+        # pages they DO have access to) rather than the admin login
+        # form, which rejects non-staff with misleading errors.
+        from portfolio.views.editor_assist import _staff_redirect
+        return _staff_redirect(request, '/site/insights/')
 
     from portfolio.models import Pageview
 
