@@ -24,9 +24,24 @@ from .webmentions import fetch as fetch_webmentions
 
 def _blog_render(request, *, template, experiment=None, kind=None, view='', extra=None):
     is_staff = request.user.is_authenticated and request.user.is_staff
-    # Staff see drafts in the listing (so we don't lose track of WIP);
-    # public listing excludes them entirely.
-    posts = get_all_posts(include_drafts=is_staff)
+    # Staff see every draft. Non-staff collaborators see drafts on
+    # posts they've been assigned to (so the Frozen Forecaster draft
+    # shows up in /blog/ for the author's guest contributor). Everyone
+    # else gets published-only.
+    collaborator_draft_slugs = set()
+    if request.user.is_authenticated and not is_staff:
+        from portfolio.models import Post as _Post
+        collaborator_draft_slugs = set(
+            _Post.objects.filter(
+                collaborators=request.user, draft=True,
+            ).values_list('slug', flat=True)
+        )
+    posts = get_all_posts(include_drafts=is_staff or bool(collaborator_draft_slugs))
+    if not is_staff and collaborator_draft_slugs:
+        # include_drafts=True above pulled every draft; keep only the
+        # ones this user has edit access to + the published rest.
+        posts = [p for p in posts
+                 if not p.get('draft') or p.get('slug') in collaborator_draft_slugs]
     if kind:
         # Filter by kind. Posts that pre-date the field default to 'essay',
         # so /blog/ shows everything historical and /notebook/ starts empty
@@ -193,7 +208,16 @@ def blog_map(request):
 
 def blog_post(request, slug):
     is_staff = request.user.is_authenticated and request.user.is_staff
-    post = get_post(slug, include_drafts=is_staff)
+    # Collaborators assigned to THIS post see the full page even when
+    # the post is still a draft — otherwise the "edit" link in their
+    # /accounts/profile/ lands them on the WIP stub.
+    viewer_is_collab = False
+    if request.user.is_authenticated and not is_staff:
+        from portfolio.models import Post as _Post
+        viewer_is_collab = _Post.objects.filter(
+            slug=slug, collaborators=request.user,
+        ).exists()
+    post = get_post(slug, include_drafts=is_staff or viewer_is_collab)
     if post is None:
         # Try again including drafts so anon visitors with the URL of a
         # draft post see a friendly "working on it" stub instead of 404.
