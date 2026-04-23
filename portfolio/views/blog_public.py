@@ -276,7 +276,7 @@ def blog_post(request, slug):
             except Exception:
                 can_edit_this_post = False
 
-    return render(request, 'portfolio/blog_post.html', {
+    resp = render(request, 'portfolio/blog_post.html', {
         'post': post,
         'series_posts': series_posts,
         'related_posts': related,
@@ -286,3 +286,10 @@ def blog_post(request, slug):
         'cite_id': cite_id,
         'can_edit_this_post': can_edit_this_post,
     })
+    # Authors + collaborators must never see a stale cached response
+    # for a post they can edit — defeats the "I just saved and the
+    # live page doesn't show it" trap. Anonymous readers keep the
+    # default cacheable response so Cloudflare / CDNs can do their job.
+    if can_edit_this_post:
+        resp['Cache-Control'] = 'no-store, no-cache, must-revalidate, max-age=0'
+    return resp

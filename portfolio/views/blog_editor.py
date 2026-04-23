@@ -186,13 +186,23 @@ def blog_edit(request, slug):
             # fallback in get_post() picks up the slack.
             pass
 
+        # Bust the get_all_posts listing cache so the listing
+        # surfaces the fresh post immediately. Idempotent; cheap.
+        from portfolio.blog import invalidate_post_cache
+        invalidate_post_cache()
+
         if request.POST.get('action') == 'view':
             # Cache-bust the redirect target so a mid-session browser
             # cache doesn't serve the old rendered version.
             from django.http import HttpResponseRedirect
             from django.urls import reverse
             t = int(timezone.now().timestamp())
-            return HttpResponseRedirect(f'{reverse("blog_post", args=[post.slug])}?_r={t}')
+            resp = HttpResponseRedirect(f'{reverse("blog_post", args=[post.slug])}?_r={t}')
+            # Belt-and-braces: tell the browser NOT to cache either
+            # the redirect or the target. If your browser was holding
+            # an old copy of /blog/<slug>/, this kills it.
+            resp['Cache-Control'] = 'no-store, no-cache, must-revalidate, max-age=0'
+            return resp
         return redirect('blog_edit', slug=post.slug)
 
     return render(request, 'portfolio/blog_edit.html', _edit_context(
