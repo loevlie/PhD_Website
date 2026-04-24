@@ -23,6 +23,12 @@ pyspellchecker>=0.8
 # pills). Called from portfolio/blog/__init__.py :: _wrap_notation_terms.
 beautifulsoup4>=4.12
 
+# Cloudflare R2 object storage for user uploads (avatars, blog cover
+# images, editor body images). R2 speaks the S3 API; django-storages'
+# S3 backend routes Django file operations to it. Activated only when
+# R2_BUCKET_NAME is set in the environment — local dev stays on disk.
+django-storages[s3]>=1.14
+
 # Default scientific-Python stack available to /pyfig blocks. Each post
 # can also declare extras via a per-post deps file (see _render_pyfig).
 matplotlib>=3.9

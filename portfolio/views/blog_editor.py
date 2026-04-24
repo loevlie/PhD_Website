@@ -737,11 +737,9 @@ def blog_preview(request):
 def blog_upload_image(request):
     """Editor image upload. POST a multipart `image` file; returns
     {url, markdown}. The editor inserts the markdown snippet at the
-    cursor. Files land in MEDIA_ROOT/blog-images/YYYY/MM/<slug>-<n>.ext.
-
-    Production caveat: ephemeral filesystems (Render free tier) lose
-    these on every redeploy. Move MEDIA_ROOT to S3 or equivalent
-    before relying on this in prod."""
+    cursor. Files land at `blog-images/YYYY/MM/<slug>.ext` in the
+    project's default storage — Cloudflare R2 in production (survives
+    deploys), local disk in dev."""
     if request.method != 'POST':
         return JsonResponse({'error': 'POST required'}, status=405)
     slug = request.POST.get('slug', '').strip()
@@ -770,12 +768,12 @@ def blog_upload_image(request):
     safe_ext = re.sub(r'[^a-zA-Z0-9]', '', ext.lower())[:5] or 'png'
     fname = f'{safe_base}.{safe_ext}'
 
-    storage = FileSystemStorage(
-        location=os.path.join(settings.MEDIA_ROOT, subdir),
-        base_url=settings.MEDIA_URL + subdir + '/',
-    )
-    saved_name = storage.save(fname, f)  # auto-suffixes on collisions
-    url = storage.url(saved_name)
+    # Use Django's configured default_storage — that's R2 in
+    # production and FileSystemStorage in dev. Same API, survives
+    # deploys. `save()` auto-suffixes on name collisions.
+    from django.core.files.storage import default_storage
+    saved_name = default_storage.save(f'{subdir}/{fname}', f)
+    url = default_storage.url(saved_name)
     alt = request.POST.get('alt', '') or safe_base.replace('-', ' ')
     return JsonResponse({
         'url': url,

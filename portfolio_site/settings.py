@@ -151,11 +151,53 @@ CACHES = {
 # domain at webmention.io.
 WEBMENTIONS_ENABLED = os.environ.get('WEBMENTIONS_ENABLED', '').lower() in ('1', 'true', 'yes')
 
-# User-uploaded media (blog images posted via the in-browser editor).
-# In production this needs to be backed by S3 or equivalent — local
-# disk on Render's free tier is ephemeral. For local dev this is fine.
+# User-uploaded media (avatars, blog cover images, editor body images).
+#
+# Render's web service has an ephemeral filesystem — every deploy wipes
+# whatever was written at runtime. To survive deploys we mirror the
+# media tree into Cloudflare R2 (S3-compatible object storage) via
+# django-storages, env-gated on R2_BUCKET_NAME so local dev still
+# writes to disk.
+#
+# Minimum env to flip to R2 (set in Render):
+#   R2_BUCKET_NAME         — bucket name, e.g. "dl-blog-media"
+#   R2_ENDPOINT_URL        — https://<account-id>.r2.cloudflarestorage.com
+#   R2_ACCESS_KEY_ID       — from an R2 API token
+#   R2_SECRET_ACCESS_KEY   — from an R2 API token
+# Optional:
+#   R2_PUBLIC_DOMAIN       — public serving domain (r2.dev dev URL or a
+#                            Cloudflare-proxied custom subdomain). If
+#                            unset, django-storages falls back to signed
+#                            URLs via the endpoint.
 MEDIA_URL = 'media/'
 MEDIA_ROOT = BASE_DIR / 'media'
+
+R2_BUCKET_NAME = os.environ.get('R2_BUCKET_NAME', '').strip()
+if R2_BUCKET_NAME:
+    DEFAULT_FILE_STORAGE = 'storages.backends.s3boto3.S3Boto3Storage'
+    AWS_STORAGE_BUCKET_NAME = R2_BUCKET_NAME
+    AWS_S3_ENDPOINT_URL = os.environ['R2_ENDPOINT_URL']
+    AWS_ACCESS_KEY_ID = os.environ['R2_ACCESS_KEY_ID']
+    AWS_SECRET_ACCESS_KEY = os.environ['R2_SECRET_ACCESS_KEY']
+    AWS_S3_SIGNATURE_VERSION = 's3v4'
+    AWS_S3_ADDRESSING_STYLE = 'virtual'
+    # Public-read bucket: no per-object ACLs, no pre-signed URLs on the
+    # reader-side — a post's cover image is just a static GET.
+    AWS_DEFAULT_ACL = None
+    AWS_QUERYSTRING_AUTH = False
+    AWS_S3_FILE_OVERWRITE = False
+    _r2_public = os.environ.get('R2_PUBLIC_DOMAIN', '').strip()
+    if _r2_public:
+        AWS_S3_CUSTOM_DOMAIN = _r2_public
+        MEDIA_URL = f'https://{_r2_public}/'
+
+# Local scratch dir for pyfig's per-post dependency installs (pip
+# --target). Never written by user uploads, so this can stay on the
+# local ephemeral disk even when the rest of MEDIA lives in R2 — the
+# worst case is a one-time re-install on the first pyfig render after
+# a deploy. Explicitly not BASE_DIR-adjacent so Render's file watcher
+# doesn't restart the worker when matplotlib's wheel lands.
+PYFIG_CACHE_DIR = Path(os.environ.get('PYFIG_CACHE_DIR') or '/tmp/pyfig-cache')
 
 DEFAULT_AUTO_FIELD = 'django.db.models.BigAutoField'
 

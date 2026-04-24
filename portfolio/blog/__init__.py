@@ -130,9 +130,12 @@ def _render_pyfig(code, alt='', timeout_s=15, post_slug=None):
     import tempfile
     from django.conf import settings as dj_settings
 
-    media_root = Path(dj_settings.MEDIA_ROOT)
-    media_root.mkdir(parents=True, exist_ok=True)
-    extras = _ensure_post_deps(post_slug, media_root)
+    # Pyfig dep cache stays on the LOCAL filesystem even when MEDIA
+    # lives in R2 — pip install --target can't write to an S3 bucket,
+    # and a pyfig dep tree is a per-deploy install anyway.
+    pyfig_cache = Path(getattr(dj_settings, 'PYFIG_CACHE_DIR', '/tmp/pyfig-cache'))
+    pyfig_cache.mkdir(parents=True, exist_ok=True)
+    extras = _ensure_post_deps(post_slug, pyfig_cache)
 
     with tempfile.TemporaryDirectory() as td_str:
         td = Path(td_str)
