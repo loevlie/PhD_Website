@@ -16,9 +16,18 @@
                 {% else %}
                 <div class="pub-featured-image">
                 {% endif %}
-                    {% comment %}Blur-up backdrop pattern (Apple/Spotify): contained foreground over a same-image blurred backdrop, so figures + screenshots fill the 16:9 frame without crop loss. Backdrop is decorative; aria-hidden.{% endcomment %}
-                    <img class="pub-featured-backdrop" src="{% static pub.image %}" alt="" aria-hidden="true">
-                    <img class="pub-featured-foreground" src="{% static pub.image %}" alt="{{ pub.title }}">
+                    {% comment %}Blur-up backdrop pattern (Apple/Spotify): contained foreground over a same-image blurred backdrop, so figures + screenshots fill the 16:9 frame without crop loss. Backdrop is decorative; aria-hidden.
+                       Wrapped in <picture> so the browser pulls a WebP sibling when one exists on disk (~60% smaller). Lazy-loaded — these cards live below the hero fold.{% endcomment %}
+                    {% with base=pub.image|cut:".jpeg"|cut:".jpg"|cut:".png" %}
+                    <picture>
+                        <source srcset="{% static base|add:'.webp' %}" type="image/webp">
+                        <img class="pub-featured-backdrop" src="{% static pub.image %}" alt="" aria-hidden="true" loading="lazy" decoding="async">
+                    </picture>
+                    <picture>
+                        <source srcset="{% static base|add:'.webp' %}" type="image/webp">
+                        <img class="pub-featured-foreground" src="{% static pub.image %}" alt="{{ pub.title }}" loading="lazy" decoding="async">
+                    </picture>
+                    {% endwith %}
                     {% if pub.image_credit %}
                     <span class="pub-image-credit">{{ pub.image_credit }}</span>
                     {% endif %}

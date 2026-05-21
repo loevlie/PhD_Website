@@ -43,13 +43,23 @@
                         <div class="avatar-front">
                             {% comment %}poster must be a single URL (no srcset/<picture>), so use
                                the compressed 400x400 JPG — universal browser support and tiny.{% endcomment %}
-                            <video class="avatar-video" autoplay muted playsinline preload="auto"
+                            {% comment %}preload="metadata" (not "auto"): browser fetches
+                               only enough bytes to render the poster + start playback.
+                               Saves several MB of upfront download on first paint —
+                               the LCP element here is the poster image, not the
+                               video stream.{% endcomment %}
+                            <video class="avatar-video" autoplay muted playsinline loop preload="metadata"
                                    poster="{% static 'portfolio/images/hero-still.jpg' %}">
                                 <source src="{% static 'portfolio/images/hero-video.mp4' %}" type="video/mp4">
                             </video>
                         </div>
                         <div class="avatar-back">
-                            <img src="{% static hero.profile_image %}" alt="{{ hero.name }}" class="avatar">
+                            {% comment %}Back of the flip card — only visible on hover/tap,
+                               so the browser doesn't need this image during the initial
+                               paint. Lazy + async decode lets the page settle without
+                               waiting on a ~400 KB JPEG.{% endcomment %}
+                            <img src="{% static hero.profile_image %}" alt="{{ hero.name }}"
+                                 class="avatar" loading="lazy" decoding="async">
                         </div>
                     </div>
                 </div>
