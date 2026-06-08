@@ -31,6 +31,7 @@ from .pages import (
     presentation,
     google_verify,
     robots_txt,
+    dennys_rules,
 )
 from .blog_public import (
     blog,

@@ -57,6 +57,7 @@ urlpatterns = [
     path('demos/', views.demos, name='demos'),
     path('demos/<slug:slug>/', views.demo_detail, name='demo_detail'),
     path('now/', views.now, name='now'),
+    path('rules/', views.dennys_rules, name='dennys_rules'),
     path('garden/', views.garden, name='garden'),
     path('tags/', views.tag_index, name='tag_index'),
     path('tags/<slug:slug>/', views.tag_detail, name='tag_detail'),

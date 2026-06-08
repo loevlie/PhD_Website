@@ -171,6 +171,71 @@ def now(request):
     return render(request, 'portfolio/now.html', {'now': live.now_page()})
 
 
+# ─── Denny's Rules ─────────────────────────────────────────────────────
+# `/rules/` — host a rendered view of the DENNYS_RULES.md file that
+# lives in the ml-research-template cookiecutter repo. The source is
+# the cookiecutter template path (literal `{% if … %}` braces in the
+# filename), so we fetch the raw GitHub URL with that exact name and
+# pipe it through the existing render_markdown pipeline. Cached for
+# 1 hour so we don't hammer GitHub on every visit.
+
+_DENNYS_RULES_RAW_URL = (
+    'https://raw.githubusercontent.com/loevlie/ml-research-template/main/template/'
+    '%7B%25%20if%20include_dennys_rules%20%25%7D'
+    'DENNYS_RULES.md'
+    '%7B%25%20endif%20%25%7D'
+)
+
+
+def dennys_rules(request):
+    """GET /rules/ — render the canonical Denny's Rules markdown from
+    GitHub into a styled page. Cached for an hour; stale-while-error
+    on a fetch failure so a GitHub blip doesn't 500."""
+    from django.core.cache import cache
+    from urllib.request import urlopen, Request
+    from urllib.error import URLError
+    from portfolio.blog import render_markdown
+
+    cache_key = 'dennys_rules:html_v1'
+    cached = cache.get(cache_key)
+    if cached:
+        html, fetched_at = cached
+    else:
+        html, fetched_at = None, None
+        try:
+            req = Request(_DENNYS_RULES_RAW_URL, headers={'User-Agent': 'dennisloevlie.com'})
+            with urlopen(req, timeout=8) as r:
+                md = r.read().decode('utf-8')
+            html, _ = render_markdown(md, is_explainer=False, post_slug='rules')
+            from django.utils import timezone as _tz
+            fetched_at = _tz.now()
+            cache.set(cache_key, (html, fetched_at), 60 * 60)
+        except (URLError, TimeoutError, OSError):
+            # Network blip — fall back to a stale copy from the long-
+            # lived "stale" key (1-day TTL) if we have one.
+            stale = cache.get(cache_key + ':stale')
+            if stale:
+                html, fetched_at = stale
+        if html is not None and fetched_at is not None:
+            cache.set(cache_key + ':stale', (html, fetched_at), 60 * 60 * 24)
+
+    if html is None:
+        # First load with GitHub down + no stale copy. Surface the
+        # source so the visitor can read it there instead of seeing a
+        # 500 page.
+        return render(request, 'portfolio/dennys_rules.html', {
+            'rendered_html': None,
+            'source_url': 'https://github.com/loevlie/ml-research-template',
+            'fetched_at': None,
+        })
+
+    return render(request, 'portfolio/dennys_rules.html', {
+        'rendered_html': html,
+        'source_url': 'https://github.com/loevlie/ml-research-template',
+        'fetched_at': fetched_at,
+    })
+
+
 # ─── CV ────────────────────────────────────────────────────────────────
 
 def cv_page(request):

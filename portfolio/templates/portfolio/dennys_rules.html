@@ -1,0 +1,140 @@
+{% extends "portfolio/personal_base.html" %}
+{% load static %}
+
+{% block title %}Denny's Rules — Dennis Loevlie{% endblock %}
+
+{% block og_meta %}
+<meta property="og:title" content="Denny's Rules to Live By">
+<meta property="og:description" content="A PhD researcher's operating manual for rigorous, reproducible, and publishable ML research.">
+<meta property="og:type" content="article">
+<meta name="twitter:card" content="summary_large_image">
+<meta name="twitter:title" content="Denny's Rules to Live By">
+<meta name="twitter:description" content="A PhD researcher's operating manual for rigorous, reproducible, and publishable ML research.">
+{% endblock %}
+
+{% block extra_head %}
+{# Reuse blog typography so the rendered markdown matches the editorial
+   register used on /blog/ posts — same prose styling, citation pills,
+   code blocks, headings. #}
+<link rel="stylesheet" href="{% static 'portfolio/css/blog.css' %}">
+<style>
+.rules-shell {
+    max-width: 760px;
+    margin: 64px auto 96px;
+    padding: 0 24px;
+    color: var(--text-primary);
+}
+.rules-eyebrow {
+    font-family: 'JetBrains Mono', ui-monospace, monospace;
+    font-size: 0.72rem;
+    letter-spacing: 0.14em;
+    text-transform: uppercase;
+    color: var(--text-muted);
+    margin: 0 0 14px;
+}
+.rules-title {
+    font-family: 'IBM Plex Serif', Georgia, serif;
+    font-size: clamp(2rem, 3.6vw, 2.6rem);
+    line-height: 1.1;
+    font-weight: 700;
+    letter-spacing: -0.01em;
+    margin: 0 0 16px;
+    color: var(--text-primary);
+}
+.rules-deck {
+    font-family: 'IBM Plex Serif', Georgia, serif;
+    font-size: 1.125rem;
+    line-height: 1.55;
+    color: var(--text-secondary);
+    margin: 0 0 12px;
+    font-style: italic;
+}
+.rules-source {
+    font-family: 'JetBrains Mono', ui-monospace, monospace;
+    font-size: 0.78rem;
+    color: var(--text-muted);
+    margin: 0 0 40px;
+}
+.rules-source a { color: var(--accent); text-decoration: none; }
+.rules-source a:hover { text-decoration: underline; }
+.rules-fetched {
+    margin-left: 8px;
+    color: color-mix(in srgb, var(--text-muted) 60%, transparent);
+}
+.rules-divider {
+    border: 0;
+    border-top: 1px solid var(--border-color);
+    margin: 0 0 36px;
+}
+.rules-fallback {
+    padding: 20px 22px;
+    background: color-mix(in srgb, var(--accent) 6%, var(--bg-secondary));
+    border-left: 3px solid var(--accent);
+    border-radius: 4px;
+    line-height: 1.6;
+}
+.rules-fallback a { color: var(--accent); }
+
+/* The rendered markdown lives inside .blog-prose so it inherits the
+   blog post typography (h1/h2 sizing, list spacing, link styling,
+   code block chrome). Constrain inside .rules-shell for a comfortable
+   reading column. */
+.rules-shell .blog-prose h1 {
+    font-size: 1.6rem;
+    margin-top: 2.4rem;
+    margin-bottom: 0.8rem;
+    color: var(--text-primary);
+}
+.rules-shell .blog-prose h2 {
+    font-size: 1.3rem;
+    margin-top: 2rem;
+    margin-bottom: 0.6rem;
+    border-bottom: 1px solid var(--border-color);
+    padding-bottom: 6px;
+    color: var(--text-primary);
+}
+.rules-shell .blog-prose p { margin: 0 0 1em; line-height: 1.65; }
+.rules-shell .blog-prose ol,
+.rules-shell .blog-prose ul {
+    margin: 0 0 1.2em;
+    padding-left: 1.5em;
+}
+.rules-shell .blog-prose li { margin-bottom: 0.5em; line-height: 1.55; }
+.rules-shell .blog-prose li strong { color: var(--text-primary); }
+.rules-shell .blog-prose hr {
+    border: 0;
+    border-top: 1px solid var(--border-color);
+    margin: 2em 0;
+}
+.rules-shell .blog-prose a { color: var(--accent); }
+.rules-shell .blog-prose code {
+    background: var(--bg-tertiary);
+    padding: 2px 5px;
+    border-radius: 4px;
+    font-size: 0.92em;
+}
+{% endblock %}
+
+{% block content %}
+<article class="rules-shell">
+    <p class="rules-eyebrow">Operating manual · ML research</p>
+    <h1 class="rules-title">Denny's Rules to Live By</h1>
+    <p class="rules-deck">A PhD researcher's operating manual for rigorous, reproducible, and publishable ML research.</p>
+    <p class="rules-source">
+        Source: <a href="{{ source_url }}" target="_blank" rel="noopener">ml-research-template</a> on GitHub.
+        {% if fetched_at %}<span class="rules-fetched">last sync: {{ fetched_at|timesince }} ago</span>{% endif %}
+    </p>
+    <hr class="rules-divider">
+
+    {% if rendered_html %}
+    <div class="blog-prose">
+        {{ rendered_html|safe }}
+    </div>
+    {% else %}
+    <div class="rules-fallback">
+        Couldn't fetch the latest version from GitHub right now. Read it directly at
+        <a href="{{ source_url }}" target="_blank" rel="noopener">github.com/loevlie/ml-research-template</a>.
+    </div>
+    {% endif %}
+</article>
+{% endblock %}
