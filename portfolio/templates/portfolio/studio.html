@@ -45,10 +45,6 @@
                     <p class="studio-card-desc">Long-form essay for /blog/. Opens the template picker.</p>
                     <div class="studio-card-meta">{{ counts.essays }} published · {{ counts.essay_drafts }} draft{{ counts.essay_drafts|pluralize }}</div>
                 </a>
-                {# Creating a new draft has side effects — use POST so
-                   a browser back-navigation or prefetch can't spawn a
-                   duplicate untitled draft. The button is styled to
-                   match the adjacent <a> tiles. #}
                 <form method="post" action="/blog/new/" style="display:contents;">
                     {% csrf_token %}
                     <button type="submit" name="template" value="lab_note" class="studio-card studio-card--button">
