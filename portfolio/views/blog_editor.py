@@ -55,13 +55,32 @@ def _apply_post_fields(post, data, files=None, allow_slug=True):
     subsequent autosave/heartbeat/Save still targets the OLD slug's
     URLs and 404s forever. Slug edits land on explicit Save, whose
     redirect re-enters the editor under the new slug."""
-    fields = ('title', 'excerpt', 'body', 'slug', 'series', 'image', 'medium_url')
-    if not allow_slug:
-        fields = tuple(f for f in fields if f != 'slug')
+    fields = ('title', 'excerpt', 'body', 'series', 'image', 'medium_url')
     for field in fields:
         v = data.get(field)
         if v is not None:
             setattr(post, field, v)
+    # Slug edits — Details-drawer input is free-form so the user can
+    # paste "My new title" and expect a sane URL. Slugify, keep the
+    # old slug if the input is empty/all-symbols, and run a uniqueness
+    # suffix loop excluding self so a collision becomes "-2" instead
+    # of an IntegrityError 500 mid-save.
+    if allow_slug and data.get('slug') is not None:
+        from portfolio.models import Post as _Post
+        candidate = slugify(data.get('slug') or '')
+        if candidate and candidate != post.slug:
+            base = candidate
+            n = 1
+            qs = _Post.objects.filter(slug=candidate)
+            if post.pk is not None:
+                qs = qs.exclude(pk=post.pk)
+            while qs.exists():
+                n += 1
+                candidate = f'{base}-{n}'
+                qs = _Post.objects.filter(slug=candidate)
+                if post.pk is not None:
+                    qs = qs.exclude(pk=post.pk)
+            post.slug = candidate
     # Cover image lifecycle — explicit Save only (files is None on
     # autosave). The clear checkbox is labeled "Remove current cover on
     # save": honoring it from autosave would destroy the stored file
@@ -175,6 +194,11 @@ def blog_edit(request, slug):
 
     if request.method == 'POST':
         _apply_post_fields(post, request.POST, files=request.FILES)
+        # Skip the post_save signal's render — the explicit render below
+        # is the authoritative one for this path (force-persists and
+        # handles per-pyfig errors). Without this, every Save on a
+        # pyfig-heavy post pays for the render twice.
+        post._skip_render = True
         post.save()
         if request.POST.get('tags') is not None:
             tag_str = request.POST.get('tags', '').strip()
@@ -759,6 +783,15 @@ def blog_new(request):
         is_explainer=tmpl['is_explainer'],
         is_paper_companion=tmpl['is_paper_companion'],
     )
+    # Non-staff creators land here via `portfolio.add_post` permission.
+    # The post_save signal only enrolls the site owner as collaborator
+    # (order=1); without this row the creator's own redirect into
+    # /blog/<slug>/edit/ would fail _can_edit and bounce to login.
+    if not request.user.is_staff:
+        from portfolio.models import PostCollaborator
+        PostCollaborator.objects.get_or_create(
+            post=p, user=request.user, defaults={'order': 2},
+        )
     if nonce_key:
         _nonce_cache.set(nonce_key, p.slug, 600)
     return redirect('blog_edit', slug=p.slug)

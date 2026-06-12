@@ -6,7 +6,7 @@ import tempfile
 
 from django.core.cache import cache
 from django.core.files.uploadedfile import SimpleUploadedFile
-from django.test import TestCase, override_settings
+from django.test import Client, TestCase, override_settings
 
 from portfolio.models import Post
 
@@ -60,6 +60,45 @@ class BlogEditTests(StaffClientMixin, TestCase):
         })
         self.assertEqual(r.status_code, 302)
         self.assertIn(f'/blog/{post.slug}/', r.headers['Location'])
+
+    def test_post_save_slugifies_free_form_slug(self):
+        """Details-drawer slug input is free-form — Save must run it
+        through slugify so "My new title" becomes "my-new-title"
+        instead of saving an unroutable URL fragment."""
+        post = make_post(slug='slug-free-form')
+        r = self.staff_client.post(f'/blog/{post.slug}/edit/', {
+            'title': 'T', 'body': 'B', 'slug': 'My New Title!',
+            'action': 'save',
+        })
+        self.assertEqual(r.status_code, 302)
+        self.assertIn('/blog/my-new-title/edit/', r.headers['Location'])
+        self.assertTrue(Post.objects.filter(slug='my-new-title').exists())
+
+    def test_post_save_empty_slug_keeps_old_one(self):
+        """A blank or all-symbols slug input must NOT clear the slug —
+        empty PK on Post raises IntegrityError mid-save, and a slug
+        rename mid-session orphans the open editor."""
+        post = make_post(slug='slug-keep-me')
+        r = self.staff_client.post(f'/blog/{post.slug}/edit/', {
+            'title': 'T', 'body': 'B', 'slug': '   ',
+            'action': 'save',
+        })
+        self.assertEqual(r.status_code, 302)
+        post.refresh_from_db()
+        self.assertEqual(post.slug, 'slug-keep-me')
+
+    def test_post_save_colliding_slug_suffixes_instead_of_500(self):
+        """A user pasting a slug already in use must get a `-2` suffix
+        instead of an IntegrityError 500 mid-save."""
+        make_post(slug='occupied-slug', title='Other')
+        post = make_post(slug='moving-slug')
+        r = self.staff_client.post(f'/blog/{post.slug}/edit/', {
+            'title': 'T', 'body': 'B', 'slug': 'occupied-slug',
+            'action': 'save',
+        })
+        self.assertEqual(r.status_code, 302)
+        post.refresh_from_db()
+        self.assertEqual(post.slug, 'occupied-slug-2')
 
 
 class BlogEditLockTests(StaffClientMixin, TestCase):
@@ -321,15 +360,29 @@ class BlogAutosaveTests(StaffClientMixin, TestCase):
         render.assert_not_called()
 
     def test_explicit_save_still_renders(self):
-        # The Save button (POST /blog/<slug>/edit/) must continue to
-        # trigger rendering so published HTML stays in sync.
-        from unittest.mock import patch
+        # The Save button (POST /blog/<slug>/edit/) must persist a fresh
+        # render so the published HTML stays in sync. The view's own
+        # render_markdown call is the authoritative one for this path —
+        # the post_save signal's render is skipped to avoid rendering
+        # the post twice on pyfig-heavy bodies.
         post = make_post(slug='save-render', body='# Hi')
+        self.staff_client.post(f'/blog/{post.slug}/edit/', {
+            'title': 'Updated', 'body': '# Updated body', 'action': 'save',
+        })
+        post.refresh_from_db()
+        self.assertIn('Updated body', post.rendered_html or '')
+
+    def test_explicit_save_skips_signal_render(self):
+        # Regression guard for the "Save renders twice" bug: the explicit
+        # render in the view is the only one that should run; the signal
+        # path must be short-circuited via post._skip_render.
+        from unittest.mock import patch
+        post = make_post(slug='save-once', body='# Hi')
         with patch('portfolio.signals._render_and_persist') as render:
             self.staff_client.post(f'/blog/{post.slug}/edit/', {
                 'title': 'Updated', 'body': '# Updated body', 'action': 'save',
             })
-        render.assert_called_once()
+        render.assert_not_called()
 
     def test_autosave_persists_tags_and_maturity(self):
         post = make_post(slug='auto-tags', tags=['old'])
@@ -625,6 +678,70 @@ class BlogNewTests(StaffClientMixin, TestCase):
         # blog_new now gates on the `portfolio.add_post` permission and
         # routes anon visitors through the public auth flow.
         self.assertIn('/accounts/login/', r.headers['Location'])
+
+    def test_guest_author_lands_in_editor_for_own_draft(self):
+        """A non-staff user with `portfolio.add_post` must be enrolled as
+        a PostCollaborator on the draft they just created — otherwise the
+        redirect into /blog/<slug>/edit/ bounces them through _can_edit
+        and they can't open the post they just made.
+        """
+        from django.contrib.auth import get_user_model
+        from django.contrib.auth.models import Permission
+        User = get_user_model()
+        # Make the staff user a superuser-fixture so the byline-owner
+        # signal has someone to enroll at order=1.
+        u = User.objects.create_user(
+            'guest-author', email='g@example.com', password='pw')
+        u.user_permissions.add(
+            Permission.objects.get(codename='add_post'))
+        c = Client()
+        c.force_login(u)
+
+        r = c.post('/blog/new/', {'template': 'blank'})
+        self.assertEqual(r.status_code, 302)
+        slug = r.headers['Location'].rsplit('/edit/', 1)[0].rsplit('/', 1)[-1]
+
+        # Follow the redirect and confirm the editor renders (no second
+        # bounce through _can_edit → /accounts/login/).
+        r = c.get(f'/blog/{slug}/edit/')
+        self.assertEqual(r.status_code, 200)
+        # And the row actually exists on the through model.
+        from portfolio.models import PostCollaborator
+        self.assertTrue(
+            PostCollaborator.objects.filter(post__slug=slug, user=u).exists())
+
+
+class GetPostFallbackTests(TestCase):
+    """Once any Post row exists, get_post must NOT fall back to a
+    matching .md file for a drafted/missing slug — that bug let the
+    public page serve a stale published markdown after the author
+    had explicitly drafted or deleted the DB row.
+    """
+
+    def test_drafted_db_post_does_not_resurrect_md_file(self):
+        from pathlib import Path
+        from portfolio.blog import get_post, POSTS_DIR
+        # Seed any post so _has_db() returns True.
+        from datetime import date
+        Post.objects.create(
+            slug='other-post', title='Other', body='hi',
+            excerpt='x', date=date.today(), draft=False)
+        # Create a .md file that would HAVE served if fallback were
+        # still active.
+        POSTS_DIR.mkdir(parents=True, exist_ok=True)
+        md = Path(POSTS_DIR) / 'drafted-with-md.md'
+        md.write_text(
+            '---\ntitle: From file\ndate: 2024-01-01\ndraft: false\n---\n\nFile body\n',
+            encoding='utf-8')
+        self.addCleanup(md.unlink)
+
+        # Now draft the DB row for that slug.
+        Post.objects.create(
+            slug='drafted-with-md', title='From DB', body='db body',
+            excerpt='x', date=date.today(), draft=True)
+
+        # Public fetch must return None (drafted), not the file's body.
+        self.assertIsNone(get_post('drafted-with-md', include_drafts=False))
 
 
 # Uploads land in a throwaway MEDIA_ROOT — without this, every test run

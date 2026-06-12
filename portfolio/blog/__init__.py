@@ -1015,9 +1015,12 @@ def get_post(slug, include_drafts=False):
             p = qs.get()
             return _post_to_dict(p, render_html=True)
         except Post.DoesNotExist:
-            pass
+            # DB is the source of truth once any post exists — drafting,
+            # deleting, or renaming a file-seeded post must NOT resurrect
+            # its old .md via this fallback (mirrors _load_all_posts).
+            return None
 
-    # Fallback to file
+    # No DB / empty DB: fall through to file-based posts.
     filepath = POSTS_DIR / f'{slug}.md'
     if not filepath.exists():
         return None

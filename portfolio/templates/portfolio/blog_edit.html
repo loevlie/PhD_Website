@@ -1455,6 +1455,17 @@ html.editing main { padding-top: 0 !important; margin: 0 !important; }
         if (e.persisted) location.reload();
     });
 
+    // Explicit Save carries strictly more data than any autosave or
+    // pagehide beacon, so stand them down the moment the user submits:
+    // a debounced autosave landing mid-multipart-Save (or the pagehide
+    // beacon firing as we navigate away) would race the authoritative
+    // write. Clearing `dirty` also short-circuits the pagehide guard.
+    form.addEventListener('submit', function () {
+        clearTimeout(autosaveTimer);
+        clearTimeout(retryTimer);
+        dirty = false;
+    });
+
     // ── Edit-lock heartbeat ────────────────────────────────────────
     // Refresh the click-through lock every 60s so the 120s TTL doesn't
     // lapse while this tab is still active. The response is structured
