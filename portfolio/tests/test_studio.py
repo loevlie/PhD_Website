@@ -85,7 +85,11 @@ class ReadingQuickAddTests(StaffClientMixin, TestCase):
         from portfolio.models import Reading
         r = self.anon_client.post('/site/reading/add/', {'title': 'X'})
         self.assertEqual(r.status_code, 302)
-        self.assertIn('/admin/login/', r['Location'])
+        # reading_quickadd is the same auth as the rest of the staff
+        # surfaces now — anon visitors route through /accounts/login/
+        # (not /admin/login/, which rejects non-staff Django logins
+        # with a misleading "invalid credentials" error).
+        self.assertIn('/accounts/login/', r['Location'])
         self.assertEqual(Reading.objects.count(), 0)
 
     def test_missing_title_does_not_create(self):
@@ -128,6 +132,47 @@ class ReadingQuickAddTests(StaffClientMixin, TestCase):
         r = self.anon_client.get('/reading/')
         self.assertEqual(r.status_code, 200)
         self.assertNotContains(r, 'action="/site/reading/add/"')
+
+    def test_reading_inline_form_has_create_nonce(self):
+        """Audit #14: the /reading/ inline quick-add must mirror Studio's
+        nonce contract — without this, a double-click here mints two
+        identical rows because the dedup branch never trips."""
+        r = self.staff_client.get('/reading/')
+        self.assertContains(r, 'name="create_nonce"')
+
+    def test_reading_inline_dedup_with_nonce(self):
+        """And the nonce must actually be enforced server-side: a second
+        submit of the same nonce must not create a second Reading row."""
+        from portfolio.models import Reading
+        before = Reading.objects.count()
+        payload = {
+            'title': 'Reading-inline dedup', 'create_nonce': 'reading-page-nonce',
+            'next': '/reading/',
+        }
+        self.staff_client.post('/site/reading/add/', payload)
+        self.staff_client.post('/site/reading/add/', payload)
+        self.assertEqual(Reading.objects.count(), before + 1)
+
+    def test_reading_page_renders_messages_block(self):
+        """Audit #15: quick-add messages were silently dropped on
+        /reading/ because the template had no {% if messages %} block.
+        After Add → redirect, the success/error message must render."""
+        r = self.staff_client.post(
+            '/site/reading/add/',
+            {'title': 'Visible-toast paper', 'next': '/reading/'},
+            follow=True,
+        )
+        self.assertEqual(r.status_code, 200)
+        self.assertContains(r, 'class="reading-messages"')
+        self.assertContains(r, 'Visible-toast paper')
+
+    def test_reading_quickadd_get_redirects_to_studio(self):
+        """Audit #16: GET used to return a bare 400, which lost the
+        typed entry on an expired-session bounce. Now it routes to
+        Studio with a breadcrumb message."""
+        r = self.staff_client.get('/site/reading/add/')
+        self.assertEqual(r.status_code, 302)
+        self.assertIn('/site/studio/', r['Location'])
 
 
 class ReadingMMAnnotationTests(StaffClientMixin, TestCase):

@@ -17,8 +17,9 @@ require a Django admin round-trip.
 from urllib.parse import urlparse
 
 from django.contrib import messages
-from django.http import HttpResponseBadRequest
 from django.shortcuts import redirect
+
+from portfolio.views.editor_assist import _staff_redirect
 
 
 _STATUS_VALUES = {'this_week', 'lingering', 'archived'}
@@ -35,9 +36,19 @@ def _safe_next(request, fallback='/admin/portfolio/reading/'):
 
 def reading_quickadd(request):
     if not (request.user.is_authenticated and request.user.is_staff):
-        return redirect(f'/admin/login/?next={request.path}')
+        # Site convention is /accounts/login/ via _staff_redirect — the
+        # bare /admin/login/ redirect here was the odd one out, and
+        # rejected non-staff Django logins with the misleading
+        # "invalid credentials" error instead of routing them to their
+        # profile page.
+        return _staff_redirect(request, _safe_next(request, fallback='/site/studio/'))
     if request.method != 'POST':
-        return HttpResponseBadRequest('POST required')
+        # A GET hits when an expired-session POST bounces through login
+        # and re-lands here — bare 400 lost the typed entry without a
+        # breadcrumb. Send the user to the Studio quick-add form with
+        # a note so they can re-type without hunting for the surface.
+        messages.info(request, 'Use the quick-add form below to log a paper.')
+        return redirect('/site/studio/')
 
     from portfolio.models import Reading
 

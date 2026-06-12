@@ -117,12 +117,18 @@ def reading(request):
     entries = Reading.objects.exclude(status='archived').order_by('order', '-created_at')
     this_week = [r for r in entries if r.status == 'this_week']
     lingering = [r for r in entries if r.status == 'lingering']
-    return render(request, 'portfolio/reading.html', {
+    ctx = {
         'this_week': this_week,
         'lingering': lingering,
         'total': len(this_week) + len(lingering),
         'is_staff': is_staff,
-    })
+    }
+    if is_staff:
+        # Per-render nonce — the inline quick-add form mirrors Studio's
+        # dedup contract so a double-click here can't mint two rows.
+        import secrets as _secrets
+        ctx['create_nonce'] = _secrets.token_urlsafe(8)
+    return render(request, 'portfolio/reading.html', ctx)
 
 
 # ─── Experiment variants of the /blog/ landing ────────────────────────

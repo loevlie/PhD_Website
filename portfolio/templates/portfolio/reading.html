@@ -119,6 +119,27 @@
         font-size: 0.65rem; color: var(--ctp-overlay0, #6c7086);
         text-transform: uppercase; letter-spacing: 0.12em;
     }
+    .reading-messages {
+        list-style: none; padding: 0; margin: 0 0 1rem;
+        display: flex; flex-direction: column; gap: 0.35rem;
+    }
+    .reading-message {
+        font-family: var(--font-mono, monospace);
+        font-size: 0.78rem;
+        padding: 0.55rem 0.8rem;
+        border-radius: 6px;
+        border: 1px solid var(--ctp-surface1, #45475a);
+        background: var(--ctp-mantle, #181825);
+        color: var(--ctp-subtext0, #a6adc8);
+    }
+    .reading-message--success {
+        border-color: var(--ctp-green, #a6e3a1);
+        color: var(--ctp-green, #a6e3a1);
+    }
+    .reading-message--error {
+        border-color: var(--ctp-red, #f38ba8);
+        color: var(--ctp-red, #f38ba8);
+    }
 </style>
 
 <section class="max-w-blog mx-auto px-6 pt-12 pb-24 reading-page">
@@ -131,12 +152,24 @@
         not a summary. Updated when something earns a slot.
     </p>
 
+    {% if messages %}
+    {# Staff-only quick-add toasts (success / error / duplicate-skipped)
+       — without this block, reading_quickadd's messages.* calls
+       silently vanish here. #}
+    <ul class="reading-messages" role="status" aria-live="polite">
+        {% for m in messages %}
+        <li class="reading-message reading-message--{{ m.tags|default:'info' }}">{{ m }}</li>
+        {% endfor %}
+    </ul>
+    {% endif %}
+
     {% if is_staff %}
     {% comment %}Staff-only inline quick-add. Same endpoint as the Studio
        dashboard so everything goes through one validated path.{% endcomment %}
-    <form method="post" action="{% url 'reading_quickadd' %}" class="reading-quickadd">
+    <form method="post" action="{% url 'reading_quickadd' %}" class="reading-quickadd" id="reading-quickadd-form">
         {% csrf_token %}
         <input type="hidden" name="next" value="/reading/">
+        <input type="hidden" name="create_nonce" value="{{ create_nonce }}">
         <p class="reading-quickadd-meta">Staff · quick add</p>
         <input type="text" name="title" required maxlength="300" placeholder="Paper title (required)">
         <input type="url" name="url" placeholder="https://arxiv.org/abs/…">
@@ -151,6 +184,31 @@
         <textarea name="annotation" rows="2" placeholder="One-line annotation in your own voice (optional)"></textarea>
         <button type="submit">Add to /reading/</button>
     </form>
+    <script>
+    // Double-submit guard mirrors the Studio dashboard: a second submit
+    // (double-click, or impatient re-click during a cold-worker spin-
+    // up) is swallowed; the server-side nonce is the backstop. Button
+    // disables AFTER the current tick so the click's payload still
+    // rides the request.
+    (function () {
+        var form = document.getElementById('reading-quickadd-form');
+        if (!form) return;
+        form.addEventListener('submit', function (e) {
+            if (form.dataset.busy) { e.preventDefault(); return; }
+            form.dataset.busy = '1';
+            setTimeout(function () {
+                form.querySelectorAll('button').forEach(function (b) {
+                    b.disabled = true;
+                    b.style.opacity = '0.6';
+                    b.style.cursor = 'progress';
+                });
+            }, 0);
+        });
+        window.addEventListener('pageshow', function (e) {
+            if (e.persisted) location.reload();
+        });
+    })();
+    </script>
     {% endif %}
 
     {% if total %}
