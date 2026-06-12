@@ -1,5 +1,17 @@
 # Staff-workflow audit — confirmed follow-ups (June 2026)
 
+> **Status (2026-06-12): all 19 items closed.**
+> Batch 1 (1–5): commit `015f605`
+> Batch 2 (7–9): commit `00e84fc`
+> Batch 3 (14–16): commit `653e58a`
+> Batch 4 (17–19): commit `6a33685`
+> Batch 5 (10–13): commit `6482c77`
+> Item 6 (OG cards): commit `7894a31`
+>
+> Keep this doc as a historical record of the original audit + fix
+> rationale — file-line pointers may have drifted since; rely on the
+> commit diffs for the authoritative change.
+
 Recovered from the adversarial audit of the studio → new-post → editor →
 save workflow (run was stopped early; all finder/verifier results were
 journaled). Every item below was independently verified against the
