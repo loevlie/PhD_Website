@@ -1174,7 +1174,22 @@ html.editing main { padding-top: 0 !important; margin: 0 !important; }
     // Seed with the initial (body, is_explainer) pair so the first render
     // call after DOM ready dedupes against the already-painted preview
     // (server inlined post.rendered_html into the pane).
-    let lastRendered = (explainerToggle.checked ? 'true' : 'false') + '\u0000' + body.value;
+    //
+    // When the pane is known-stale (autosave-only session: body has
+    // moved on since the last full render persisted to rendered_at)
+    // seed with a sentinel string the body cannot match — that lets
+    // the init-time scheduleRender(0) below actually fire one render
+    // instead of short-circuiting on a false dedup hit.
+    {% if post.modified_at and post.rendered_at and post.modified_at > post.rendered_at %}
+    const _previewStale = true;
+    {% elif post.modified_at and not post.rendered_at %}
+    const _previewStale = true;
+    {% else %}
+    const _previewStale = false;
+    {% endif %}
+    let lastRendered = _previewStale
+        ? '__stale_sentinel__'
+        : (explainerToggle.checked ? 'true' : 'false') + '\u0000' + body.value;
     let inflightCtrl = null;
 
     // ── Live preview ────────────────────────────────────────────────
@@ -1585,6 +1600,21 @@ html.editing main { padding-top: 0 !important; margin: 0 !important; }
         lockOverlay.classList.remove('open');
         lockOverlay.setAttribute('aria-hidden', 'true');
         try { localStorage.removeItem('editor-draft-lostlock:' + slug); } catch (e) {}
+        // Flush any uploads that completed while the editor was frozen
+        // — without this, the file lives in storage but the markdown
+        // never lands in the body (the author saw "image uploaded —
+        // pending" status; this is where pending becomes inserted).
+        if (pendingInserts.length) {
+            const flushed = pendingInserts.length;
+            while (pendingInserts.length) {
+                const payload = pendingInserts.shift();
+                insertAtCursor(payload, null, body.value.length, body.value.length);
+            }
+            status.textContent = 'inserted ' + flushed + ' pending image' +
+                (flushed > 1 ? 's' : '') + ' — unsaved';
+            status.classList.remove('is-error', 'is-saved', 'is-offline');
+            status.classList.add('is-dirty');
+        }
         // Re-arm autosave and push THIS tab's content to the server.
         markDirty();
     }
@@ -2363,8 +2393,11 @@ html.editing main { padding-top: 0 !important; margin: 0 !important; }
     function insertAtCursor(text, cursorOffset, rangeStart, rangeEnd) {
         // Never mutate a frozen editor: the splice fallback below would
         // bypass readOnly (it's a property write, not user input) and
-        // diverge the content from the lost-lock snapshot.
-        if (body.readOnly || lockLost) return;
+        // diverge the content from the lost-lock snapshot. Returns
+        // `false` on refusal so callers (e.g. uploadFile) can stash the
+        // payload for a "Take back" flush instead of silently lying
+        // with an "image inserted" status.
+        if (body.readOnly || lockLost) return false;
         const start = (rangeStart != null) ? rangeStart : body.selectionStart;
         const end = (rangeEnd != null) ? rangeEnd : body.selectionEnd;
         body.focus();
@@ -2377,7 +2410,14 @@ html.editing main { padding-top: 0 !important; margin: 0 !important; }
         }
         const newPos = (cursorOffset != null) ? (start + cursorOffset) : (start + text.length);
         body.setSelectionRange(newPos, newPos);
+        return true;
     }
+
+    // Holds image-upload payloads that completed while the tab was
+    // frozen (lock lost). `exitLockLostState` (Take back) flushes them
+    // back into the body — otherwise an upload mid-freeze finishes in
+    // storage but never lands in the markdown.
+    const pendingInserts = [];
 
     // Trigger on "/" at start-of-line OR after whitespace
     body.addEventListener('keyup', (e) => {
@@ -2589,8 +2629,20 @@ html.editing main { padding-top: 0 !important; margin: 0 !important; }
                 md = '![' + alt + '](' + data.url + ')';
             }
             const payload = '\n\n' + md + '\n\n';
-            insertAtCursor(payload, null, pinnedPos, pinnedPos);
-            status.textContent = 'image inserted — unsaved';
+            const ok = insertAtCursor(payload, null, pinnedPos, pinnedPos);
+            if (ok) {
+                status.textContent = 'image inserted — unsaved';
+            } else {
+                // Tab is frozen (lock lost). The file is already in
+                // storage; queue the markdown so "Take back" can flush
+                // it instead of orphaning a successful upload that the
+                // author thinks landed in the body.
+                pendingInserts.push(payload);
+                status.textContent = 'image uploaded — take back the editor to insert ' +
+                    pendingInserts.length + ' pending';
+                status.classList.remove('is-dirty', 'is-saved', 'is-offline');
+                status.classList.add('is-error');
+            }
         } catch (e) {
             status.textContent = 'upload failed: ' +
                 (e.name === 'AbortError' ? 'timed out after 30s' : e.message);
@@ -2637,7 +2689,15 @@ html.editing main { padding-top: 0 !important; margin: 0 !important; }
         // lets us splice the insertion at the right spot even after
         // the dialog has stolen focus and wiped selection.
         const pinnedPos = caretOffsetFromPoint(e.clientX, e.clientY);
-        for (const f of e.dataTransfer.files) await uploadFile(f, pinnedPos);
+        // Pin ONLY the first file at the drop point. Subsequent files
+        // pass null so they follow the caret moved by the prior insert
+        // — otherwise N files all anchor at `pinnedPos`, landing in
+        // reverse order interleaved with each other's payload.
+        let pos = pinnedPos;
+        for (const f of e.dataTransfer.files) {
+            await uploadFile(f, pos);
+            pos = null;
+        }
     });
     body.addEventListener('paste', async (e) => {
         const items = e.clipboardData && e.clipboardData.items;
@@ -2817,6 +2877,13 @@ html.editing main { padding-top: 0 !important; margin: 0 !important; }
         });
     }
     stripDemosToPlaceholders(preview);
+
+    // Stale-paint kick: if rendered_at predates modified_at (the author
+    // typed, autosaved, and reloaded WITHOUT clicking Save), the pane
+    // is showing yesterday's HTML alongside today's body. lastRendered
+    // was seeded with the stale sentinel above, so this forces ONE
+    // immediate render to reconcile the pane.
+    if (_previewStale) scheduleRender(0);
 
     // Initial paint: the preview pane was populated server-side with
     // post.rendered_html. Skip the /blog/preview/ round-trip entirely

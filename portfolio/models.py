@@ -88,6 +88,12 @@ class Pageview(models.Model):
 class Post(models.Model):
     title = models.CharField(max_length=200)
     slug = models.SlugField(max_length=200, unique=True)
+    # True for freshly-templated drafts whose slug is still the placeholder
+    # ('untitled-draft', 'lab-note-topic', etc.). While auto, the explicit
+    # Save flow re-derives the slug from the title so the URL follows
+    # along; cleared the moment the author types into the slug input or
+    # publishes the post.
+    slug_is_auto = models.BooleanField(default=False)
     excerpt = models.TextField(blank=True, help_text="Short description for cards and meta tags")
     body = models.TextField(help_text="Markdown content")
     date = models.DateField(help_text="Original publication date")

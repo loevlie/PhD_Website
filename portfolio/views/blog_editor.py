@@ -65,10 +65,15 @@ def _apply_post_fields(post, data, files=None, allow_slug=True):
     # old slug if the input is empty/all-symbols, and run a uniqueness
     # suffix loop excluding self so a collision becomes "-2" instead
     # of an IntegrityError 500 mid-save.
-    if allow_slug and data.get('slug') is not None:
+    #
+    # While slug_is_auto is True (fresh template draft, slug input
+    # never touched), the Save flow also re-derives the URL from the
+    # title — so a post that started as `untitled-draft` becomes
+    # `learning-to-say-i-dont-know` the moment the author saves with
+    # a real title.
+    if allow_slug:
         from portfolio.models import Post as _Post
-        candidate = slugify(data.get('slug') or '')
-        if candidate and candidate != post.slug:
+        def _ensure_unique(candidate):
             base = candidate
             n = 1
             qs = _Post.objects.filter(slug=candidate)
@@ -80,7 +85,29 @@ def _apply_post_fields(post, data, files=None, allow_slug=True):
                 qs = _Post.objects.filter(slug=candidate)
                 if post.pk is not None:
                     qs = qs.exclude(pk=post.pk)
-            post.slug = candidate
+            return candidate
+
+        user_input = data.get('slug')
+        if user_input is not None:
+            candidate = slugify(user_input or '')
+            if candidate and candidate != post.slug:
+                # Manual rename — definitive end of the auto era.
+                post.slug = _ensure_unique(candidate)
+                post.slug_is_auto = False
+            elif getattr(post, 'slug_is_auto', False) and post.draft:
+                # Author didn't touch the slug input. While the post is
+                # still a draft AND auto, follow the title so URLs stay
+                # sensible without a manual visit to the Details drawer.
+                # The draft gate prevents a previously-published URL
+                # from silently rotating on a title tweak.
+                title_slug = slugify(post.title or '') or 'untitled-draft'
+                if title_slug != post.slug:
+                    post.slug = _ensure_unique(title_slug)
+
+    # First publish freezes the slug — leaving it auto post-publish
+    # would let a later title tweak silently rewrite a public URL.
+    # Re-evaluated against the final field state below (the bool_field
+    # loop runs after this block).
     # Cover image lifecycle — explicit Save only (files is None on
     # autosave). The clear checkbox is labeled "Remove current cover on
     # save": honoring it from autosave would destroy the stored file
@@ -143,6 +170,11 @@ def _apply_post_fields(post, data, files=None, allow_slug=True):
             post.date = _date.fromisoformat(data['date'])
         except (ValueError, TypeError):
             pass
+    # Published posts never carry the auto-slug flag — a later title
+    # tweak must not rewrite a public URL. Idempotent (cheap no-op when
+    # already False) so saves on long-published posts pay nothing.
+    if not post.draft:
+        post.slug_is_auto = False
 
 
 # ─── /blog/<slug>/edit/ ──────────────────────────────────────────────
@@ -809,6 +841,12 @@ def blog_new(request):
     kind = 'lab_note' if template_key == 'lab_note' else 'essay'
     p = Post.objects.create(
         slug=slug,
+        # slug_is_auto rides every new template draft. Until the author
+        # types into the slug input (or publishes), an explicit Save
+        # re-derives the URL from the title — no more posts shipping
+        # under `untitled-draft` because the author forgot the slug
+        # input lives in the Details drawer.
+        slug_is_auto=True,
         title=base_title,
         body=body,
         date=date_cls.today(),

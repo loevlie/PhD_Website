@@ -100,6 +100,112 @@ class BlogEditTests(StaffClientMixin, TestCase):
         post.refresh_from_db()
         self.assertEqual(post.slug, 'occupied-slug-2')
 
+    def test_auto_slug_follows_title_until_manual_edit(self):
+        """Audit #13: fresh drafts ship with slug_is_auto=True. While
+        auto AND still a draft, an explicit Save re-derives the slug
+        from the title so the URL doesn't ship as `untitled-draft`."""
+        post = make_post(slug='untitled-draft', title='Untitled draft', draft=True)
+        post.slug_is_auto = True
+        post.save()
+
+        # Author renames the title without touching the slug input —
+        # slug must follow.
+        r = self.staff_client.post(f'/blog/{post.slug}/edit/', {
+            'title': 'Learning to say I don\'t know',
+            'body': 'b',
+            'slug': post.slug,  # the form re-submits the existing slug verbatim
+            'draft': 'on',  # keep it a draft so the auto-derive branch fires
+            'action': 'save',
+        })
+        self.assertEqual(r.status_code, 302)
+        post.refresh_from_db()
+        self.assertEqual(post.slug, 'learning-to-say-i-dont-know')
+        self.assertTrue(post.slug_is_auto, 'flag stays until manual rename or publish')
+
+    def test_manual_slug_edit_clears_auto_flag(self):
+        """A real slug edit (post-rename or sluggable text) ends the
+        auto era — subsequent title changes must NOT silently rewrite
+        a URL the author deliberately picked."""
+        post = make_post(slug='untitled-draft', title='Untitled draft')
+        post.slug_is_auto = True
+        post.save()
+
+        r = self.staff_client.post(f'/blog/{post.slug}/edit/', {
+            'title': 'X', 'body': 'b', 'slug': 'my-explicit-slug',
+            'action': 'save',
+        })
+        self.assertEqual(r.status_code, 302)
+        post.refresh_from_db()
+        self.assertEqual(post.slug, 'my-explicit-slug')
+        self.assertFalse(post.slug_is_auto)
+
+    def test_save_on_published_post_clears_auto_flag(self):
+        """A published post must never carry slug_is_auto=True — once
+        the URL is public, follow-up title tweaks should not silently
+        rewrite it. Even a save that didn't manually rename the slug
+        normalizes the flag away."""
+        post = make_post(slug='already-public', title='Public', draft=False)
+        # Force the (invalid) state we want to guard against.
+        Post.objects.filter(pk=post.pk).update(slug_is_auto=True)
+        post.refresh_from_db()
+        self.assertTrue(post.slug_is_auto)
+
+        r = self.staff_client.post(f'/blog/{post.slug}/edit/', {
+            'title': 'New title', 'body': 'b', 'slug': post.slug,
+            'action': 'save',
+        })
+        self.assertEqual(r.status_code, 302)
+        post.refresh_from_db()
+        self.assertFalse(post.slug_is_auto)
+        # And the slug did NOT silently update from the new title —
+        # `slug_is_auto` was cleared before the auto-derive branch
+        # could fire (this is the actual safety property).
+        self.assertEqual(post.slug, 'already-public')
+
+    def test_blog_new_template_drafts_get_auto_slug_flag(self):
+        """End-to-end: a fresh draft from /blog/new/ must come back
+        with slug_is_auto=True so the audit #13 fix actually trips."""
+        r = self.staff_client.post('/blog/new/', {'template': 'blank'})
+        self.assertEqual(r.status_code, 302)
+        slug = r.headers['Location'].rsplit('/edit/', 1)[0].rsplit('/', 1)[-1]
+        p = Post.objects.get(slug=slug)
+        self.assertTrue(p.slug_is_auto)
+
+    def test_editor_emits_stale_preview_init_kick(self):
+        """Audit #10: when modified_at > rendered_at, the editor must
+        ship the JS that schedules an init-time re-render so the pane
+        doesn't keep showing yesterday's HTML next to today's body."""
+        import datetime as _dt
+        from django.utils import timezone
+        post = make_post(slug='stale-preview-kick', body='body')
+        # Force rendered_at to be older than modified_at.
+        Post.objects.filter(pk=post.pk).update(
+            rendered_at=timezone.now() - _dt.timedelta(hours=2),
+        )
+        r = self.staff_client.get(f'/blog/{post.slug}/edit/')
+        self.assertEqual(r.status_code, 200)
+        self.assertContains(r, '_previewStale = true')
+        self.assertContains(r, 'if (_previewStale) scheduleRender(0)')
+
+    def test_editor_emits_pending_insert_queue(self):
+        """Audit #12: the editor must ship the pendingInserts queue +
+        the upload-failure status branch so a frozen-tab upload doesn't
+        lie about having inserted."""
+        post = make_post(slug='pending-insert-queue', body='b')
+        r = self.staff_client.get(f'/blog/{post.slug}/edit/')
+        self.assertContains(r, 'const pendingInserts = []')
+        self.assertContains(r, 'pendingInserts.push(payload)')
+        self.assertContains(r, 'pendingInserts.shift()')
+
+    def test_editor_emits_multifile_drop_caret_advance(self):
+        """Audit #11: the drop handler must pin only the first file,
+        then null `pos` so subsequent files follow the caret moved by
+        the prior insert."""
+        post = make_post(slug='multifile-drop-advance', body='b')
+        r = self.staff_client.get(f'/blog/{post.slug}/edit/')
+        # The exact reset-to-null is the canary that the fix is in.
+        self.assertContains(r, 'pos = null;')
+
 
 class BlogEditLockTests(StaffClientMixin, TestCase):
     """Click-through lock with per-render instance tokens.
