@@ -221,6 +221,22 @@ class Post(models.Model):
         return items
 
 
+class ImportedPostLedger(models.Model):
+    """Slugs that `import_posts` has seeded into the DB at least once.
+
+    build.sh runs import_posts on EVERY deploy. Without this ledger, a
+    file-seeded post whose slug was later renamed in the editor (or that
+    was deleted in admin) looks "missing" to the importer and gets
+    silently re-created from its .md file — duplicate/resurrected posts
+    one deploy later. Once a slug is in the ledger it is never
+    auto-imported again; `--force` still overrides explicitly."""
+    slug = models.SlugField(max_length=200, unique=True)
+    imported_at = models.DateTimeField(auto_now_add=True)
+
+    def __str__(self):
+        return f'imported({self.slug})'
+
+
 class PostCollaborator(models.Model):
     """Through-model for `Post.collaborators` — carries the byline
     position so admins can slot a collaborator first/second/third

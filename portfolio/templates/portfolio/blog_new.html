@@ -103,8 +103,9 @@
     <div class="np-eyebrow">New post</div>
     <h1 class="np-title">Choose a template</h1>
     <p class="np-lede">Each template prefills frontmatter (maturity, is_explainer, is_paper_companion) and a section scaffold matching its register.</p>
-    <form method="post" action="{% url 'blog_new' %}" class="np-grid">
+    <form method="post" action="{% url 'blog_new' %}" class="np-grid" id="np-picker">
         {% csrf_token %}
+        <input type="hidden" name="create_nonce" value="{{ create_nonce }}">
         {% for key, t in templates %}
         <button type="submit" name="template" value="{{ key }}" class="np-card">
             <h2 class="np-card-label">{{ t.label }}</h2>
@@ -114,4 +115,25 @@
         {% endfor %}
     </form>
 </div>
+
+<script>
+// Double-submit guard: one draft per click. The server-side create_nonce
+// is the backstop; this gives immediate feedback. Buttons disable AFTER
+// the current tick so the clicked card's template value still submits.
+(function () {
+    var form = document.getElementById('np-picker');
+    if (!form) return;
+    form.addEventListener('submit', function (e) {
+        if (form.dataset.busy) { e.preventDefault(); return; }
+        form.dataset.busy = '1';
+        setTimeout(function () {
+            form.querySelectorAll('button').forEach(function (b) {
+                b.disabled = true;
+                b.style.opacity = '0.6';
+                b.style.cursor = 'progress';
+            });
+        }, 0);
+    });
+})();
+</script>
 {% endblock %}

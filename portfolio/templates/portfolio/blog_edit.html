@@ -1289,12 +1289,23 @@ html.editing main { padding-top: 0 !important; margin: 0 !important; }
         status.classList.add('is-dirty');
         scheduleAutosave();
     }
+    // A selected-but-unsaved cover (or a ticked remove-cover box) only
+    // persists on explicit Save — autosave never carries files. Track
+    // it so the status can't claim the cover is safe, and closing the
+    // tab warns (the cover would be silently lost).
+    const coverInput = document.getElementById('fm-cover');
+    const coverClear = form.querySelector('[name=cover_image_clear]');
+    function coverPending() {
+        return !!((coverInput && coverInput.files && coverInput.files.length) ||
+                  (coverClear && coverClear.checked));
+    }
     function savedText() {
-        if (!lastSavedAt) return 'saved';
+        const suffix = coverPending() ? ' · cover applies on Save' : '';
+        if (!lastSavedAt) return 'saved' + suffix;
         const s = Math.round((Date.now() - lastSavedAt.getTime()) / 1000);
-        if (s < 45) return 'saved just now';
+        if (s < 45) return 'saved just now' + suffix;
         const m = Math.round(s / 60);
-        return 'saved ' + Math.max(1, m) + 'm ago';
+        return 'saved ' + Math.max(1, m) + 'm ago' + suffix;
     }
     function markSaved(when) {
         dirty = false;
@@ -1352,6 +1363,11 @@ html.editing main { padding-top: 0 !important; margin: 0 !important; }
         autosaveInflight = true;
         const serial = changeSerial;
         const fd = new FormData(form);
+        // Never ship the cover file bytes with autosave: the server
+        // ignores files on this path, a selected multi-MB cover would
+        // otherwise re-upload every 1.5s, and the same payload would
+        // push the pagehide beacon past sendBeacon's size limit.
+        fd.delete('cover_image');
         fd.set('csrfmiddlewaretoken', csrf);
         try {
             const r = await fetch('{% url "blog_autosave" post.slug %}', {
@@ -1411,8 +1427,10 @@ html.editing main { padding-top: 0 !important; margin: 0 !important; }
     // pagehide (below), which fires only on REAL navigations — a
     // beforeunload the user cancels must not have side effects.
     window.addEventListener('beforeunload', (e) => {
-        if (!dirty || lockLost) return;
-        if (saveFailures > 0 || !navigator.onLine) {
+        if (lockLost) return;
+        // A pending cover ONLY persists via explicit Save — closing now
+        // guarantees its loss, so that warns even when text is synced.
+        if (coverPending() || (dirty && (saveFailures > 0 || !navigator.onLine))) {
             e.preventDefault();
             e.returnValue = '';
         }
@@ -1420,6 +1438,7 @@ html.editing main { padding-top: 0 !important; margin: 0 !important; }
     window.addEventListener('pagehide', function () {
         if (!dirty || lockLost) return;
         const fd = new FormData(form);
+        fd.delete('cover_image');  // beacon must stay under the ~64KB sendBeacon cap
         fd.set('csrfmiddlewaretoken', csrf);
         // 'unloading' tells the server this is a final flush: it must
         // not re-acquire/refresh the lock for a tab that is going away

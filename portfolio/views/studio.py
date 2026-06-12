@@ -21,11 +21,17 @@ def studio(request):
 
     # Quick counts to make the tiles feel alive. Cheap queries; the
     # dashboard is expected to be visited rarely.
+    import secrets
     from portfolio.models import Post, Reading
     from portfolio.content.demos import DEMOS
     essays = Post.objects.filter(kind='essay')
     lab_notes = Post.objects.filter(kind='lab_note')
     return render(request, 'portfolio/studio.html', {
+        # One nonce per page render, shared by the create forms (the
+        # consuming endpoints scope their cache keys, so lab-note +
+        # reading submits from the same render don't collide). Protects
+        # against double-click / cold-start re-click duplicates.
+        'create_nonce': secrets.token_urlsafe(8),
         'counts': {
             'essays': essays.count(),
             'essay_drafts': essays.filter(draft=True).count(),

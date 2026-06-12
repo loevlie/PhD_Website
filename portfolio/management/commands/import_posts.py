@@ -16,7 +16,7 @@ from pathlib import Path
 import frontmatter
 from django.core.management.base import BaseCommand
 
-from portfolio.models import Post
+from portfolio.models import ImportedPostLedger, Post
 
 
 class Command(BaseCommand):
@@ -44,11 +44,27 @@ class Command(BaseCommand):
             if only_slug and slug != only_slug:
                 continue
 
+            forcing = force_all or only_slug == slug
+
             existing = Post.objects.filter(slug=slug).first()
-            if existing and not (force_all or only_slug == slug):
+            if existing and not forcing:
+                # Backfill the ledger so a later rename/delete of this
+                # post can't be resurrected by the next deploy.
+                ImportedPostLedger.objects.get_or_create(slug=slug)
                 self.stdout.write(self.style.WARNING(
                     f'Skipping (already in DB): {existing.title} — '
                     f'use --force {slug} to overwrite from .md'
+                ))
+                continue
+
+            # Imported once but no longer in the DB under this slug:
+            # the owner renamed or deleted it. Re-importing would
+            # resurrect the stale .md version as a duplicate.
+            if not existing and not forcing and \
+                    ImportedPostLedger.objects.filter(slug=slug).exists():
+                self.stdout.write(self.style.WARNING(
+                    f'Skipping (imported before; renamed or deleted since): '
+                    f'{slug} — use --force {slug} to re-import from .md'
                 ))
                 continue
 
@@ -72,6 +88,7 @@ class Command(BaseCommand):
             post, created = Post.objects.update_or_create(
                 slug=slug, defaults=defaults,
             )
+            ImportedPostLedger.objects.get_or_create(slug=slug)
             tags = fm.get('tags', [])
             if tags:
                 post.tags.set(tags, clear=True)

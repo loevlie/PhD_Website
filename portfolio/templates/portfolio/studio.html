@@ -47,6 +47,7 @@
                 </a>
                 <form method="post" action="/blog/new/" style="display:contents;">
                     {% csrf_token %}
+                    <input type="hidden" name="create_nonce" value="{{ create_nonce }}">
                     <button type="submit" name="template" value="lab_note" class="studio-card studio-card--button">
                         <div class="studio-card-icon">🧪</div>
                         <h3 class="studio-card-title">New lab note</h3>
@@ -63,6 +64,7 @@
                     </summary>
                     <form method="post" action="/blog/new/" class="studio-quickform">
                         {% csrf_token %}
+                        <input type="hidden" name="create_nonce" value="{{ create_nonce }}">
                         <input type="hidden" name="template" value="demo">
                         {% for d in demos %}
                         <button type="submit" name="demo" value="{{ d.slug }}" class="studio-btn studio-btn--ghost" style="justify-content:flex-start">
@@ -83,6 +85,7 @@
                     </summary>
                     <form method="post" action="{% url 'reading_quickadd' %}" class="studio-quickform">
                         {% csrf_token %}
+                        <input type="hidden" name="create_nonce" value="{{ create_nonce }}">
                         <input type="hidden" name="next" value="{% url 'studio' %}">
                         <label>
                             <span>Title <em>(required)</em></span>
@@ -218,4 +221,25 @@
         </section>
     </div>
 </main>
+
+<script>
+// Double-submit guard: one creation per click. A second submit (double-
+// click, or an impatient re-click while a cold Render worker spins up)
+// is swallowed; buttons disable AFTER the current tick so the clicked
+// button's name/value still rides the request. The server-side nonce is
+// the backstop; this is the immediate feedback.
+document.querySelectorAll('main.studio form').forEach(function (form) {
+    form.addEventListener('submit', function (e) {
+        if (form.dataset.busy) { e.preventDefault(); return; }
+        form.dataset.busy = '1';
+        setTimeout(function () {
+            form.querySelectorAll('button').forEach(function (b) {
+                b.disabled = true;
+                b.style.opacity = '0.6';
+                b.style.cursor = 'progress';
+            });
+        }, 0);
+    });
+});
+</script>
 {% endblock %}

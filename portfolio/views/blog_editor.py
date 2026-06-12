@@ -44,26 +44,38 @@ from portfolio.views.editor_assist import (
 
 # ─── POST-field → Post attribute adapter ─────────────────────────────
 
-def _apply_post_fields(post, data, files=None):
+def _apply_post_fields(post, data, files=None, allow_slug=True):
     """Apply editor POST fields onto a Post instance. Shared by full-save
     and autosave so behavior stays identical. `files` (request.FILES)
     is optional — autosave never sends files, only the explicit Save
-    carries the multipart payload with a fresh cover image."""
-    for field in ('title', 'excerpt', 'body', 'slug', 'series', 'image', 'medium_url'):
+    carries the multipart payload with a fresh cover image.
+
+    `allow_slug=False` (the autosave path) skips slug changes: applying
+    a slug rename mid-session would orphan the open editor — every
+    subsequent autosave/heartbeat/Save still targets the OLD slug's
+    URLs and 404s forever. Slug edits land on explicit Save, whose
+    redirect re-enters the editor under the new slug."""
+    fields = ('title', 'excerpt', 'body', 'slug', 'series', 'image', 'medium_url')
+    if not allow_slug:
+        fields = tuple(f for f in fields if f != 'slug')
+    for field in fields:
         v = data.get(field)
         if v is not None:
             setattr(post, field, v)
-    # Cover image upload — arrives in request.FILES on explicit Save.
+    # Cover image lifecycle — explicit Save only (files is None on
+    # autosave). The clear checkbox is labeled "Remove current cover on
+    # save": honoring it from autosave would destroy the stored file
+    # 1.5s after the tick, before the author ever clicks Save. Clear is
+    # processed BEFORE the upload so "tick remove + pick replacement"
+    # replaces the cover instead of deleting the fresh upload.
     if files is not None:
+        if data.get('cover_image_clear') == '1':
+            if post.cover_image:
+                post.cover_image.delete(save=False)
+            post.cover_image = None
         uploaded = files.get('cover_image')
         if uploaded is not None:
             post.cover_image = uploaded
-    # Explicit clear — an empty `cover_image_clear` checkbox on the
-    # editor form removes the existing upload without re-uploading.
-    if data.get('cover_image_clear') == '1':
-        if post.cover_image:
-            post.cover_image.delete(save=False)
-        post.cover_image = None
     # Notation glossary — JSON-encoded list of {term, definition, kind}
     # entries. Silently ignore malformed input; the editor's JS always
     # submits valid JSON, and the admin still accepts direct JSONField
@@ -417,7 +429,7 @@ def blog_autosave(request, slug):
     # freeze itself after this final write lands.
 
     try:
-        _apply_post_fields(post, request.POST)
+        _apply_post_fields(post, request.POST, allow_slug=False)
         # Autosave runs every 1.5s. The full render pipeline (pyfig
         # execution, arxiv/github/wiki fetches, demo template renders)
         # takes tens of seconds on a complex post; if we ran it on
@@ -653,16 +665,28 @@ def blog_new(request):
         return _staff_redirect(request, '/blog/new/')
 
     # Creation only happens on POST.
+    import secrets as _secrets
     if request.method != 'POST':
         return render(request, 'portfolio/blog_new.html', {
             'templates': [(k, v) for k, v in _POST_TEMPLATES.items()],
+            'create_nonce': _secrets.token_urlsafe(8),
         })
 
     template_key = request.POST.get('template')
     if template_key not in _POST_TEMPLATES:
         return render(request, 'portfolio/blog_new.html', {
             'templates': [(k, v) for k, v in _POST_TEMPLATES.items()],
+            'create_nonce': _secrets.token_urlsafe(8),
         })
+
+    # One draft per rendered form: a double-click (or an impatient
+    # re-click while a cold worker spins up) re-submits the same form
+    # instance — same nonce — and lands in the draft already created
+    # for it instead of minting a duplicate. A deliberate second
+    # creation is a fresh page render with a fresh nonce.
+    from django.core.cache import cache as _nonce_cache
+    nonce = (request.POST.get('create_nonce') or '').strip()
+    nonce_key = f'blog_new_nonce:{nonce}' if nonce else None
 
     tmpl = _POST_TEMPLATES[template_key]
     from portfolio.models import Post
@@ -711,6 +735,11 @@ def blog_new(request):
                 '## Where this goes\n\nOpen questions.\n'
             )
 
+    if nonce_key:
+        existing_slug = _nonce_cache.get(nonce_key)
+        if existing_slug and Post.objects.filter(slug=existing_slug).exists():
+            return redirect('blog_edit', slug=existing_slug)
+
     base_slug = slugify(base_title) or 'untitled-draft'
     slug = base_slug
     n = 1
@@ -730,6 +759,8 @@ def blog_new(request):
         is_explainer=tmpl['is_explainer'],
         is_paper_companion=tmpl['is_paper_companion'],
     )
+    if nonce_key:
+        _nonce_cache.set(nonce_key, p.slug, 600)
     return redirect('blog_edit', slug=p.slug)
 
 

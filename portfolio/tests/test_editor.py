@@ -351,6 +351,138 @@ class BlogAutosaveTests(StaffClientMixin, TestCase):
         self.assertEqual(list(post.tags.all()), [])
 
 
+class AutosaveSlugSafetyTests(StaffClientMixin, TestCase):
+    """Slug edits must NOT apply on autosave: a mid-session rename
+    orphans the open editor (every later autosave/heartbeat/Save targets
+    the old slug's URLs and 404s). Slug changes land on explicit Save,
+    whose redirect re-enters the editor under the new slug."""
+
+    def test_autosave_ignores_slug_changes(self):
+        post = make_post(slug='slug-stays', title='t')
+        r = self.staff_client.post(f'/blog/{post.slug}/autosave/', {
+            'title': 'still me', 'slug': 'renamed-by-autosave',
+        })
+        self.assertTrue(r.json()['ok'])
+        post.refresh_from_db()
+        self.assertEqual(post.slug, 'slug-stays')
+        self.assertEqual(post.title, 'still me')
+
+    def test_explicit_save_applies_slug_and_redirects_to_new_editor(self):
+        post = make_post(slug='slug-moves', title='t')
+        r = self.staff_client.post(f'/blog/{post.slug}/edit/', {
+            'title': 't', 'body': 'b', 'slug': 'slug-moved', 'action': 'save',
+        })
+        self.assertEqual(r.status_code, 302)
+        self.assertIn('/blog/slug-moved/edit/', r.headers['Location'])
+        post.refresh_from_db()
+        self.assertEqual(post.slug, 'slug-moved')
+
+
+@override_settings(MEDIA_ROOT=tempfile.mkdtemp(prefix='test-cover-'))
+class CoverImageLifecycleTests(StaffClientMixin, TestCase):
+    """Cover upload/clear is explicit-Save-only, and 'remove + replace'
+    must replace — not delete the fresh upload."""
+
+    def setUp(self):
+        super().setUp()
+        cache.clear()
+
+    def _post_with_cover(self, slug):
+        post = make_post(slug=slug)
+        self.staff_client.post(f'/blog/{post.slug}/edit/', {
+            'title': post.title, 'body': post.body, 'action': 'save',
+        })
+        f = SimpleUploadedFile('cover.png', MINIMAL_PNG, content_type='image/png')
+        self.staff_client.post(f'/blog/{post.slug}/edit/', {
+            'title': post.title, 'body': post.body, 'action': 'save',
+            'cover_image': f,
+        }, format='multipart')
+        post.refresh_from_db()
+        self.assertTrue(post.cover_image, 'fixture should have a cover')
+        return post
+
+    def test_autosave_never_clears_cover(self):
+        # The checkbox says "Remove current cover ON SAVE" — an autosave
+        # carrying the ticked box must not delete the stored file.
+        post = self._post_with_cover('cover-autosave-safe')
+        name = post.cover_image.name
+        from django.core.files.storage import default_storage
+        r = self.staff_client.post(f'/blog/{post.slug}/autosave/', {
+            'title': post.title, 'cover_image_clear': '1',
+        })
+        self.assertTrue(r.json()['ok'])
+        post.refresh_from_db()
+        self.assertTrue(post.cover_image, 'cover must survive autosave')
+        self.assertTrue(default_storage.exists(name), 'file must survive autosave')
+
+    def test_save_with_clear_removes_cover(self):
+        post = self._post_with_cover('cover-clear')
+        self.staff_client.post(f'/blog/{post.slug}/edit/', {
+            'title': post.title, 'body': post.body, 'action': 'save',
+            'cover_image_clear': '1',
+        })
+        post.refresh_from_db()
+        self.assertFalse(post.cover_image)
+
+    def test_save_with_clear_and_new_file_replaces(self):
+        # Tick "remove" + pick a replacement = replace. The clear must
+        # not delete the fresh upload.
+        post = self._post_with_cover('cover-replace')
+        old_name = post.cover_image.name
+        f = SimpleUploadedFile('new-cover.png', MINIMAL_PNG, content_type='image/png')
+        self.staff_client.post(f'/blog/{post.slug}/edit/', {
+            'title': post.title, 'body': post.body, 'action': 'save',
+            'cover_image_clear': '1', 'cover_image': f,
+        }, format='multipart')
+        post.refresh_from_db()
+        self.assertTrue(post.cover_image, 'replacement cover must persist')
+        self.assertNotEqual(post.cover_image.name, old_name)
+
+
+class CreateNonceTests(StaffClientMixin, TestCase):
+    """One creation per rendered form: a double-click (or cold-start
+    re-click) re-submits the same nonce and must not duplicate."""
+
+    def setUp(self):
+        super().setUp()
+        cache.clear()
+
+    def test_blog_new_duplicate_nonce_reuses_draft(self):
+        before = Post.objects.count()
+        payload = {'template': 'blank', 'create_nonce': 'nonce-dupe-test'}
+        r1 = self.staff_client.post('/blog/new/', payload)
+        r2 = self.staff_client.post('/blog/new/', payload)
+        self.assertEqual(Post.objects.count(), before + 1,
+                         'duplicate submit must not create a second draft')
+        self.assertEqual(r1.headers['Location'], r2.headers['Location'])
+
+    def test_blog_new_fresh_nonces_create_separately(self):
+        before = Post.objects.count()
+        self.staff_client.post('/blog/new/', {'template': 'blank', 'create_nonce': 'n1'})
+        self.staff_client.post('/blog/new/', {'template': 'blank', 'create_nonce': 'n2'})
+        self.assertEqual(Post.objects.count(), before + 2)
+
+    def test_blog_new_without_nonce_still_creates(self):
+        # Back-compat: old pages / tests post without a nonce.
+        before = Post.objects.count()
+        r = self.staff_client.post('/blog/new/', {'template': 'blank'})
+        self.assertEqual(r.status_code, 302)
+        self.assertEqual(Post.objects.count(), before + 1)
+
+    def test_picker_renders_nonce(self):
+        r = self.staff_client.get('/blog/new/')
+        self.assertContains(r, 'name="create_nonce"')
+
+    def test_reading_quickadd_duplicate_nonce_skipped(self):
+        from portfolio.models import Reading
+        before = Reading.objects.count()
+        payload = {'title': 'Dup paper', 'create_nonce': 'read-nonce-1',
+                   'next': '/site/studio/'}
+        self.staff_client.post('/site/reading/add/', payload)
+        self.staff_client.post('/site/reading/add/', payload)
+        self.assertEqual(Reading.objects.count(), before + 1)
+
+
 class BlogPreviewTests(StaffClientMixin, TestCase):
     def test_preview_renders_markdown(self):
         r = self.staff_client.post('/blog/preview/', {

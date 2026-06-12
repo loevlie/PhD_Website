@@ -46,6 +46,16 @@ def reading_quickadd(request):
         messages.error(request, 'Title is required.')
         return redirect(_safe_next(request))
 
+    # One entry per rendered form: a double-click re-submits the same
+    # nonce; cache.add is first-writer-wins, so the duplicate becomes a
+    # friendly no-op instead of a second identical row.
+    nonce = (request.POST.get('create_nonce') or '').strip()
+    if nonce:
+        from django.core.cache import cache
+        if not cache.add(f'reading_nonce:{nonce}', '1', 600):
+            messages.info(request, f'“{title[:60]}” was already added — skipped the duplicate submit.')
+            return redirect(_safe_next(request))
+
     status = (request.POST.get('status') or 'this_week').strip()
     if status not in _STATUS_VALUES:
         status = 'this_week'
