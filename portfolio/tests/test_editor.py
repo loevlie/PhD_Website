@@ -535,6 +535,52 @@ class CreateNonceTests(StaffClientMixin, TestCase):
         self.staff_client.post('/site/reading/add/', payload)
         self.assertEqual(Reading.objects.count(), before + 1)
 
+    def test_blog_new_nonce_scoped_by_template(self):
+        """Same nonce, two DIFFERENT template buttons (a Studio render
+        shares one create_nonce across lab-note and demo cards) must
+        produce two distinct drafts — the old unscoped key silently
+        redirected the second click into the first draft."""
+        before = Post.objects.count()
+        nonce = 'studio-shared-nonce'
+        r1 = self.staff_client.post('/blog/new/', {'template': 'blank', 'create_nonce': nonce})
+        r2 = self.staff_client.post('/blog/new/', {'template': 'lab_note', 'create_nonce': nonce})
+        self.assertEqual(Post.objects.count(), before + 2)
+        self.assertNotEqual(r1.headers['Location'], r2.headers['Location'])
+
+    def test_blog_new_nonce_scoped_by_demo_selector(self):
+        """Same nonce + same `demo` template but two different `demo=`
+        selectors must mint two distinct drafts."""
+        from portfolio.content.demos import DEMOS
+        if len(DEMOS) < 2:
+            self.skipTest('Need ≥2 demos to exercise selector scoping')
+        before = Post.objects.count()
+        nonce = 'demo-shared-nonce'
+        r1 = self.staff_client.post('/blog/new/', {
+            'template': 'demo', 'demo': DEMOS[0]['slug'], 'create_nonce': nonce,
+        })
+        r2 = self.staff_client.post('/blog/new/', {
+            'template': 'demo', 'demo': DEMOS[1]['slug'], 'create_nonce': nonce,
+        })
+        self.assertEqual(Post.objects.count(), before + 2)
+        self.assertNotEqual(r1.headers['Location'], r2.headers['Location'])
+
+    def test_picker_threads_get_prefills_into_hidden_inputs(self):
+        """Bookmarked /blog/new/?arxiv=<id> must carry the prefill into
+        the picker POST — without these hidden inputs the GET param was
+        silently dropped on every template click."""
+        r = self.staff_client.get('/blog/new/?arxiv=2502.05564&title=My+Title')
+        self.assertEqual(r.status_code, 200)
+        self.assertContains(r, 'name="arxiv" value="2502.05564"')
+        self.assertContains(r, 'name="title" value="My Title"')
+
+    def test_picker_bfcache_pageshow_handler_rendered(self):
+        """Creation page must emit a `pageshow`+`persisted` reload guard
+        so Back from the editor lands on a working picker instead of a
+        frozen form with a consumed nonce."""
+        r = self.staff_client.get('/blog/new/')
+        self.assertContains(r, 'e.persisted')
+        self.assertContains(r, 'location.reload()')
+
 
 class BlogPreviewTests(StaffClientMixin, TestCase):
     def test_preview_renders_markdown(self):

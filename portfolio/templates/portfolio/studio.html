@@ -241,5 +241,12 @@ document.querySelectorAll('main.studio form').forEach(function (form) {
         }, 0);
     });
 });
+// bfcache rescue: after creating a draft from Studio and clicking
+// Back, the page restores with every form's busy flag still set and
+// the nonce already consumed — every tile looks dead. Force a fresh
+// GET on persisted restore so the user lands on a working Studio.
+window.addEventListener('pageshow', function (e) {
+    if (e.persisted) location.reload();
+});
 </script>
 {% endblock %}

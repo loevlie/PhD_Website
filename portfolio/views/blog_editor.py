@@ -688,29 +688,44 @@ def blog_new(request):
     if not _can_create_post(request):
         return _staff_redirect(request, '/blog/new/')
 
-    # Creation only happens on POST.
+    # Picker context — kept identical between the GET render and the
+    # unknown-template POST fallback so bookmarked URLs like
+    # /blog/new/?arxiv=2502.05564 carry their prefill values through
+    # the picker's POST submit instead of getting dropped on the floor.
     import secrets as _secrets
-    if request.method != 'POST':
-        return render(request, 'portfolio/blog_new.html', {
+    def _picker_ctx():
+        return {
             'templates': [(k, v) for k, v in _POST_TEMPLATES.items()],
             'create_nonce': _secrets.token_urlsafe(8),
-        })
+            'prefill_arxiv': (request.GET.get('arxiv') or '').strip(),
+            'prefill_demo': (request.GET.get('demo') or '').strip(),
+            'prefill_title': (request.GET.get('title') or '').strip(),
+        }
+
+    if request.method != 'POST':
+        return render(request, 'portfolio/blog_new.html', _picker_ctx())
 
     template_key = request.POST.get('template')
     if template_key not in _POST_TEMPLATES:
-        return render(request, 'portfolio/blog_new.html', {
-            'templates': [(k, v) for k, v in _POST_TEMPLATES.items()],
-            'create_nonce': _secrets.token_urlsafe(8),
-        })
+        return render(request, 'portfolio/blog_new.html', _picker_ctx())
 
     # One draft per rendered form: a double-click (or an impatient
     # re-click while a cold worker spins up) re-submits the same form
     # instance — same nonce — and lands in the draft already created
     # for it instead of minting a duplicate. A deliberate second
     # creation is a fresh page render with a fresh nonce.
+    #
+    # The nonce key is scoped by template + demo/arxiv selector so the
+    # Studio (which shares one create_nonce across its lab-note and
+    # demo forms) doesn't silently send the SECOND distinct creation
+    # within 10 min into the FIRST draft. Two different template
+    # buttons → two different keys → two different drafts.
     from django.core.cache import cache as _nonce_cache
     nonce = (request.POST.get('create_nonce') or '').strip()
-    nonce_key = f'blog_new_nonce:{nonce}' if nonce else None
+    demo_slug = (request.POST.get('demo') or '').strip()
+    arxiv_id = (request.POST.get('arxiv') or '').strip()
+    selector = demo_slug if template_key == 'demo' else arxiv_id if template_key == 'arxiv' else ''
+    nonce_key = f'blog_new_nonce:{nonce}:{template_key}:{selector}' if nonce else None
 
     tmpl = _POST_TEMPLATES[template_key]
     from portfolio.models import Post
@@ -721,12 +736,14 @@ def blog_new(request):
     # and the data-demo marker from the chosen DEMOS entry so the
     # resulting post renders the live widget out of the box.
     if template_key == 'demo':
-        demo_slug = (request.POST.get('demo') or '').strip()
         if demo_slug:
             from portfolio.content.demos import DEMOS
             demo = next((d for d in DEMOS if d['slug'] == demo_slug), None)
             if demo:
-                base_title = request.GET.get('title') or f'Demo: {demo["title"]}'
+                # Title comes from the POST payload (GET prefills flow
+                # through the picker's hidden inputs); reading GET here
+                # silently dropped the prefill on POST submit.
+                base_title = (request.POST.get('title') or '').strip() or f'Demo: {demo["title"]}'
                 body = (
                     f'# {demo["title"]}\n\n'
                     f'{demo["summary"]}\n\n'
@@ -741,7 +758,6 @@ def blog_new(request):
 
     # For the `arxiv` template, a ?arxiv=<id> param pre-fills title + marker.
     if template_key == 'arxiv':
-        arxiv_id = (request.POST.get('arxiv') or '').strip()
         if arxiv_id:
             try:
                 from portfolio.blog.embeds.arxiv import _fetch as fetch_arxiv
@@ -760,9 +776,20 @@ def blog_new(request):
             )
 
     if nonce_key:
-        existing_slug = _nonce_cache.get(nonce_key)
-        if existing_slug and Post.objects.filter(slug=existing_slug).exists():
-            return redirect('blog_edit', slug=existing_slug)
+        # Atomic first-writer-wins claim: cache.add returns True only if
+        # the key didn't exist, closing the check-then-act race between
+        # simultaneous submits (two cold-worker double-clicks landing
+        # within the same dispatcher loop would otherwise both pass the
+        # old get-and-check and mint two drafts).
+        if not _nonce_cache.add(nonce_key, '__pending__', 600):
+            existing_slug = _nonce_cache.get(nonce_key)
+            if existing_slug and existing_slug != '__pending__' \
+                    and Post.objects.filter(slug=existing_slug).exists():
+                return redirect('blog_edit', slug=existing_slug)
+            # Race lost but the winner's slug isn't published yet —
+            # show the picker so a re-click resolves cleanly once the
+            # winner finishes (better than minting a duplicate here).
+            return render(request, 'portfolio/blog_new.html', _picker_ctx())
 
     base_slug = slugify(base_title) or 'untitled-draft'
     slug = base_slug

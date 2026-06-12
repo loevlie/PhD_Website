@@ -106,6 +106,13 @@
     <form method="post" action="{% url 'blog_new' %}" class="np-grid" id="np-picker">
         {% csrf_token %}
         <input type="hidden" name="create_nonce" value="{{ create_nonce }}">
+        {# Carry ?arxiv= / ?demo= / ?title= GET params through the picker
+           POST. Bookmarked URLs like /blog/new/?arxiv=<id> advertise
+           auto-prefill in the arXiv card desc; without these hidden
+           inputs, the POST submit dropped them on the floor. #}
+        {% if prefill_arxiv %}<input type="hidden" name="arxiv" value="{{ prefill_arxiv }}">{% endif %}
+        {% if prefill_demo %}<input type="hidden" name="demo" value="{{ prefill_demo }}">{% endif %}
+        {% if prefill_title %}<input type="hidden" name="title" value="{{ prefill_title }}">{% endif %}
         {% for key, t in templates %}
         <button type="submit" name="template" value="{{ key }}" class="np-card">
             <h2 class="np-card-label">{{ t.label }}</h2>
@@ -133,6 +140,13 @@
                 b.style.cursor = 'progress';
             });
         }, 0);
+    });
+    // bfcache rescue: after creating a draft and clicking Back, Safari/
+    // Chrome restore the page with all buttons frozen (dataset.busy + a
+    // consumed nonce) — clicks do nothing. Reload on persisted restore
+    // to mint a fresh nonce and an interactive form.
+    window.addEventListener('pageshow', function (e) {
+        if (e.persisted) location.reload();
     });
 })();
 </script>
