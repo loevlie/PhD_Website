@@ -42,16 +42,19 @@ def highlight_author(name):
 
 @register.simple_tag
 def og_image_url(post_slug):
-    """Return the per-post OG card path if it exists, otherwise the
-    site-wide cover. Both use the static URL prefix; the file existence
-    check is done against the source-tree static path because Django's
-    staticfiles abstraction can't reliably do existence at template-time."""
-    import os
+    """Return the per-post OG card URL if one is persisted in
+    default_storage, otherwise the site-wide cover.
+
+    The card is rendered by `portfolio.og.generate_card` (run by the
+    `generate_og_cards` management command, the `regenerate_og_card`
+    view, or auto-fired on Post save) and lives at `og/<slug>.png` in
+    storage — R2 in prod, MEDIA_ROOT in dev. Both paths survive
+    deploys; the previous static-tree variant did not."""
     from django.conf import settings as dj_settings
-    rel = f'portfolio/images/og/{post_slug}.png'
-    candidate = os.path.join(dj_settings.BASE_DIR, 'portfolio', 'static', rel)
-    if os.path.exists(candidate):
-        return f'{dj_settings.STATIC_URL}{rel}'
+    from portfolio.og import card_url_for
+    url = card_url_for(post_slug)
+    if url:
+        return url
     return f'{dj_settings.STATIC_URL}portfolio/images/og-cover.jpg'
 
 

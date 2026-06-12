@@ -84,22 +84,30 @@ def blog_cite_bib(request, slug):
 
 
 def regenerate_og_card(request, slug):
-    """POST /blog/<slug>/regenerate-og/ — run the generate_og_cards
-    management command for a single post. Staff only. Kicks off the
-    Playwright render and returns JSON with the new URL."""
+    """POST /blog/<slug>/regenerate-og/ — render and persist the card
+    for one post. Staff only. Returns the storage URL on success, or
+    a structured error if the slug doesn't resolve or the render
+    throws."""
     if not (request.user.is_authenticated and request.user.is_staff):
         return JsonResponse({'ok': False, 'error': 'unauthorized'}, status=403)
     if request.method != 'POST':
         return JsonResponse({'ok': False, 'error': 'POST required'}, status=405)
-    from django.core.management import call_command
-    from io import StringIO
-    out = StringIO()
+
+    from portfolio.blog import get_post
+    from portfolio.og import generate_card, card_url_for
+
+    # include_drafts=True: staff often want to preview a card on a
+    # draft before publishing. The view itself is staff-gated.
+    post = get_post(slug, include_drafts=True)
+    if not post:
+        return JsonResponse({'ok': False, 'error': 'unknown slug'}, status=404)
+
     try:
-        call_command('generate_og_cards', slug=slug, stdout=out, stderr=out)
+        generate_card(post)
     except Exception as e:
         return JsonResponse({'ok': False, 'error': str(e)}, status=500)
-    return JsonResponse({
-        'ok': True,
-        'log': out.getvalue().splitlines()[-5:],
-        'url': f'/media/og/{slug}.png',
-    })
+
+    url = card_url_for(slug)
+    if not url:
+        return JsonResponse({'ok': False, 'error': 'render succeeded but storage check failed'}, status=500)
+    return JsonResponse({'ok': True, 'url': url})

@@ -117,6 +117,58 @@ def _post_deleted(sender, instance, **kwargs):
             import logging
             logging.getLogger(__name__).exception(
                 'cover_image cleanup failed for deleted post pk=%s', instance.pk)
+    # Drop the persisted OG card too — slug reuse after delete would
+    # otherwise surface yesterday's card under today's post.
+    if getattr(instance, 'slug', None):
+        try:
+            from portfolio.og import delete_card
+            delete_card(instance.slug)
+        except Exception:
+            import logging
+            logging.getLogger(__name__).exception(
+                'og card cleanup failed for deleted post pk=%s', instance.pk)
+
+
+@receiver(post_save, sender=Post)
+def _refresh_og_card(sender, instance, raw=False, update_fields=None, **kwargs):
+    """Generate / refresh the persisted OG card for `instance`.
+
+    Skipped when:
+      - raw=True (loaddata / fixture loads — body / metadata may not be
+        in a coherent state yet),
+      - update_fields is just the render persistence step itself,
+      - instance._skip_render is set (autosave path — covers the same
+        save-storm protection the render path uses).
+
+    Drafts get a card too (staff often want to share a preview link
+    that resolves to the staff-only stub page), but only when the
+    title/excerpt actually exist — a freshly minted "Untitled draft"
+    isn't worth rendering until the author types something."""
+    if raw:
+        return
+    if update_fields and set(update_fields).issubset(
+        {'rendered_html', 'rendered_toc_html', 'rendered_at'}
+    ):
+        return
+    if getattr(instance, '_skip_render', False):
+        return
+    if not (instance.slug or '').strip():
+        return
+    title = (instance.title or '').strip()
+    if not title or title in {'Untitled draft', 'Lab note: topic',
+                              'Demo writeup', 'Paper companion: <title>'}:
+        # Placeholder titles from /blog/new/ templates — wait for the
+        # author to commit a real title before burning bytes on a card.
+        return
+    try:
+        from portfolio.og import generate_card
+        from portfolio.blog import _post_to_dict
+        generate_card(_post_to_dict(instance, render_html=False))
+    except Exception:
+        import logging
+        logging.getLogger(__name__).exception(
+            'og card generation failed for post pk=%s slug=%s',
+            instance.pk, instance.slug)
 
 
 def _render_and_persist(post):
