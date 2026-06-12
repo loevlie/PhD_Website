@@ -2736,6 +2736,10 @@ html.editing main { padding-top: 0 !important; margin: 0 !important; }
     // anything older is stale by definition. 7-day hard TTL regardless.
     const RESTORE_SLACK_MS = 10000;  // 1.5s debounce + generous RTT + clock skew
     const serverModifiedMs = {{ post.modified_at|date:'U' }} * 1000;
+    // Used to suppress rescued text from a DIFFERENT post that
+    // previously held this slug — slug reuse after delete would
+    // otherwise offer the rescued body of an unrelated draft.
+    const serverCreatedMs = {{ post.created_at|date:'U' }} * 1000;
     const DRAFT_TTL_MS = 7 * 24 * 3600 * 1000;
     function wordsIn(t) { return (String(t).trim().match(/\S+/g) || []).length; }
     function applyDraft(data) {
@@ -2753,6 +2757,7 @@ html.editing main { padding-top: 0 !important; margin: 0 !important; }
             const data = JSON.parse(saved);
             const fresh = data && data.body && data.ts
                 && data.ts > serverModifiedMs - RESTORE_SLACK_MS
+                && data.ts >= serverCreatedMs
                 && (Date.now() - data.ts) < DRAFT_TTL_MS;
             if (fresh && data.body !== body.value) {
                 const ageMin = Math.max(1, Math.round((Date.now() - data.ts) / 60000));
@@ -2774,7 +2779,11 @@ html.editing main { padding-top: 0 !important; margin: 0 !important; }
         const lostRaw = localStorage.getItem(LOST_KEY);
         if (lostRaw) {
             const lost = JSON.parse(lostRaw);
+            // Drop snapshots predating this post's creation: slug reuse
+            // (delete+recreate) would otherwise resurrect text from an
+            // unrelated draft that previously held the same slug.
             if (lost && lost.body && (Date.now() - (lost.ts || 0)) < DRAFT_TTL_MS
+                    && (lost.ts || 0) >= serverCreatedMs
                     && lost.body !== body.value) {
                 showBanner('lostlock',
                     'A tab that lost the editor lock left unsaved text (' + wordsIn(lost.body) + ' words).',

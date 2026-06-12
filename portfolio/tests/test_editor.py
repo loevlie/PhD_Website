@@ -491,6 +491,40 @@ class CoverImageLifecycleTests(StaffClientMixin, TestCase):
         self.assertTrue(post.cover_image, 'replacement cover must persist')
         self.assertNotEqual(post.cover_image.name, old_name)
 
+    def test_silent_replace_drops_old_storage_object(self):
+        """Audit #18: uploading a fresh cover WITHOUT ticking 'remove'
+        used to leak the previous file in R2 forever. The replace path
+        now deletes the old object as part of the swap."""
+        from django.core.files.storage import default_storage
+        post = self._post_with_cover('cover-silent-replace')
+        old_name = post.cover_image.name
+        self.assertTrue(default_storage.exists(old_name))
+
+        f = SimpleUploadedFile('replacement.png', MINIMAL_PNG, content_type='image/png')
+        self.staff_client.post(f'/blog/{post.slug}/edit/', {
+            'title': post.title, 'body': post.body, 'action': 'save',
+            'cover_image': f,
+        }, format='multipart')
+        post.refresh_from_db()
+        self.assertNotEqual(post.cover_image.name, old_name)
+        self.assertFalse(
+            default_storage.exists(old_name),
+            'old cover must be removed from storage on silent replace',
+        )
+
+    def test_post_delete_removes_cover_file(self):
+        """Audit #18: deleting a post in admin must drop its cover from
+        storage too; FileField content otherwise hangs around forever."""
+        from django.core.files.storage import default_storage
+        post = self._post_with_cover('cover-on-delete')
+        name = post.cover_image.name
+        self.assertTrue(default_storage.exists(name))
+        post.delete()
+        self.assertFalse(
+            default_storage.exists(name),
+            'cover file must be removed when its post is deleted',
+        )
+
 
 class CreateNonceTests(StaffClientMixin, TestCase):
     """One creation per rendered form: a double-click (or cold-start

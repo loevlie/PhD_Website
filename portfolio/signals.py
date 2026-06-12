@@ -103,8 +103,20 @@ def _post_saved(sender, instance, raw=False, update_fields=None, **kwargs):
 
 
 @receiver(post_delete, sender=Post)
-def _post_deleted(sender, **kwargs):
+def _post_deleted(sender, instance, **kwargs):
     invalidate_post_cache()
+    # Drop the cover file from storage so deleting a post in admin
+    # doesn't leave its R2 object behind forever (django doesn't auto-
+    # delete FileField content on row delete).
+    if getattr(instance, 'cover_image', None):
+        try:
+            instance.cover_image.delete(save=False)
+        except Exception:
+            # Missing remote object / storage flake — the row is already
+            # gone, so log and move on rather than blocking the delete.
+            import logging
+            logging.getLogger(__name__).exception(
+                'cover_image cleanup failed for deleted post pk=%s', instance.pk)
 
 
 def _render_and_persist(post):

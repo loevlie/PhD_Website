@@ -94,7 +94,15 @@ def _apply_post_fields(post, data, files=None, allow_slug=True):
             post.cover_image = None
         uploaded = files.get('cover_image')
         if uploaded is not None:
-            post.cover_image = uploaded
+            # Silent-replace path (user picks a fresh file without
+            # ticking the clear box): also drop the previous file from
+            # storage so cover swaps don't accumulate orphans in R2.
+            if post.cover_image and post.cover_image != uploaded:
+                old = post.cover_image
+                post.cover_image = uploaded
+                old.delete(save=False)
+            else:
+                post.cover_image = uploaded
     # Notation glossary — JSON-encoded list of {term, definition, kind}
     # entries. Silently ignore malformed input; the editor's JS always
     # submits valid JSON, and the admin still accepts direct JSONField

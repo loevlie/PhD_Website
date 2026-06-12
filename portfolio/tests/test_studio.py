@@ -41,6 +41,21 @@ class StudioAccessTests(StaffClientMixin, TestCase):
         self.assertContains(r, 'An essay')
         self.assertContains(r, 'A lab note')
 
+    def test_studio_published_count_excludes_drafts(self):
+        """Audit #17: the tile reads "{essays} published · {drafts} draft"
+        but the essays total used to include drafts — a tile saying
+        "3 published" while every essay was a draft. The Studio view
+        now filters draft=False for the published total."""
+        # Two published essays + three drafts → "2 published · 3 draft".
+        make_post(slug='pub-e1', title='Published e1', draft=False)
+        make_post(slug='pub-e2', title='Published e2', draft=False)
+        make_post(slug='draft-e1', title='Draft e1', draft=True)
+        make_post(slug='draft-e2', title='Draft e2', draft=True)
+        make_post(slug='draft-e3', title='Draft e3', draft=True)
+
+        r = self.staff_client.get('/site/studio/')
+        self.assertContains(r, '2 published · 3 draft')
+
 
 class ReadingQuickAddTests(StaffClientMixin, TestCase):
 

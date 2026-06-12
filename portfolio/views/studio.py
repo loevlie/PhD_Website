@@ -33,9 +33,13 @@ def studio(request):
         # against double-click / cold-start re-click duplicates.
         'create_nonce': secrets.token_urlsafe(8),
         'counts': {
-            'essays': essays.count(),
+            # `essays`/`lab_notes` keep the "published" label in the
+            # template — including drafts in the total is exactly the
+            # bug the audit flagged (a tile that says "5 published"
+            # when 3 of those are drafts is a lie).
+            'essays': essays.filter(draft=False).count(),
             'essay_drafts': essays.filter(draft=True).count(),
-            'lab_notes': lab_notes.count(),
+            'lab_notes': lab_notes.filter(draft=False).count(),
             'lab_note_drafts': lab_notes.filter(draft=True).count(),
             'reading_this_week': Reading.objects.filter(status='this_week').count(),
             'reading_lingering': Reading.objects.filter(status='lingering').count(),
