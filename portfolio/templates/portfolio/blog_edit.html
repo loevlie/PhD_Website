@@ -405,6 +405,72 @@ html.editing main { padding-top: 0 !important; margin: 0 !important; }
 .editor-bar .save-status.is-dirty { color: var(--ctp-yellow, #f9e2af); }
 .editor-bar .save-status.is-saved { color: var(--ctp-green, #a6e3a1); }
 .editor-bar .save-status.is-error { color: var(--ctp-red, #f38ba8); }
+.editor-bar .save-status.is-offline { color: var(--ctp-peach, #fab387); }
+
+/* Persistent problem banner (render failures, repeated autosave
+   failures, lock degradation). Sits under the editor bar. */
+.editor-banner {
+    display: flex; align-items: center; gap: 14px;
+    padding: 8px 16px;
+    background: color-mix(in srgb, var(--ctp-red, #f38ba8) 14%, var(--ctp-mantle, #181825));
+    color: var(--ctp-text, #cdd6f4);
+    border-bottom: 1px solid var(--ctp-red, #f38ba8);
+    font-family: 'Inter', system-ui, sans-serif;
+    font-size: 0.85rem;
+}
+.editor-banner.hidden { display: none; }
+.editor-banner button {
+    appearance: none;
+    padding: 4px 10px;
+    font-size: 0.8rem;
+    font-family: inherit;
+    font-weight: 500;
+    color: var(--ctp-base, #1e1e2e);
+    background: var(--ctp-lavender, #7287fd);
+    border: 0;
+    border-radius: 6px;
+    cursor: pointer;
+}
+.editor-banner button.hidden { display: none; }
+
+/* Lost-lock freeze overlay — reuses .help-card for the dialog body. */
+.lock-lost-overlay {
+    position: fixed;
+    inset: 0;
+    background: rgba(0, 0, 0, 0.55);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    z-index: 120;
+    opacity: 0;
+    pointer-events: none;
+    transition: opacity 180ms ease;
+}
+.lock-lost-overlay.open { opacity: 1; pointer-events: auto; }
+.lock-lost-overlay .lock-lost-sub {
+    color: var(--ctp-subtext0, #a6adc8);
+    font-size: 0.8125rem;
+}
+.lock-lost-overlay .lock-lost-actions {
+    display: flex; gap: 10px; margin-top: 18px;
+}
+.lock-lost-overlay .lock-lost-actions button {
+    appearance: none;
+    padding: 7px 14px;
+    font-size: 0.85rem;
+    font-family: inherit;
+    font-weight: 500;
+    color: var(--ctp-base, #1e1e2e);
+    background: var(--ctp-lavender, #7287fd);
+    border: 0;
+    border-radius: 8px;
+    cursor: pointer;
+}
+.lock-lost-overlay .lock-lost-actions button.secondary {
+    background: transparent;
+    color: var(--ctp-text, #cdd6f4);
+    border: 1px solid var(--ctp-surface1, #45475a);
+}
 
 .editor-panes { display: grid; grid-template-columns: 1fr 1fr; min-height: 0; }
 @media (max-width: 900px) { .editor-panes { grid-template-columns: 1fr; grid-template-rows: 1fr 1fr; } }
@@ -735,6 +801,7 @@ html.editing main { padding-top: 0 !important; margin: 0 !important; }
 {% block content %}
 <form class="editor-shell" id="editor-form" method="post" action="{% url 'blog_edit' post.slug %}" enctype="multipart/form-data">
     {% csrf_token %}
+    <input type="hidden" name="editor_instance" value="{{ editor_instance }}">
     <div class="editor-bar">
         <a href="{% url 'blog_post' post.slug %}" class="secondary" title="View live">←</a>
         <input type="text" name="title" class="title-input" value="{{ post.title }}" placeholder="Post title">
@@ -747,6 +814,12 @@ html.editing main { padding-top: 0 !important; margin: 0 !important; }
         <button type="submit" name="action" value="save">Save</button>
         <button type="submit" name="action" value="view" class="secondary">Save &amp; view</button>
     </div>
+    {# Persistent problem banner: server-rendered for render failures,   #}
+    {# driven by JS for autosave/lock degradation. Hidden when healthy.  #}
+    <div class="editor-banner{% if not request.GET.render_failed %} hidden{% endif %}" id="editor-banner" role="alert">
+        <span id="editor-banner-msg">{% if request.GET.render_failed %}Saved, but the page render failed — the public page is stale. Fix the offending block and Save again.{% endif %}</span>
+        <button type="button" id="editor-banner-action" class="hidden"></button>
+    </div>
     <div class="editor-panes">
         <div class="editor-source">
             <textarea name="body" id="editor-body" spellcheck="false">{{ post.body }}</textarea>
@@ -755,6 +828,21 @@ html.editing main { padding-top: 0 !important; margin: 0 !important; }
         <div class="editor-preview">
             <div class="blog-prose {% if post.is_explainer %}is-explainer{% endif %}{% if post.is_paper_companion %} is-paper-companion{% endif %}" id="editor-preview-content">
                 {% if post.rendered_html %}{{ post.rendered_html|safe }}{% else %}<p class="preview-loading">Rendering preview…</p>{% endif %}
+            </div>
+        </div>
+    </div>
+
+    {# Shown when this tab's lock was taken by another tab/editor. The  #}
+    {# textarea is frozen underneath; this tab's text is preserved in   #}
+    {# localStorage under editor-draft-lostlock:<slug>.                 #}
+    <div class="lock-lost-overlay" id="lock-lost-overlay" aria-hidden="true">
+        <div class="help-card" role="alertdialog" aria-label="Editor lock lost">
+            <h2>This tab lost the editor lock</h2>
+            <p id="lock-lost-msg"></p>
+            <p class="lock-lost-sub">Nothing is lost — the text in this tab is saved in this browser.</p>
+            <div class="lock-lost-actions">
+                <button type="button" id="lock-lost-takeover">Take back &amp; keep editing</button>
+                <button type="button" id="lock-lost-reload" class="secondary">Open fresh editor</button>
             </div>
         </div>
     </div>
@@ -1149,38 +1237,96 @@ html.editing main { padding-top: 0 !important; margin: 0 !important; }
         renderTimer = setTimeout(render, delay || 180);
     }
 
+    // ── Problem banner (autosave failures, lock degradation) ───────
+    // One visible slot, but a per-kind registry underneath: a transient
+    // kind (autosave) must not permanently erase a persistent one
+    // (render-failed: "the public page is stale" has no other re-show
+    // path until the next explicit Save). Highest-priority active kind
+    // wins; hiding one reveals the next.
+    const banner = document.getElementById('editor-banner');
+    const bannerMsg = document.getElementById('editor-banner-msg');
+    const bannerAction = document.getElementById('editor-banner-action');
+    const bannerStack = new Map();
+    const BANNER_PRIORITY = ['render', 'lostlock', 'lock', 'autosave'];
+    // Seed from the server-rendered render-failed state.
+    if (!banner.classList.contains('hidden')) {
+        bannerStack.set('render', { msg: bannerMsg.textContent });
+    }
+    function renderBanner() {
+        const kind = BANNER_PRIORITY.find(k => bannerStack.has(k));
+        if (!kind) { banner.classList.add('hidden'); return; }
+        const b = bannerStack.get(kind);
+        bannerMsg.textContent = b.msg;
+        if (b.actionLabel) {
+            bannerAction.textContent = b.actionLabel;
+            bannerAction.onclick = b.onAction;
+            bannerAction.classList.remove('hidden');
+        } else {
+            bannerAction.classList.add('hidden');
+        }
+        banner.classList.remove('hidden');
+    }
+    function showBanner(kind, msg, actionLabel, onAction) {
+        bannerStack.set(kind, { msg: msg, actionLabel: actionLabel, onAction: onAction });
+        renderBanner();
+    }
+    function hideBanner(kind) {
+        bannerStack.delete(kind);
+        renderBanner();
+    }
+
     // ── Dirty / save status tracking ────────────────────────────────
     let dirty = false;
+    let changeSerial = 0;     // bumps on every change; pins in-flight saves
+    let saveFailures = 0;     // consecutive autosave failures
+    let lastSavedAt = null;
+    let lockLost = false;     // set when another tab/editor takes the lock
     function markDirty() {
         dirty = true;
+        changeSerial++;
         status.textContent = 'unsaved';
-        status.classList.remove('is-saved', 'is-error');
+        status.classList.remove('is-saved', 'is-error', 'is-offline');
         status.classList.add('is-dirty');
         scheduleAutosave();
     }
+    function savedText() {
+        if (!lastSavedAt) return 'saved';
+        const s = Math.round((Date.now() - lastSavedAt.getTime()) / 1000);
+        if (s < 45) return 'saved just now';
+        const m = Math.round(s / 60);
+        return 'saved ' + Math.max(1, m) + 'm ago';
+    }
     function markSaved(when) {
         dirty = false;
-        const t = when ? new Date(when) : new Date();
-        const hh = String(t.getHours()).padStart(2, '0');
-        const mm = String(t.getMinutes()).padStart(2, '0');
-        const ss = String(t.getSeconds()).padStart(2, '0');
-        status.textContent = 'saved ' + hh + ':' + mm + ':' + ss;
-        status.classList.remove('is-dirty', 'is-error');
+        lastSavedAt = when ? new Date(when) : new Date();
+        status.textContent = savedText();
+        status.title = 'last autosave ' + lastSavedAt.toLocaleTimeString();
+        status.classList.remove('is-dirty', 'is-error', 'is-offline');
         status.classList.add('is-saved');
     }
+    setInterval(function () {
+        if (status.classList.contains('is-saved')) status.textContent = savedText();
+    }, 30_000);
     function markError(msg) {
         status.textContent = 'save failed: ' + msg;
-        status.classList.remove('is-dirty', 'is-saved');
+        status.classList.remove('is-dirty', 'is-saved', 'is-offline');
         status.classList.add('is-error');
     }
+    function markOffline() {
+        status.textContent = 'offline — kept locally';
+        status.classList.remove('is-dirty', 'is-saved', 'is-error');
+        status.classList.add('is-offline');
+    }
 
-    // ── Autosave (debounced) ────────────────────────────────────────
+    // ── Autosave (debounced, retry with backoff, offline-aware) ────
     let autosaveTimer = null;
+    let retryTimer = null;
     let autosaveInflight = false;
     const AUTOSAVE_DEBOUNCE_MS = 1500;
 
     function scheduleAutosave() {
         clearTimeout(autosaveTimer);
+        clearTimeout(retryTimer);  // fresh typing supersedes a pending retry
         autosaveTimer = setTimeout(autosaveNow, AUTOSAVE_DEBOUNCE_MS);
         // Local backup (instant): never lose a keystroke
         try {
@@ -1193,11 +1339,18 @@ html.editing main { padding-top: 0 !important; margin: 0 !important; }
     }
 
     async function autosaveNow() {
+        if (lockLost) return;
         if (autosaveInflight) {
             scheduleAutosave();
             return;
         }
+        if (!navigator.onLine) {
+            // The 'online' handler resumes; text is already in localStorage.
+            markOffline();
+            return;
+        }
         autosaveInflight = true;
+        const serial = changeSerial;
         const fd = new FormData(form);
         fd.set('csrfmiddlewaretoken', csrf);
         try {
@@ -1205,45 +1358,208 @@ html.editing main { padding-top: 0 !important; margin: 0 !important; }
                 method: 'POST', body: fd, credentials: 'same-origin',
             });
             const data = await r.json();
-            if (data.ok) {
+            if (!data.ok) throw new Error(data.error || 'unknown');
+            saveFailures = 0;
+            hideBanner('autosave');
+            if (data.lock_lost) {
+                // The write above committed (the one bounded final
+                // write) — now freeze this tab.
+                enterLockLostState(data.holder, data.same_user);
+                return;
+            }
+            // Only mark clean / drop the local backup when no newer
+            // keystrokes arrived while this request was in flight —
+            // otherwise a slow response deletes a backup that holds
+            // newer text than the server.
+            if (serial === changeSerial) {
                 markSaved(data.saved_at);
                 try { localStorage.removeItem('editor-draft:' + slug); } catch (e) {}
-            } else {
-                markError(data.error || 'unknown');
             }
         } catch (e) {
             markError(e.message || 'network');
+            saveFailures++;
+            if (saveFailures >= 3) {
+                showBanner('autosave',
+                    'Autosave is failing — your text is safe in this browser.',
+                    'Retry now',
+                    function () { hideBanner('autosave'); autosaveNow(); });
+            }
+            clearTimeout(retryTimer);
+            const backoff = Math.min(30_000, 1500 * Math.pow(2, saveFailures)) + Math.random() * 500;
+            retryTimer = setTimeout(autosaveNow, backoff);
         } finally {
             autosaveInflight = false;
         }
     }
 
-    // Save before unload if dirty (synchronous beacon)
+    window.addEventListener('offline', markOffline);
+    // On reconnect, learn the lock state BEFORE flushing: hours-stale
+    // content must not overwrite another editor's newer work just
+    // because this tab came back online first. sendHeartbeat flips
+    // lockLost when the lock now belongs elsewhere; a heartbeat network
+    // failure returns null and leaves lockLost false, so the flush
+    // still proceeds (saves are never blocked, per the lock contract).
+    window.addEventListener('online', async function () {
+        if (!dirty || lockLost) return;
+        await sendHeartbeat();
+        if (dirty && !lockLost) autosaveNow();
+    });
+
+    // Warn before unload ONLY when sync is degraded — offline or recent
+    // failures — i.e. exactly when the final flush is unlikely to land.
+    // Happy-path close stays silent. The flush itself happens on
+    // pagehide (below), which fires only on REAL navigations — a
+    // beforeunload the user cancels must not have side effects.
     window.addEventListener('beforeunload', (e) => {
-        if (!dirty) return;
+        if (!dirty || lockLost) return;
+        if (saveFailures > 0 || !navigator.onLine) {
+            e.preventDefault();
+            e.returnValue = '';
+        }
+    });
+    window.addEventListener('pagehide', function () {
+        if (!dirty || lockLost) return;
         const fd = new FormData(form);
         fd.set('csrfmiddlewaretoken', csrf);
-        navigator.sendBeacon('{% url "blog_autosave" post.slug %}', fd);
+        // 'unloading' tells the server this is a final flush: it must
+        // not re-acquire/refresh the lock for a tab that is going away
+        // (this beacon races the release beacon below).
+        fd.set('unloading', '1');
+        try { navigator.sendBeacon('{% url "blog_autosave" post.slug %}', fd); } catch (e) {}
+    });
+
+    // Safari restores even no-store pages from the back/forward cache; a
+    // resurrected editor has a stale body + old instance token and its
+    // first autosave could silently overwrite newer content. Force a
+    // fresh GET — the lock check and draft-restore flow handle recovery.
+    window.addEventListener('pageshow', function (e) {
+        if (e.persisted) location.reload();
     });
 
     // ── Edit-lock heartbeat ────────────────────────────────────────
     // Refresh the click-through lock every 60s so the 120s TTL doesn't
-    // lapse while this tab is still active. Fire a `release` beacon
-    // on unload so a closed tab frees the post within a single request
-    // round-trip — much faster than waiting for the TTL to expire.
+    // lapse while this tab is still active. The response is structured
+    // ({lock: 'ours'|'other'|'acquired'}) and drives the lost-lock
+    // overlay. Fire a `release` beacon on unload so a closed tab frees
+    // the post within a single round-trip instead of a TTL wait.
     const HEARTBEAT_URL = '{% url "blog_edit_heartbeat" post.slug %}';
-    setInterval(function () {
+    const instanceInput = form.querySelector('[name=editor_instance]');
+    const editorInstance = instanceInput ? instanceInput.value : '';
+    let heartbeatFailures = 0;
+
+    async function sendHeartbeat(action) {
         const fd = new FormData();
         fd.set('csrfmiddlewaretoken', csrf);
-        fetch(HEARTBEAT_URL, { method: 'POST', body: fd, credentials: 'same-origin' })
-            .catch(function () {});
-    }, 60_000);
-    window.addEventListener('beforeunload', function () {
+        if (editorInstance) fd.set('editor_instance', editorInstance);
+        if (action) fd.set('action', action);
+        try {
+            const r = await fetch(HEARTBEAT_URL, { method: 'POST', body: fd, credentials: 'same-origin' });
+            const data = await r.json();
+            heartbeatFailures = 0;
+            if (data.lock === 'other' && !lockLost) {
+                enterLockLostState(data.holder, data.same_user);
+            } else if (data.lock === 'ours' || data.lock === 'acquired') {
+                hideBanner('lock');
+            }
+            return data;
+        } catch (e) {
+            heartbeatFailures++;
+            if (heartbeatFailures >= 2 && !lockLost) {
+                showBanner('lock',
+                    'Connection to the server lost — the edit lock may expire. Your text is kept in this browser.',
+                    null, null);
+            }
+            return null;
+        }
+    }
+    setInterval(function () { if (!lockLost) sendHeartbeat(); }, 60_000);
+
+    // Wake-from-sleep recovery: a laptop asleep >120s silently loses
+    // the lock to TTL expiry. On becoming visible again, learn the lock
+    // state FIRST (await — the response may freeze this tab via
+    // lock:'other'), then flush pending edits only if still the holder.
+    // On hide, clear pending debounce/retry timers: a timer suspended
+    // through sleep must not fire an hours-stale autosave on wake
+    // before the heartbeat resolves.
+    document.addEventListener('visibilitychange', async function () {
+        if (document.visibilityState === 'hidden') {
+            clearTimeout(autosaveTimer);
+            clearTimeout(retryTimer);
+            return;
+        }
+        if (lockLost) return;
+        await sendHeartbeat();
+        if (dirty && !lockLost) autosaveNow();
+    });
+
+    // Release on pagehide, NOT beforeunload: beforeunload also fires for
+    // closes the user then cancels ('Stay'), and a release fired there
+    // would hand this still-active tab's lock to anyone for up to 60s.
+    window.addEventListener('pagehide', function () {
         const fd = new FormData();
         fd.set('csrfmiddlewaretoken', csrf);
         fd.set('action', 'release');
+        if (editorInstance) fd.set('editor_instance', editorInstance);
         try { navigator.sendBeacon(HEARTBEAT_URL, fd); } catch (e) {}
     });
+
+    // ── Lost-lock freeze overlay ────────────────────────────────────
+    const lockOverlay = document.getElementById('lock-lost-overlay');
+    const lockOverlayMsg = document.getElementById('lock-lost-msg');
+
+    function enterLockLostState(holder, sameUser) {
+        // Never freeze without an instance token (old cached page HTML).
+        if (lockLost || !editorInstance) return;
+        lockLost = true;
+        // Preserve this tab's text under a DISTINCT key so the normal
+        // restore flow never silently replays it.
+        try {
+            localStorage.setItem('editor-draft-lostlock:' + slug, JSON.stringify({
+                body: body.value,
+                title: form.querySelector('[name=title]').value,
+                ts: Date.now(),
+            }));
+        } catch (e) {}
+        clearTimeout(autosaveTimer);
+        clearTimeout(retryTimer);
+        body.readOnly = true;
+        lockOverlayMsg.textContent = sameUser
+            ? 'Another tab of yours took over editing this post.'
+            : 'Editing was taken over by ' + (holder || 'another editor') + '.';
+        lockOverlay.classList.add('open');
+        lockOverlay.setAttribute('aria-hidden', 'false');
+    }
+
+    let takeoverInFlight = false;
+    async function exitLockLostState() {
+        // Takeover only ever happens on this explicit click — no
+        // automatic reclaim, so two tabs can't ping-pong the lock.
+        if (takeoverInFlight) return;
+        takeoverInFlight = true;
+        const takeBtn = document.getElementById('lock-lost-takeover');
+        takeBtn.disabled = true;
+        const data = await sendHeartbeat('takeover');
+        takeoverInFlight = false;
+        takeBtn.disabled = false;
+        if (!data || !data.ok) {
+            // Surface the failure INSIDE the overlay — the page banner
+            // sits below the overlay scrim and is suppressed while
+            // frozen, so it can't explain anything from here.
+            lockOverlayMsg.textContent = !data
+                ? 'Could not reach the server — check your connection and try again, or open a fresh editor.'
+                : 'Could not take back editing (' + (data.error || 'request rejected') + ') — try "Open fresh editor".';
+            return;
+        }
+        lockLost = false;
+        body.readOnly = false;
+        lockOverlay.classList.remove('open');
+        lockOverlay.setAttribute('aria-hidden', 'true');
+        try { localStorage.removeItem('editor-draft-lostlock:' + slug); } catch (e) {}
+        // Re-arm autosave and push THIS tab's content to the server.
+        markDirty();
+    }
+    document.getElementById('lock-lost-takeover').addEventListener('click', exitLockLostState);
+    document.getElementById('lock-lost-reload').addEventListener('click', function () { location.reload(); });
 
 
     // Word/char count + reading-time estimate in toolbar
@@ -1444,9 +1760,7 @@ html.editing main { padding-top: 0 !important; margin: 0 !important; }
                 // No dialog in the DOM (stale cached page?) — fall back
                 // to the legacy placeholder so the command isn't silent.
                 const snippet = '<cite class="ref" data-key="key2024">[' + nextCiteIndex() + ']</cite>';
-                body.value = body.value.slice(0, pinnedStart) + snippet + body.value.slice(pinnedEnd);
-                body.setSelectionRange(pinnedStart + snippet.length, pinnedStart + snippet.length);
-                body.dispatchEvent(new Event('input', { bubbles: true }));
+                insertAtCursor(snippet, null, pinnedStart, pinnedEnd);
                 return;
             }
             const entries = Object.keys(cites).sort().map(function (k) {
@@ -1589,11 +1903,9 @@ html.editing main { padding-top: 0 !important; margin: 0 !important; }
         const ok = document.getElementById('notation-ok');
         const cancel = document.getElementById('notation-cancel');
         if (!dlg || !termInp || !defInp) {
-            // Fallback: legacy placeholder insertion.
+            // Fallback: legacy placeholder insertion (undo-safe).
             const snippet = '<span class="g" data-g="θ">θ</span>';
-            body.value = body.value.slice(0, pinnedStart) + snippet + body.value.slice(pinnedEnd);
-            body.setSelectionRange(pinnedStart + snippet.length, pinnedStart + snippet.length);
-            body.dispatchEvent(new Event('input', { bubbles: true }));
+            insertAtCursor(snippet, null, pinnedStart, pinnedEnd);
             return;
         }
         termInp.value = '';
@@ -1736,12 +2048,16 @@ html.editing main { padding-top: 0 !important; margin: 0 !important; }
         const ok = document.getElementById('sidenote-ok');
         const cancel = document.getElementById('sidenote-cancel');
         if (!dlg || !textInp || !ok) {
-            // Fallback — insert placeholder with no prompt.
+            // Fallback — insert placeholder with no prompt (undo-safe:
+            // tag at the pinned cursor, definition appended at EOF).
             const s = nextNoteSlug();
-            const payload = '[^' + s + ']';
-            body.value = body.value.slice(0, pinnedStart) + payload + body.value.slice(pinnedEnd)
-                + (body.value.endsWith('\n') ? '\n' : '\n\n') + '[^' + s + ']: A sidenote.\n';
-            body.dispatchEvent(new Event('input', { bubbles: true }));
+            const tag = '[^' + s + ']';
+            insertAtCursor(tag, null, pinnedStart, pinnedEnd);
+            const caret = pinnedStart + tag.length;
+            const eof = body.value.length;
+            const defLine = (body.value.endsWith('\n') ? '\n' : '\n\n') + tag + ': A sidenote.\n';
+            insertAtCursor(defLine, null, eof, eof);
+            body.setSelectionRange(caret, caret);
             return;
         }
         textInp.value = '';
@@ -1984,8 +2300,16 @@ html.editing main { padding-top: 0 !important; margin: 0 !important; }
         const cmd = menuFiltered[menuActive];
         const start = menuTriggerStart;
         const end = body.selectionStart;
-        // Strip the "/query" trigger
-        body.value = body.value.substring(0, start) + body.value.substring(end);
+        // Strip the "/query" trigger — via execCommand so the strip is
+        // a step in the native undo stack, not an undo-stack wipe.
+        body.focus();
+        body.setSelectionRange(start, end);
+        let stripped = false;
+        try { stripped = document.execCommand('delete', false); } catch (e) {}
+        if (!stripped) {
+            body.value = body.value.substring(0, start) + body.value.substring(end);
+            body.dispatchEvent(new Event('input', { bubbles: true }));
+        }
         body.selectionStart = body.selectionEnd = start;
         closeMenu();
         // Two command shapes: `insert()` returns text (most common);
@@ -1999,20 +2323,36 @@ html.editing main { padding-top: 0 !important; margin: 0 !important; }
         body.focus();
     }
 
-    function insertAtCursor(text, cursorOffset) {
-        const start = body.selectionStart;
-        const end = body.selectionEnd;
-        const before = body.value.slice(0, start);
-        const after = body.value.slice(end);
-        body.value = before + text + after;
+    // Single undo-safe insertion path: execCommand('insertText')
+    // preserves the native textarea undo stack (Cmd+Z unwinds the
+    // programmatic insert) and fires the input event itself; a raw
+    // `body.value = …` splice wipes the stack. Deprecated-but-universal
+    // for textareas; the splice below covers any refusal. Optional
+    // rangeStart/rangeEnd let callers insert at a pinned position
+    // (dialogs, uploads) instead of the live cursor.
+    function insertAtCursor(text, cursorOffset, rangeStart, rangeEnd) {
+        // Never mutate a frozen editor: the splice fallback below would
+        // bypass readOnly (it's a property write, not user input) and
+        // diverge the content from the lost-lock snapshot.
+        if (body.readOnly || lockLost) return;
+        const start = (rangeStart != null) ? rangeStart : body.selectionStart;
+        const end = (rangeEnd != null) ? rangeEnd : body.selectionEnd;
+        body.focus();
+        body.setSelectionRange(start, end);
+        let inserted = false;
+        try { inserted = document.execCommand('insertText', false, text); } catch (e) {}
+        if (!inserted) {
+            body.value = body.value.slice(0, start) + text + body.value.slice(end);
+            body.dispatchEvent(new Event('input', { bubbles: true }));
+        }
         const newPos = (cursorOffset != null) ? (start + cursorOffset) : (start + text.length);
-        body.selectionStart = body.selectionEnd = newPos;
-        body.dispatchEvent(new Event('input', { bubbles: true }));
+        body.setSelectionRange(newPos, newPos);
     }
 
     // Trigger on "/" at start-of-line OR after whitespace
     body.addEventListener('keyup', (e) => {
         if (e.isComposing) return;
+        if (body.readOnly || lockLost) return;
         // Update menu query if open
         if (menuTriggerStart >= 0) {
             // Closed if cursor moved before trigger
@@ -2042,6 +2382,10 @@ html.editing main { padding-top: 0 !important; margin: 0 !important; }
     });
 
     body.addEventListener('keydown', (e) => {
+        // Frozen editor: let every key fall through untouched — Tab in
+        // particular must keep its native focus-move so keyboard users
+        // can reach the lock-lost overlay's buttons.
+        if (body.readOnly || lockLost) return;
         // Tab → insert a literal tab (2 spaces) instead of moving focus
         // off the textarea. Only runs when the slash menu is NOT open
         // (below the early-return); with the menu open Tab still
@@ -2054,18 +2398,17 @@ html.editing main { padding-top: 0 !important; margin: 0 !important; }
             if (s !== end) {
                 // Selection spans lines → indent each line at the start
                 // of its line (like a code editor). Find the start of
-                // the first selected line.
+                // the first selected line. Replace via insertAtCursor so
+                // Cmd+Z unwinds the indent instead of losing history.
                 const lineStart = body.value.lastIndexOf('\n', s - 1) + 1;
                 const selected = body.value.slice(lineStart, end);
                 const indented = selected.replace(/^/gm, indent);
-                body.value = body.value.slice(0, lineStart) + indented + body.value.slice(end);
+                insertAtCursor(indented, null, lineStart, end);
                 body.selectionStart = lineStart;
                 body.selectionEnd = lineStart + indented.length;
             } else {
-                body.value = body.value.slice(0, s) + indent + body.value.slice(s);
-                body.selectionStart = body.selectionEnd = s + indent.length;
+                insertAtCursor(indent);
             }
-            body.dispatchEvent(new Event('input', { bubbles: true }));
             return;
         }
         if (menuTriggerStart < 0) return;
@@ -2089,8 +2432,15 @@ html.editing main { padding-top: 0 !important; margin: 0 !important; }
     });
 
     body.addEventListener('blur', () => {
-        // Small delay so mousedown on menu items still fires
-        setTimeout(closeMenu, 100);
+        // Small delay so mousedown on menu items still fires. Skip the
+        // close when focus has already returned to the textarea (e.g.
+        // a rapid blur/focus from a dialog opening and closing, or the
+        // user reopening via ⌘/) — closing then would desync the menu
+        // from the live trigger position.
+        setTimeout(() => {
+            if (document.activeElement === body) return;
+            closeMenu();
+        }, 100);
     });
 
     body.addEventListener('scroll', positionMenu);
@@ -2102,6 +2452,10 @@ html.editing main { padding-top: 0 !important; margin: 0 !important; }
     // Ask for alt text + caption after upload so the author doesn't
     // insert a raw `![](url)` and forget to fill it in. Returns a
     // promise resolving to {alt, caption} or null if they cancelled.
+    // One instance at a time: a rapid second drop settles the previous
+    // invocation with its defaults FIRST (detaching its listeners), so
+    // neither promise is ever stranded and the dialog reopens cleanly.
+    let imgDialogCancel = null;
     function askImageMeta(previewUrl, suggestedAlt) {
         return new Promise((resolve) => {
             const dlg = document.getElementById('img-dialog');
@@ -2114,11 +2468,13 @@ html.editing main { padding-top: 0 !important; margin: 0 !important; }
                 resolve({ alt: suggestedAlt, caption: '' });
                 return;
             }
+            if (imgDialogCancel) imgDialogCancel();
             img.src = previewUrl;
             altInput.value = suggestedAlt || '';
             capInput.value = '';
 
             function cleanup(result) {
+                imgDialogCancel = null;
                 ok.removeEventListener('click', onOk);
                 skip.removeEventListener('click', onSkip);
                 dlg.removeEventListener('close', onClose);
@@ -2130,11 +2486,25 @@ html.editing main { padding-top: 0 !important; margin: 0 !important; }
                 cleanup({ alt: altInput.value.trim(), caption: capInput.value.trim() });
             }
             function onSkip() { cleanup({ alt: suggestedAlt, caption: '' }); }
-            function onClose() { cleanup({ alt: suggestedAlt, caption: '' }); }
+            function onClose() {
+                // dialog.close() queues its event — a cancelled previous
+                // instance's close fires AFTER showModal() reopened the
+                // dialog for THIS instance. If it's open again, that
+                // stale event isn't ours.
+                if (dlg.open) return;
+                cleanup({ alt: suggestedAlt, caption: '' });
+            }
             ok.addEventListener('click', onOk);
             skip.addEventListener('click', onSkip);
             dlg.addEventListener('close', onClose);
-            dlg.showModal();
+            imgDialogCancel = () => cleanup({ alt: suggestedAlt, caption: '' });
+            try {
+                if (dlg.open) dlg.close();
+                dlg.showModal();
+            } catch (e) {
+                cleanup({ alt: suggestedAlt, caption: '' });
+                return;
+            }
             setTimeout(() => altInput.focus(), 30);
         });
     }
@@ -2144,13 +2514,16 @@ html.editing main { padding-top: 0 !important; margin: 0 !important; }
         // land. The caption dialog steals focus + clears the selection
         // during its lifecycle, so reading `body.selectionStart` after
         // the dialog closes would (correctly per browser semantics)
-        // return 0 — the image would insert at the top. Pinning the
-        // position up-front and splicing into `body.value` directly
-        // sidesteps the focus/selection dance.
+        // return 0 — the image would insert at the top. The position is
+        // pinned up-front and passed to insertAtCursor as an explicit
+        // range, which re-focuses before inserting.
         if (!file || !file.type.startsWith('image/')) return false;
         if (pinnedPos == null) pinnedPos = body.selectionStart;
         sourcePane.classList.add('uploading');
         status.textContent = 'uploading ' + file.name + '…';
+        // Full class swap (like markDirty): a lingering is-saved class
+        // would let the 30s saved-text refresher overwrite this label.
+        status.classList.remove('is-saved', 'is-error', 'is-offline');
         status.classList.add('is-dirty');
         const suggestedAlt = file.name.replace(/\.[a-z0-9]+$/i, '').replace(/[-_]+/g, ' ');
         const fd = new FormData();
@@ -2158,9 +2531,14 @@ html.editing main { padding-top: 0 !important; margin: 0 !important; }
         fd.append('alt', suggestedAlt);
         fd.append('slug', slug);
         fd.append('csrfmiddlewaretoken', csrf);
+        // A hung upload must not wedge the status bar in 'uploading…'
+        // forever — abort after 30s and surface the failure.
+        const ctrl = new AbortController();
+        const uploadTimeout = setTimeout(function () { ctrl.abort(); }, 30_000);
         try {
             const r = await fetch('{% url "blog_upload_image" %}', {
                 method: 'POST', body: fd, credentials: 'same-origin',
+                signal: ctrl.signal,
             });
             const data = await r.json();
             if (!r.ok) throw new Error(data.error || r.statusText);
@@ -2181,15 +2559,17 @@ html.editing main { padding-top: 0 !important; margin: 0 !important; }
                 md = '![' + alt + '](' + data.url + ')';
             }
             const payload = '\n\n' + md + '\n\n';
-            body.value = body.value.slice(0, pinnedPos) + payload + body.value.slice(pinnedPos);
-            const caret = pinnedPos + payload.length;
-            body.focus();
-            body.setSelectionRange(caret, caret);
-            body.dispatchEvent(new Event('input', { bubbles: true }));
+            insertAtCursor(payload, null, pinnedPos, pinnedPos);
             status.textContent = 'image inserted — unsaved';
         } catch (e) {
-            status.textContent = 'upload failed: ' + e.message;
+            status.textContent = 'upload failed: ' +
+                (e.name === 'AbortError' ? 'timed out after 30s' : e.message);
+            // Error state: keeps the 30s saved-text refresher from
+            // relabeling a failed upload as 'saved Xm ago'.
+            status.classList.remove('is-dirty', 'is-saved', 'is-offline');
+            status.classList.add('is-error');
         } finally {
+            clearTimeout(uploadTimeout);
             sourcePane.classList.remove('uploading');
         }
         return true;
@@ -2316,19 +2696,69 @@ html.editing main { padding-top: 0 !important; margin: 0 !important; }
     })();
 
     // ── Local-draft restore ─────────────────────────────────────────
+    // A draft is offered when it's at least as new as the server's last
+    // write. The slack is SUBTRACTED: the backup is written at keystroke
+    // time but the server commit lands up to debounce+RTT later, so a
+    // crash inside that window leaves a backup whose ts is BEFORE
+    // modified_at yet holds keystrokes the server never got. Drafts in
+    // the slack window with identical content are filtered by the
+    // body-differs check. Every successful autosave clears the key, so
+    // anything older is stale by definition. 7-day hard TTL regardless.
+    const RESTORE_SLACK_MS = 10000;  // 1.5s debounce + generous RTT + clock skew
+    const serverModifiedMs = {{ post.modified_at|date:'U' }} * 1000;
+    const DRAFT_TTL_MS = 7 * 24 * 3600 * 1000;
+    function wordsIn(t) { return (String(t).trim().match(/\S+/g) || []).length; }
+    function applyDraft(data) {
+        // Full-body replacement is the one legitimate raw `value`
+        // assignment — replacing everything IS the operation. The
+        // input event re-runs dirty tracking, preview, word count.
+        body.value = data.body;
+        if (data.title) form.querySelector('[name=title]').value = data.title;
+        body.dispatchEvent(new Event('input', { bubbles: true }));
+    }
     try {
-        const saved = localStorage.getItem('editor-draft:' + slug);
+        const DRAFT_KEY = 'editor-draft:' + slug;
+        const saved = localStorage.getItem(DRAFT_KEY);
         if (saved) {
             const data = JSON.parse(saved);
-            // Only offer restore if local copy is newer than 30s after page load
-            // and differs from current body — this handles the "I crashed mid-edit" case.
-            if (data && data.body && data.body !== body.value) {
-                const ageMin = Math.round((Date.now() - data.ts) / 60000);
-                if (confirm('Unsaved local draft from ' + ageMin + ' min ago. Restore?')) {
-                    body.value = data.body;
-                    if (data.title) form.querySelector('[name=title]').value = data.title;
-                    markDirty();
+            const fresh = data && data.body && data.ts
+                && data.ts > serverModifiedMs - RESTORE_SLACK_MS
+                && (Date.now() - data.ts) < DRAFT_TTL_MS;
+            if (fresh && data.body !== body.value) {
+                const ageMin = Math.max(1, Math.round((Date.now() - data.ts) / 60000));
+                if (confirm('Local draft from ' + ageMin + ' min ago (' + wordsIn(data.body) +
+                            ' words) is newer than the saved post (' + wordsIn(body.value) +
+                            ' words). Restore it?')) {
+                    applyDraft(data);
                 }
+            }
+            // Restored (autosave re-backs it up on the next change),
+            // declined, or stale — in every case this key is done.
+            localStorage.removeItem(DRAFT_KEY);
+        }
+    } catch (e) {}
+    // Text rescued from a tab that lost the lock: offer non-blocking
+    // recovery via the banner instead of an on-load confirm.
+    try {
+        const LOST_KEY = 'editor-draft-lostlock:' + slug;
+        const lostRaw = localStorage.getItem(LOST_KEY);
+        if (lostRaw) {
+            const lost = JSON.parse(lostRaw);
+            if (lost && lost.body && (Date.now() - (lost.ts || 0)) < DRAFT_TTL_MS
+                    && lost.body !== body.value) {
+                showBanner('lostlock',
+                    'A tab that lost the editor lock left unsaved text (' + wordsIn(lost.body) + ' words).',
+                    'Review & restore',
+                    function () {
+                        if (confirm('Replace the current editor content (' + wordsIn(body.value) +
+                                    ' words) with the rescued text (' + wordsIn(lost.body) + ' words)?')) {
+                            applyDraft(lost);
+                        }
+                        try { localStorage.removeItem(LOST_KEY); } catch (e) {}
+                        hideBanner('lostlock');
+                    });
+            } else {
+                localStorage.removeItem(LOST_KEY);
             }
         }
     } catch (e) {}

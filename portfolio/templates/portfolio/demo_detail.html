@@ -224,6 +224,7 @@ each module guards itself with `if (!root) return;`.
 <script type="module" src="{% static 'portfolio/js/nanoparticle.js' %}"></script>
 {% elif demo.slug == 'depth-estimation' %}
 <script type="module" src="{% static 'portfolio/js/depth-demo.js' %}"></script>
+{% elif demo.slug == 'frozen-forecaster' %}
+<script src="{% static 'portfolio/js/frozen-forecaster.js' %}" defer></script>
 {% endif %}
-{# frozen-forecaster.js is already loaded site-wide from base.html #}
 {% endblock %}

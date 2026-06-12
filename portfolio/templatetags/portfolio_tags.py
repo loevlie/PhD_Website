@@ -52,7 +52,7 @@ def og_image_url(post_slug):
     candidate = os.path.join(dj_settings.BASE_DIR, 'portfolio', 'static', rel)
     if os.path.exists(candidate):
         return f'{dj_settings.STATIC_URL}{rel}'
-    return f'{dj_settings.STATIC_URL}portfolio/images/og-cover.png'
+    return f'{dj_settings.STATIC_URL}portfolio/images/og-cover.jpg'
 
 
 @register.filter

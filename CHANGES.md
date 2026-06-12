@@ -343,3 +343,119 @@ Regular blog posts use the existing minimalist header — no change for them.
 
 **Files:** `portfolio/templates/portfolio/sections/section_rail.html`, `portfolio/templates/portfolio/index.html` (include), `portfolio/static/portfolio/css/layout.css` (rail styles, ≥1024px)
 
+
+---
+
+# Speed + Editor-Robustness Pass — June 2026
+
+One pass over delivery speed, asset weight, and blog-editor robustness.
+Measured before/after in `docs/perf-log.md` (snapshots in
+`docs/perf-snapshots/`, re-runnable via `scripts/perf_snapshot.py`).
+Full test suite (440+ incl. new `test_http_caching`, `test_asset_gating`,
+lock/render-failure/upload-webp suites) and 4 Playwright e2e flows green,
+including the new `scripts/e2e_lock_multitab.py`.
+
+## TL;DR
+
+**HTTP delivery** — dynamic HTML now gzipped (−75% on the wire everywhere),
+ETag/304 revalidation site-wide, Cache-Control on every response
+(anon: `public, max-age=120, stale-while-revalidate=600`; session-holders:
+`private, no-cache`; editor: `no-store`; sitemap/feed/presentations: 1h).
+New `portfolio/middleware.py` (`NoTransformGZipMiddleware` protects the
+ask-SSE stream; `CacheHeadersMiddleware` only fills in missing headers).
+Context processor values are `SimpleLazyObject`-lazy (blog/editor pages no
+longer pay `get_all_posts()` + 6 content lookups per request). Sessions:
+`cached_db` (autosave/heartbeat skip the Neon round-trip). Neon:
+`conn_max_age=600` + health checks. `DailySalt` cached per-day (one fewer
+DB hit per analytics beacon).
+
+**Assets** — og-cover 2.74MB→254KB (portrait kept, JPEG); hero-video
+6.34MB→149KB (480², CRF26); per-post OG cards −52%; unreferenced
+profile.png deleted; frozen-forecaster atlas served as lossless WebP
+(−29%) with PNG fallback, and its 29KB module no longer ships on every
+portfolio page — it now loads exactly where its root exists, **which also
+fixes the standalone /demos/frozen-forecaster/ page (it previously never
+loaded the script)**. A `document.prerendering` guard stops Speculation-
+Rules hover-prerenders from pulling the multi-MB demo data. KaTeX (271KB)
+and pygments.css load only on posts whose rendered HTML contains math/code
+(`has_math`/`has_code` flags computed in `blog._content_flags` from the
+exact string the template renders). main.js deferred; Giscus gets an
+onerror fallback; hero avatar uses <picture>+webp with width/height;
+post covers reserve their box via aspect-ratio (CLS ~0).
+
+**Editor robustness** — the lock now carries a per-render `editor_instance`
+token: same-browser tabs are finally distinguishable, a stale tab gets one
+bounded final write then freezes behind a recovery overlay (its text saved
+under `editor-draft-lostlock:<slug>`), takeover is an explicit click (with
+a confirm on the locked page), and a closing tab can no longer release a
+sibling tab's lock. Autosave: exponential-backoff retries, offline
+awareness, a persistent failure banner after 3 misses, and the
+stale-response race that could delete a newer localStorage backup is
+fixed (change-serial). Heartbeats parse their response; waking from
+laptop sleep re-acquires the lock and flushes pending edits. Explicit-Save
+render failures are no longer swallowed: both Save and Save&view return
+to the editor with a banner instead of a stale public page. All slash/
+dialog/upload insertions route through an execCommand-based
+`insertAtCursor` so Cmd+Z unwinds them. Preview cache is keyed by slug +
+notation (fixes glossary preview parity). Uploads: 30s abort timeout,
+dialog double-open guard, and every PNG/JPEG gets a `.webp` sibling that
+save-time renders serve via `<picture>`. Draft restore only offers drafts
+newer than the server's `modified_at` (the old 30s check was dead code).
+
+## Recorded decisions / non-changes
+
+- **No `cache_page`**: Vary:Cookie fragmentation + un-purgeable keys;
+  warm renders are ~10-30ms. Short browser TTL + swr is the right tool.
+- **No async Pageview queue**: analytics.js needs the returned row id;
+  the real per-beacon cost (DailySalt lookup) is now cached.
+- **No explicit template-loader config**: Django ≥4.1 already wraps the
+  default loaders in `cached.Loader`.
+- **No CSS consolidation/minification**: WhiteNoise already serves brotli
+  twins with immutable hashed names; a second pipeline buys single-digit
+  KB and risks deploy drift.
+- **Lock semantics kept pessimistic** (click-through; never gates saves).
+  The stale-tab fix reports `lock_lost` on the autosave RESPONSE — the
+  write still lands (owner decision: one bounded last write, then freeze).
+- **Upload tests** now run against a temp `MEDIA_ROOT` — test runs no
+  longer litter `media/blog-images/` (209 stale `test_*.png` purged).
+  `e2e_preflight.py` cleans up its uploaded covers (incl. `.webp`
+  siblings) so repeated runs stop accreting suffix-collided files.
+
+## Manual step (Render dashboard — not deployable from the repo)
+
+Change the service start command to:
+
+    gunicorn portfolio_site.wsgi --workers 1 --worker-class gthread --threads 8 --timeout 120
+
+Why: with the default sync worker, one ask-SSE stream or a cold pyfig
+render monopolizes the ONLY worker — every visitor and every editor
+autosave queues behind it. gthread keeps a single process (locmem cache
+and edit locks stay coherent; locmem is RLock-protected, and the editor
+preview LRU — a module-level OrderedDict — is guarded by an explicit
+threading.Lock) while letting 8 requests progress concurrently. Pairs
+with the new `conn_max_age=600` (each thread holds its own pooled Neon
+connection).
+
+## Post-review hardening (same pass)
+
+A 25-agent adversarial review of the diff confirmed 16 findings, all
+fixed: anonymous /accounts/signup/ no longer publicly cacheable (it
+mints a CSRF cookie); Safari bfcache resurrection guarded via
+pageshow+persisted reload; preview LRU thread-safety; upload stem
+reservation so a re-used filename can never pair with another image's
+.webp; stacked-notes columns lazy-load KaTeX/pygments (the host-page
+gates would otherwise leave stacked math unrendered); lock release +
+final autosave beacons moved to pagehide with an `unloading` flag and a
+15s release tombstone (a closing tab can no longer resurrect its own
+lock); wake-from-sleep/back-online flushes await the heartbeat before
+pushing a stale body; draft-restore slack flipped to cover the
+keystroke→commit window; banner kinds stacked by priority (a transient
+autosave failure can't permanently erase the "public page is stale"
+warning); frozen-textarea keydown guards; upload status class swaps;
+takeover failures surfaced inside the overlay; askImageMeta double-open
+race settled cleanly.
+
+Also fixed (latent, pre-existing): settings still used the removed-in-
+Django-5.1 `STATICFILES_STORAGE`/`DEFAULT_FILE_STORAGE` names — migrated
+to the `STORAGES` dict so WhiteNoise's manifest+brotli pipeline survives
+Django upgrades (it was already silently inert on a local Django 5.2).

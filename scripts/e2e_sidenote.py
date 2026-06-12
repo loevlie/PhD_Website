@@ -240,6 +240,30 @@ def run():
                 return 6
             print(f'[ok] preview rendered #fnref:{slug}')
 
+            # Undo-safety: insertion goes through execCommand, so a few
+            # ⌘Z presses must remove BOTH the tag and its definition
+            # line from the textarea (the strip-trigger + tag + def
+            # inserts are separate undo steps, so allow several).
+            page.evaluate(
+                '(sel) => document.querySelector(sel).focus()',
+                'textarea[name="body"]',
+            )
+            undone = False
+            for _ in range(6):
+                page.keyboard.press('Meta+z')
+                time.sleep(0.2)
+                val = ta.input_value()
+                if tag not in val and def_marker not in val:
+                    undone = True
+                    break
+            if not undone:
+                val = ta.input_value()
+                print('[!!] undo did not remove the sidenote insertion')
+                print(f'     tag present: {tag in val} | def present: {def_marker in val}')
+                print('     body tail:', repr(val[-300:]))
+                return 7
+            print('[ok] undo removed tag + definition')
+
             print('\nALL ASSERTIONS PASSED ✓')
             browser.close()
             return 0

@@ -63,15 +63,21 @@ INSTALLED_APPS = [
     'portfolio',
 ]
 
+# Order matters — see the module docstring in portfolio/middleware.py for
+# the full contract (WhiteNoise above GZip; ETags on uncompressed bodies;
+# CacheHeaders last so its response phase runs first).
 MIDDLEWARE = [
     'django.middleware.security.SecurityMiddleware',
     'whitenoise.middleware.WhiteNoiseMiddleware',
+    'portfolio.middleware.NoTransformGZipMiddleware',
+    'django.middleware.http.ConditionalGetMiddleware',
     'django.contrib.sessions.middleware.SessionMiddleware',
     'django.middleware.common.CommonMiddleware',
     'django.middleware.csrf.CsrfViewMiddleware',
     'django.contrib.auth.middleware.AuthenticationMiddleware',
     'django.contrib.messages.middleware.MessageMiddleware',
     'django.middleware.clickjacking.XFrameOptionsMiddleware',
+    'portfolio.middleware.CacheHeadersMiddleware',
 ]
 
 ROOT_URLCONF = 'portfolio_site.urls'
@@ -102,8 +108,13 @@ WSGI_APPLICATION = 'portfolio_site.wsgi.application'
 # Database: use DATABASE_URL env var (Neon PostgreSQL) or SQLite for local dev
 DATABASE_URL = os.environ.get('DATABASE_URL')
 if DATABASE_URL:
+    # conn_max_age=600: Neon connections pay a TLS handshake; reuse them
+    # across requests. conn_health_checks guards against Neon's idle
+    # suspend handing us a dead socket (stale-connection 500s).
     DATABASES = {
-        'default': dj_database_url.parse(DATABASE_URL, conn_max_age=60),
+        'default': dj_database_url.parse(
+            DATABASE_URL, conn_max_age=600, conn_health_checks=True,
+        ),
     }
 else:
     DATABASES = {
@@ -122,14 +133,22 @@ USE_TZ = True
 
 STATIC_URL = 'static/'
 STATIC_ROOT = BASE_DIR / 'staticfiles'
-STATICFILES_STORAGE = 'whitenoise.storage.CompressedManifestStaticFilesStorage'
+
+# STORAGES (Django ≥4.2) replaces the old STATICFILES_STORAGE /
+# DEFAULT_FILE_STORAGE settings — those were REMOVED in Django 5.1 and
+# are silently ignored there, which would quietly disable WhiteNoise's
+# manifest+brotli pipeline on a future Django upgrade.
+STORAGES = {
+    'default': {'BACKEND': 'django.core.files.storage.FileSystemStorage'},
+    'staticfiles': {'BACKEND': 'whitenoise.storage.CompressedManifestStaticFilesStorage'},
+}
 
 # During tests, fall back to the basic static storage so {% static %}
 # lookups don't need a pre-built manifest. Tests assert behavior, not
 # the production storage backend.
 import sys as _sys
 if 'test' in _sys.argv or any('pytest' in a for a in _sys.argv):
-    STATICFILES_STORAGE = 'django.contrib.staticfiles.storage.StaticFilesStorage'
+    STORAGES['staticfiles'] = {'BACKEND': 'django.contrib.staticfiles.storage.StaticFilesStorage'}
 
 # Local in-memory cache. Per-process — Render's free tier runs a single
 # gunicorn worker so this is fine; if/when we scale to multiple workers,
@@ -144,6 +163,13 @@ CACHES = {
         'TIMEOUT': 600,
     }
 }
+
+# Editor traffic (autosave every 1.5s, lock heartbeat, preview, assists)
+# otherwise pays a django_session SELECT against remote Postgres before
+# any view code runs. cached_db serves the read from locmem after the
+# first hit; writes still go to the DB, so restarts cost one re-read,
+# never a logout.
+SESSION_ENGINE = 'django.contrib.sessions.backends.cached_db'
 
 # Webmentions: off by default. Every blog-post view would otherwise eat
 # a 1-2s external round-trip to webmention.io before we got a cached
@@ -174,7 +200,7 @@ MEDIA_ROOT = BASE_DIR / 'media'
 
 R2_BUCKET_NAME = os.environ.get('R2_BUCKET_NAME', '').strip()
 if R2_BUCKET_NAME:
-    DEFAULT_FILE_STORAGE = 'storages.backends.s3boto3.S3Boto3Storage'
+    STORAGES['default'] = {'BACKEND': 'storages.backends.s3boto3.S3Boto3Storage'}
     AWS_STORAGE_BUCKET_NAME = R2_BUCKET_NAME
     AWS_S3_ENDPOINT_URL = os.environ['R2_ENDPOINT_URL']
     AWS_ACCESS_KEY_ID = os.environ['R2_ACCESS_KEY_ID']

@@ -142,9 +142,21 @@ import os, django
 os.environ.setdefault('DJANGO_SETTINGS_MODULE', 'portfolio_site.settings')
 django.setup()
 from django.contrib.auth import get_user_model
+from django.core.files.storage import default_storage
 from portfolio.models import Post, Citation
 
 User = get_user_model()
+# Delete the uploaded cover file (and any .webp sibling) BEFORE the
+# row — repeated runs otherwise accrete suffix-collided copies
+# (e2e_preflight_cover_XXXX.png) in media/ and the prod R2 bucket.
+for p in Post.objects.filter(slug='""" + POST_SLUG + r"""'):
+    cover = getattr(p, 'cover_image', None)
+    if cover and cover.name:
+        for name in (cover.name, cover.name.rsplit('.', 1)[0] + '.webp'):
+            try:
+                default_storage.delete(name)
+            except Exception:
+                pass
 Post.objects.filter(slug='""" + POST_SLUG + r"""').delete()
 User.objects.filter(username='""" + COLLEAGUE_USERNAME + r"""').delete()
 Citation.objects.filter(key='preflight2026demo').delete()

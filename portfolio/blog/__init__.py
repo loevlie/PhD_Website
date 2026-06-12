@@ -709,22 +709,54 @@ def _has_webp_sibling(rel_path):
     return webp_rel if finders.find(webp_rel) else None
 
 
+def _media_webp_sibling(src):
+    """Media (uploaded) counterpart of _has_webp_sibling. `src` is a
+    MEDIA_URL-prefixed URL ('/media/...' in dev, the R2 public domain in
+    prod). Returns the sibling .webp URL when the file exists in
+    default_storage, else None. exists() can be a network HEAD on R2,
+    so results live in the Django cache for an hour — this only ever
+    runs on save-time renders, never on preview keystrokes. The gate is
+    mandatory: a <source> pointing at a 404 does NOT fall back to the
+    <img>."""
+    from django.conf import settings
+    from django.core.cache import cache
+    from django.core.files.storage import default_storage
+
+    media_url = settings.MEDIA_URL or ''
+    if not media_url or not src.startswith(media_url):
+        return None
+    name = src[len(media_url):]
+    webp_name = re.sub(r'\.(png|jpe?g)$', '.webp', name, flags=re.IGNORECASE)
+    if webp_name == name:
+        return None
+    exists = cache.get_or_set(
+        f'webp-sib:{webp_name}',
+        lambda: default_storage.exists(webp_name),
+        3600,
+    )
+    return (media_url + webp_name) if exists else None
+
+
 def _wrap_imgs_with_picture(html):
-    """Wrap each <img src="/static/X.png"> in a <picture> with a WebP source
-    when a sibling X.webp exists. Visitor's browser picks WebP if supported,
-    falls back to the original. ~67% smaller on average across blog images."""
+    """Wrap each <img src="/static/X.png"> (or MEDIA_URL upload) in a
+    <picture> with a WebP source when a sibling X.webp exists. Visitor's
+    browser picks WebP if supported, falls back to the original. ~67%
+    smaller on average across blog images. Editor uploads get their
+    sibling generated at upload time (blog_upload_image)."""
     def repl(m):
         full_tag = m.group(0)
         src = m.group(2)
-        if not src.startswith('/static/'):
+        if src.lower().split('?')[0].endswith('.webp'):
             return full_tag
-        rel = src[len('/static/'):]
-        if rel.lower().endswith('.webp'):
+        webp_url = None
+        if src.startswith('/static/'):
+            rel = src[len('/static/'):]
+            webp_rel = _has_webp_sibling(rel)
+            webp_url = ('/static/' + webp_rel) if webp_rel else None
+        else:
+            webp_url = _media_webp_sibling(src)
+        if not webp_url:
             return full_tag
-        webp_rel = _has_webp_sibling(rel)
-        if not webp_rel:
-            return full_tag
-        webp_url = '/static/' + webp_rel
         return f'<picture><source srcset="{webp_url}" type="image/webp">{full_tag}</picture>'
     return _IMG_RE.sub(repl, html)
 
@@ -733,6 +765,22 @@ def estimate_reading_time(content):
     """Estimate reading time in minutes (200 wpm)."""
     words = len(content.split())
     return max(1, math.ceil(words / 200))
+
+
+def _content_flags(content_html):
+    """Per-post asset-gating flags derived from the exact HTML string the
+    template renders, so they can never drift from the content.
+    `math-display`/`math-inline` are emitted exclusively by
+    _restore_latex; `class="highlight` by CodeHilite(css_class=
+    'highlight'). blog_post.html uses these to skip KaTeX (271KB JS +
+    fonts) and pygments.css on posts that don't need them. Always False
+    for listings (render_html=False → empty content_html), which never
+    extend those template blocks."""
+    return {
+        'has_math': ('class="math-display"' in content_html
+                     or 'class="math-inline"' in content_html),
+        'has_code': 'class="highlight' in content_html,
+    }
 
 
 def _post_to_dict(post_obj, render_html=True):
@@ -830,6 +878,7 @@ def _post_to_dict(post_obj, render_html=True):
         'word_count': len(post_obj.body.split()),
         'modified_at': getattr(post_obj, 'modified_at', None),
         'rendered_at': getattr(post_obj, 'rendered_at', None),
+        **_content_flags(content_html),
     }
 
 
@@ -884,6 +933,7 @@ def _parse_file_post(filepath, render_html=True):
         'toc_html': toc_html,
         'word_count': len(raw_content.split()),
         'modified_at': None,
+        **_content_flags(content_html),
     }
 
 

@@ -56,10 +56,18 @@
                         <div class="avatar-back">
                             {% comment %}Back of the flip card — only visible on hover/tap,
                                so the browser doesn't need this image during the initial
-                               paint. Lazy + async decode lets the page settle without
-                               waiting on a ~400 KB JPEG.{% endcomment %}
-                            <img src="{% static hero.profile_image %}" alt="{{ hero.name }}"
-                                 class="avatar" loading="lazy" decoding="async">
+                               paint. Lazy + async decode lets the page settle. The
+                               <picture>+webp pattern mirrors blog_post.html avatars;
+                               width/height reserve the box (CLS) and the .avatar CSS
+                               object-fit still handles the circle crop.{% endcomment %}
+                            <picture>
+                                {% if hero.profile_image_webp %}
+                                <source srcset="{% static hero.profile_image_webp %}" type="image/webp">
+                                {% endif %}
+                                <img src="{% static hero.profile_image %}" alt="{{ hero.name }}"
+                                     class="avatar" loading="lazy" decoding="async"
+                                     width="450" height="600">
+                            </picture>
                         </div>
                     </div>
                 </div>

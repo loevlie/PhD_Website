@@ -262,7 +262,12 @@
                 if (!r.ok) throw new Error('configs.json HTTP ' + r.status);
                 return r.json();
             }),
-            loadImageData(DATA_URL + 'atlas.png'),
+            // Lossless WebP decodes to pixel-identical data (the R+G
+            // channel lookup below depends on exactness) at ~70% of the
+            // PNG bytes; fall back to the PNG on any decode/404 failure.
+            loadImageData(DATA_URL + 'atlas.webp').catch(function () {
+                return loadImageData(DATA_URL + 'atlas.png');
+            }),
         ]).then(function (parts) {
             var meta = parts[0], atlas = parts[1];
             var N = meta.n_configs, G = meta.tile_size, C = meta.atlas_cols;
@@ -635,17 +640,30 @@
     if (moonsBtn) moonsBtn.classList.add('active');
     preset('moons');
     // Lazy-load the cached real-model atlas only when the user scrolls within
-    // 500 px of the demo. Saves a 5 MB download for visitors who never reach
-    // #demos. evalGrid() stays on the KDE/1-NN fallback until the atlas hydrates.
-    if ('IntersectionObserver' in window) {
-        var observer = new IntersectionObserver(function (entries) {
-            if (entries[0].isIntersecting) {
-                observer.disconnect();
-                loadFFData();
-            }
-        }, { rootMargin: '500px 0px' });
-        observer.observe(root);
+    // 500 px of the demo. Saves a multi-MB download for visitors who never
+    // reach the demo. evalGrid() stays on the KDE/1-NN fallback until the
+    // atlas hydrates.
+    function armLoader() {
+        if ('IntersectionObserver' in window) {
+            var observer = new IntersectionObserver(function (entries) {
+                if (entries[0].isIntersecting) {
+                    observer.disconnect();
+                    loadFFData();
+                }
+            }, { rootMargin: '500px 0px' });
+            observer.observe(root);
+        } else {
+            setTimeout(loadFFData, 500);
+        }
+    }
+    // Speculation-Rules prerenders this page at scroll 0, where the demo
+    // root is already within the 500px rootMargin — without this guard a
+    // hover-prerender pulls the full atlas for a page the user may never
+    // open. Arm only once the prerender is activated (or immediately in
+    // browsers without prerendering, where the flag is undefined).
+    if (document.prerendering) {
+        document.addEventListener('prerenderingchange', armLoader, { once: true });
     } else {
-        setTimeout(loadFFData, 500);
+        armLoader();
     }
 })();

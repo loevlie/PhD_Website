@@ -1,13 +1,24 @@
 """Editor endpoints: blog_edit, blog_autosave, blog_preview, blog_new,
 blog_upload_image. All require staff auth."""
 import io
+import re
+import tempfile
 
+from django.core.cache import cache
 from django.core.files.uploadedfile import SimpleUploadedFile
-from django.test import TestCase
+from django.test import TestCase, override_settings
 
 from portfolio.models import Post
 
 from ._helpers import StaffClientMixin, make_post
+
+# Smallest valid PNG: 1x1 transparent. Shared by the upload tests.
+MINIMAL_PNG = (
+    b'\x89PNG\r\n\x1a\n\x00\x00\x00\rIHDR'
+    b'\x00\x00\x00\x01\x00\x00\x00\x01\x08\x06\x00\x00\x00'
+    b'\x1f\x15\xc4\x89\x00\x00\x00\rIDATx\x9cc\x00\x01'
+    b'\x00\x00\x05\x00\x01\r\n-\xb4\x00\x00\x00\x00IEND\xaeB`\x82'
+)
 
 
 class BlogEditTests(StaffClientMixin, TestCase):
@@ -49,6 +60,222 @@ class BlogEditTests(StaffClientMixin, TestCase):
         })
         self.assertEqual(r.status_code, 302)
         self.assertIn(f'/blog/{post.slug}/', r.headers['Location'])
+
+
+class BlogEditLockTests(StaffClientMixin, TestCase):
+    """Click-through lock with per-render instance tokens.
+
+    Invariants under guard:
+      - the lock gates GET only — POST saves and autosaves ALWAYS persist;
+      - a tab whose instance no longer matches the lock is told so
+        (lock_lost) but never blocked;
+      - clients that don't send editor_instance (old pages, e2e scripts)
+        see no new response keys.
+    """
+
+    def setUp(self):
+        super().setUp()
+        cache.clear()  # locmem persists across tests in-process
+
+    def _open_editor(self, slug):
+        """GET the editor and return the minted instance token."""
+        r = self.staff_client.get(f'/blog/{slug}/edit/')
+        self.assertEqual(r.status_code, 200)
+        m = re.search(r'name="editor_instance" value="([^"]+)"', r.content.decode())
+        self.assertIsNotNone(m, 'editor page must embed an instance token')
+        return m.group(1)
+
+    def test_editor_get_sets_no_store(self):
+        post = make_post(slug='lock-nostore')
+        r = self.staff_client.get(f'/blog/{post.slug}/edit/')
+        self.assertEqual(r['Cache-Control'], 'no-store')
+
+    def test_two_renders_mint_distinct_instances(self):
+        post = make_post(slug='lock-two-tabs')
+        inst_a = self._open_editor(post.slug)
+        inst_b = self._open_editor(post.slug)
+        self.assertNotEqual(inst_a, inst_b)
+
+    def test_heartbeat_states(self):
+        post = make_post(slug='lock-heartbeat')
+        inst_a = self._open_editor(post.slug)
+        inst_b = self._open_editor(post.slug)  # B now holds the lock
+        url = f'/blog/{post.slug}/edit/heartbeat/'
+        # Stale tab A: lock belongs to a sibling instance.
+        d = self.staff_client.post(url, {'editor_instance': inst_a}).json()
+        self.assertEqual(d['lock'], 'other')
+        self.assertTrue(d['same_user'])
+        # Holding tab B: refresh succeeds.
+        d = self.staff_client.post(url, {'editor_instance': inst_b}).json()
+        self.assertEqual(d['lock'], 'ours')
+        # Lock gone entirely (TTL lapse) → re-acquired.
+        cache.clear()
+        d = self.staff_client.post(url, {'editor_instance': inst_b}).json()
+        self.assertEqual(d['lock'], 'acquired')
+
+    def test_takeover_action_reclaims_lock(self):
+        post = make_post(slug='lock-takeover')
+        inst_a = self._open_editor(post.slug)
+        self._open_editor(post.slug)  # B steals
+        url = f'/blog/{post.slug}/edit/heartbeat/'
+        d = self.staff_client.post(url, {'editor_instance': inst_a, 'action': 'takeover'}).json()
+        self.assertEqual(d['lock'], 'acquired')
+        d = self.staff_client.post(url, {'editor_instance': inst_a}).json()
+        self.assertEqual(d['lock'], 'ours')
+
+    def test_release_from_stale_tab_keeps_sibling_lock(self):
+        # Regression guard: a closing stale tab's release beacon used to
+        # free the sibling tab's lock (both share the session tab_token).
+        post = make_post(slug='lock-release')
+        inst_a = self._open_editor(post.slug)
+        inst_b = self._open_editor(post.slug)  # B holds
+        url = f'/blog/{post.slug}/edit/heartbeat/'
+        self.staff_client.post(url, {'editor_instance': inst_a, 'action': 'release'})
+        d = self.staff_client.post(url, {'editor_instance': inst_b}).json()
+        self.assertEqual(d['lock'], 'ours', 'stale release must not free the holder')
+        # A matching release DOES free it — and the tombstone stops the
+        # releasing instance's own straggling heartbeat from silently
+        # re-acquiring (it reports 'other'; the lock stays free).
+        self.staff_client.post(url, {'editor_instance': inst_b, 'action': 'release'})
+        d = self.staff_client.post(url, {'editor_instance': inst_b}).json()
+        self.assertEqual(d['lock'], 'other')
+        self.assertIsNone(cache.get(f'edit_lock:{post.slug}'))
+        # A fresh editor render (new instance) acquires normally.
+        inst_c = self._open_editor(post.slug)
+        d = self.staff_client.post(url, {'editor_instance': inst_c}).json()
+        self.assertEqual(d['lock'], 'ours')
+
+    def test_autosave_from_stale_tab_persists_and_reports_lock_lost(self):
+        post = make_post(slug='lock-autosave', title='before')
+        inst_a = self._open_editor(post.slug)
+        self._open_editor(post.slug)  # B holds the lock now
+        r = self.staff_client.post(f'/blog/{post.slug}/autosave/', {
+            'title': 'stale tab wrote this', 'editor_instance': inst_a,
+        })
+        self.assertEqual(r.status_code, 200)
+        d = r.json()
+        self.assertTrue(d['ok'])
+        self.assertTrue(d['lock_lost'])
+        self.assertTrue(d['same_user'])
+        post.refresh_from_db()
+        # The one bounded final write still lands — lock never gates saves.
+        self.assertEqual(post.title, 'stale tab wrote this')
+
+    def test_autosave_from_holder_refreshes_without_lock_lost(self):
+        post = make_post(slug='lock-autosave-holder')
+        inst = self._open_editor(post.slug)
+        r = self.staff_client.post(f'/blog/{post.slug}/autosave/', {
+            'title': 'fresh', 'editor_instance': inst,
+        })
+        self.assertNotIn('lock_lost', r.json())
+
+    def test_autosave_without_instance_has_no_new_keys(self):
+        post = make_post(slug='lock-backcompat')
+        self._open_editor(post.slug)
+        r = self.staff_client.post(f'/blog/{post.slug}/autosave/', {'title': 'X'})
+        self.assertEqual(sorted(r.json().keys()), ['ok', 'saved_at'])
+
+    def test_explicit_save_proceeds_regardless_of_lock(self):
+        # The lock NEVER gates a POST save — recorded design decision.
+        from django.core.cache import cache as _cache
+        post = make_post(slug='lock-save-anyway', title='before')
+        _cache.set(f'edit_lock:{post.slug}', {
+            'user_id': 999999, 'username': 'someone-else',
+            'tab_token': 'foreign', 'instance': 'foreign-inst',
+            'acquired_at': 0, 'last_heartbeat': 0,
+        }, 120)
+        r = self.staff_client.post(f'/blog/{post.slug}/edit/', {
+            'title': 'saved anyway', 'body': 'content', 'action': 'save',
+        })
+        self.assertEqual(r.status_code, 302)
+        post.refresh_from_db()
+        self.assertEqual(post.title, 'saved anyway')
+
+    def test_release_tombstone_blocks_straggling_beacons(self):
+        # A closing dirty tab fires its release beacon and final autosave
+        # beacon concurrently. If the autosave lands second it must NOT
+        # re-acquire the lock for the dead tab.
+        post = make_post(slug='lock-tombstone')
+        inst = self._open_editor(post.slug)
+        self.staff_client.post(f'/blog/{post.slug}/edit/heartbeat/',
+                               {'editor_instance': inst, 'action': 'release'})
+        r = self.staff_client.post(f'/blog/{post.slug}/autosave/', {
+            'title': 'final flush', 'editor_instance': inst,
+        })
+        self.assertTrue(r.json()['ok'])  # the write itself still lands
+        self.assertIsNone(cache.get(f'edit_lock:{post.slug}'),
+                          'dead tab must not resurrect the released lock')
+        post.refresh_from_db()
+        self.assertEqual(post.title, 'final flush')
+
+    def test_unloading_flush_never_refreshes_lock(self):
+        # The pagehide flush carries unloading=1 — even while the lock is
+        # held, a final flush must not extend/refresh it.
+        post = make_post(slug='lock-unloading')
+        inst = self._open_editor(post.slug)
+        cache.delete(f'edit_lock:{post.slug}')  # simulate TTL lapse
+        r = self.staff_client.post(f'/blog/{post.slug}/autosave/', {
+            'title': 'unload flush', 'editor_instance': inst, 'unloading': '1',
+        })
+        self.assertTrue(r.json()['ok'])
+        self.assertIsNone(cache.get(f'edit_lock:{post.slug}'),
+                          'unloading flush must not re-acquire the lock')
+
+    def test_locked_page_for_other_session(self):
+        # A different browser session (different tab_token) hits the
+        # locked screen instead of the editor.
+        from ._helpers import make_staff_user
+        from django.test import Client
+        post = make_post(slug='lock-other-session')
+        self._open_editor(post.slug)
+        other = Client()
+        other.force_login(make_staff_user(username='second-staff'))
+        r = other.get(f'/blog/{post.slug}/edit/')
+        self.assertEqual(r.status_code, 200)
+        self.assertTemplateUsed(r, 'portfolio/blog_edit_locked.html')
+
+
+class BlogEditRenderFailureTests(StaffClientMixin, TestCase):
+    """Explicit-Save render failures must be surfaced, never swallowed:
+    the body save still commits, but the author is returned to the
+    editor with ?render_failed=1 instead of (worse) a stale public page."""
+
+    def _post_with_broken_render(self, slug, action):
+        from unittest.mock import patch
+        with patch('portfolio.blog.render_markdown', side_effect=RuntimeError('boom')):
+            return self.staff_client.post(f'/blog/{slug}/edit/', {
+                'title': 'saved despite render crash',
+                'body': 'new body',
+                'action': action,
+            })
+
+    def test_save_redirects_with_flag_and_persists(self):
+        post = make_post(slug='render-fail-save', title='before')
+        r = self._post_with_broken_render(post.slug, 'save')
+        self.assertEqual(r.status_code, 302)
+        self.assertEqual(r.headers['Location'], f'/blog/{post.slug}/edit/?render_failed=1')
+        post.refresh_from_db()
+        self.assertEqual(post.title, 'saved despite render crash')
+
+    def test_save_and_view_returns_to_editor_not_stale_page(self):
+        post = make_post(slug='render-fail-view')
+        r = self._post_with_broken_render(post.slug, 'view')
+        self.assertEqual(r.status_code, 302)
+        self.assertIn('/edit/?render_failed=1', r.headers['Location'])
+
+    def test_flag_renders_banner(self):
+        post = make_post(slug='render-fail-banner')
+        r = self.staff_client.get(f'/blog/{post.slug}/edit/?render_failed=1')
+        self.assertContains(r, 'render failed')
+
+    def test_clean_save_keeps_existing_redirects(self):
+        post = make_post(slug='render-ok')
+        r = self.staff_client.post(f'/blog/{post.slug}/edit/', {
+            'title': 'X', 'body': 'Y', 'action': 'view',
+        })
+        self.assertEqual(r.status_code, 302)
+        self.assertIn(f'/blog/{post.slug}/', r.headers['Location'])
+        self.assertNotIn('render_failed', r.headers['Location'])
 
 
 class BlogAutosaveTests(StaffClientMixin, TestCase):
@@ -186,6 +413,28 @@ class BlogPreviewTests(StaffClientMixin, TestCase):
         self.assertEqual(t2, 'render;dur=0')
         self.assertEqual(r1.json()['html'], r2.json()['html'])
 
+    def test_preview_notation_parity_and_slug_scoped_cache(self):
+        # Two posts with IDENTICAL bodies but different Post.notation
+        # must get different previews — the cache key includes the slug
+        # and a notation hash, and the preview populates the glossary
+        # exactly like the published page (preview/published parity).
+        body = '# T\n\n<div data-notation>\n</div>\n'
+        a = make_post(slug='notation-a', body=body)
+        a.notation = [{'term': 'α', 'definition': 'alpha-def-only-in-a', 'kind': 'text'}]
+        a.save()
+        b = make_post(slug='notation-b', body=body)
+        b.notation = [{'term': 'β', 'definition': 'beta-def-only-in-b', 'kind': 'text'}]
+        b.save()
+        ra = self.staff_client.post('/blog/preview/', {
+            'body': body, 'is_explainer': 'false', 'slug': a.slug,
+        }).json()['html']
+        rb = self.staff_client.post('/blog/preview/', {
+            'body': body, 'is_explainer': 'false', 'slug': b.slug,
+        }).json()['html']
+        self.assertIn('alpha-def-only-in-a', ra)
+        self.assertNotIn('beta-def-only-in-b', ra)
+        self.assertIn('beta-def-only-in-b', rb)
+
     def test_preview_keeps_cheap_embeds(self):
         # Cheap, pure-Python embeds (notation, repro) should still render
         # fully — the fast-path only strips network/compute-heavy ones.
@@ -246,21 +495,78 @@ class BlogNewTests(StaffClientMixin, TestCase):
         self.assertIn('/accounts/login/', r.headers['Location'])
 
 
+# Uploads land in a throwaway MEDIA_ROOT — without this, every test run
+# left test_*.png clutter in the real media/blog-images tree.
+@override_settings(MEDIA_ROOT=tempfile.mkdtemp(prefix='test-media-'))
 class BlogUploadImageTests(StaffClientMixin, TestCase):
+    def setUp(self):
+        super().setUp()
+        cache.clear()  # webp-sib:* entries must not leak between tests
+
     def test_upload_returns_markdown_snippet(self):
-        # Smallest valid PNG: 1x1 transparent
-        png_bytes = (
-            b'\x89PNG\r\n\x1a\n\x00\x00\x00\rIHDR'
-            b'\x00\x00\x00\x01\x00\x00\x00\x01\x08\x06\x00\x00\x00'
-            b'\x1f\x15\xc4\x89\x00\x00\x00\rIDATx\x9cc\x00\x01'
-            b'\x00\x00\x05\x00\x01\r\n-\xb4\x00\x00\x00\x00IEND\xaeB`\x82'
-        )
-        f = SimpleUploadedFile('test.png', png_bytes, content_type='image/png')
+        f = SimpleUploadedFile('test.png', MINIMAL_PNG, content_type='image/png')
         r = self.staff_client.post('/blog/upload-image/', {'image': f, 'alt': 'test'})
         self.assertEqual(r.status_code, 200)
         data = r.json()
         self.assertIn('![test]', data['markdown'])
         self.assertIn('blog-images', data['url'])
+
+    def test_upload_generates_webp_sibling(self):
+        from django.core.files.storage import default_storage
+        f = SimpleUploadedFile('sibling.png', MINIMAL_PNG, content_type='image/png')
+        r = self.staff_client.post('/blog/upload-image/', {'image': f})
+        self.assertEqual(r.status_code, 200)
+        saved = r.json()['filename']
+        webp = saved.rsplit('.', 1)[0] + '.webp'
+        self.assertTrue(default_storage.exists(webp),
+                        'PNG upload must produce a .webp sibling')
+
+    def test_upload_survives_webp_failure(self):
+        # The sibling is best-effort — a Pillow crash must never fail
+        # the upload itself, and no sibling may be left behind.
+        from unittest.mock import patch
+        from django.core.files.storage import default_storage
+        f = SimpleUploadedFile('nowebp.png', MINIMAL_PNG, content_type='image/png')
+        with patch('PIL.Image.open', side_effect=OSError('decoder boom')):
+            r = self.staff_client.post('/blog/upload-image/', {'image': f})
+        self.assertEqual(r.status_code, 200)
+        saved = r.json()['filename']
+        self.assertEqual(sorted(r.json().keys()), ['filename', 'markdown', 'url'])
+        self.assertFalse(default_storage.exists(saved.rsplit('.', 1)[0] + '.webp'))
+
+    def test_same_stem_different_ext_never_pairs_with_wrong_webp(self):
+        # foo.png then foo.jpg: the jpg must get its own stem (and its
+        # own sibling) — deriving foo.webp from foo_Xy.jpg's name space
+        # could otherwise pair the jpg with the PNG's webp.
+        import io
+        from PIL import Image
+        from django.core.files.storage import default_storage
+        f1 = SimpleUploadedFile('shared-stem.png', MINIMAL_PNG, content_type='image/png')
+        name1 = self.staff_client.post('/blog/upload-image/', {'image': f1}).json()['filename']
+        buf = io.BytesIO()
+        Image.new('RGB', (5, 5), 'red').save(buf, 'JPEG')
+        f2 = SimpleUploadedFile('shared-stem.jpg', buf.getvalue(), content_type='image/jpeg')
+        name2 = self.staff_client.post('/blog/upload-image/', {'image': f2}).json()['filename']
+        stem1 = name1.rsplit('.', 1)[0]
+        stem2 = name2.rsplit('.', 1)[0]
+        self.assertNotEqual(stem1, stem2, 'second upload must get a fresh stem')
+        self.assertTrue(default_storage.exists(stem2 + '.webp'),
+                        "jpg's own webp sibling must exist under its stem")
+
+    def test_media_img_wrapped_in_picture_on_save_render_not_preview(self):
+        # Save-time renders wrap MEDIA_URL images that have a .webp
+        # sibling in <picture>; the preview hot path never does (no
+        # storage I/O per keystroke).
+        from portfolio.blog import render_markdown
+        f = SimpleUploadedFile('wrapme.png', MINIMAL_PNG, content_type='image/png')
+        url = self.staff_client.post('/blog/upload-image/', {'image': f}).json()['url']
+        body = f'![pic]({url})'
+        html, _ = render_markdown(body, preview=False)
+        self.assertIn('<picture><source srcset=', html)
+        self.assertIn('.webp', html.split('<img', 1)[0])
+        cache.clear()
+        preview_html, _ = render_markdown(body, preview=True)
+        self.assertNotIn('<picture>', preview_html)
 
     def test_upload_rejects_non_image(self):
         f = SimpleUploadedFile('evil.exe', b'MZsomeexe', content_type='application/x-executable')

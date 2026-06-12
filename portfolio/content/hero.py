@@ -26,6 +26,9 @@ HERO = {
         '<a href="https://www.wvu.edu/" target="_blank">West Virginia University</a>.'
     ),
     'profile_image': 'portfolio/images/me_in_nola.jpeg',
+    # WebP sibling for the <picture> source in sections/hero.html —
+    # ~35% smaller; the jpeg stays as the universal fallback.
+    'profile_image_webp': 'portfolio/images/me_in_nola.webp',
     'interests': [
         'Generative AI',
         'Multimodal Foundation Models',

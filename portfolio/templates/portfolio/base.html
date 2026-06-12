@@ -13,12 +13,12 @@
     <!-- Open Graph / social sharing -->
     <meta property="og:title" content="{{ hero.name }} — {{ hero.title }}">
     <meta property="og:description" content="{{ hero.title }} at {{ hero.affiliation }}. Research in tabular foundation models.">
-    <meta property="og:image" content="{% static 'portfolio/images/og-cover.png' %}">
+    <meta property="og:image" content="{% static 'portfolio/images/og-cover.jpg' %}">
     <meta property="og:type" content="website">
     <meta name="twitter:card" content="summary_large_image">
     <meta name="twitter:title" content="{{ hero.name }} — {{ hero.title }}">
     <meta name="twitter:description" content="{{ hero.title }} at {{ hero.affiliation }}. Research in tabular foundation models.">
-    <meta name="twitter:image" content="{% static 'portfolio/images/og-cover.png' %}">
+    <meta name="twitter:image" content="{% static 'portfolio/images/og-cover.jpg' %}">
 
     {% comment %}
     Site-wide Person JSON-LD. Lets AI search (Perplexity / Google AI Overviews / ChatGPT Search)
@@ -33,7 +33,7 @@
         "name": "{{ hero.name }}",
         "alternateName": "Dennis Løvlie",
         "url": "{{ request.scheme }}://{{ request.get_host }}/",
-        "image": "{{ request.scheme }}://{{ request.get_host }}{% static 'portfolio/images/og-cover.png' %}",
+        "image": "{{ request.scheme }}://{{ request.get_host }}{% static 'portfolio/images/og-cover.jpg' %}",
         "jobTitle": "{{ hero.title }}",
         "affiliation": [
             { "@type": "Organization", "name": "Centrum Wiskunde & Informatica (CWI)", "url": "https://www.cwi.nl/" },
@@ -232,8 +232,9 @@
         hero.addEventListener('mousemove', onMove, { passive: true });
     })();
     </script>
-    <script src="{% static 'portfolio/js/main.js' %}"></script>
-    <script src="{% static 'portfolio/js/frozen-forecaster.js' %}" defer></script>
+    <script src="{% static 'portfolio/js/main.js' %}" defer></script>
+    {% comment %}frozen-forecaster.js is loaded only where its root element can
+       exist: demo_detail.html, sections/demos.html, and gated blog posts.{% endcomment %}
     {% comment %}Top progress bar — same script as blog. Reveals only for navigations
        slower than 150ms, so prerendered/cached jumps stay flicker-free.{% endcomment %}
     <script src="{% static 'portfolio/js/nav-progress.js' %}" defer></script>

@@ -130,9 +130,11 @@ def blog_edit(request, slug):
     if not _can_edit(request, post=post):
         return redirect(f'/accounts/login/?next=/blog/{slug}/edit/')
 
-    # Per-tab token so the same user in two tabs counts as two editors
-    # (split-window scenario). Session-scoped so it persists across
-    # reloads within a tab.
+    # Session-scoped token: distinguishes this BROWSER (all its tabs)
+    # from other browsers/users. Tab-level granularity comes from the
+    # per-render editor_instance token below — two tabs of the same
+    # browser share this session token, so they'd otherwise be
+    # indistinguishable.
     tab_token = request.session.get('editor_tab_token')
     if not tab_token:
         import secrets
@@ -140,6 +142,7 @@ def blog_edit(request, slug):
         request.session['editor_tab_token'] = tab_token
 
     # Lock check applies to GET only — POST saves always proceed.
+    editor_instance = ''
     if request.method == 'GET':
         holder = _read_edit_lock(slug)
         mine = holder and _lock_is_ours(holder, request, tab_token)
@@ -150,8 +153,13 @@ def blog_edit(request, slug):
                 'lock': holder,
                 'age_s': max(0, int(timezone.now().timestamp() - holder['acquired_at'])),
             })
-        # Either free, ours, or taking over — claim it and render.
-        _write_edit_lock(slug, request, tab_token, fresh=not mine)
+        # Either free, ours, or taking over — claim it and render. The
+        # per-render instance token makes THIS tab the lock holder; a
+        # sibling tab's autosaves will see lock_lost and freeze.
+        import secrets
+        editor_instance = secrets.token_urlsafe(10)
+        _write_edit_lock(slug, request, tab_token, fresh=not mine,
+                         instance=editor_instance)
 
     if request.method == 'POST':
         _apply_post_fields(post, request.POST, files=request.FILES)
@@ -170,6 +178,7 @@ def blog_edit(request, slug):
         # reflects what the author just typed. Errors in individual
         # pyfig blocks still render as inline error banners — the
         # surrounding prose still gets through.
+        render_failed = False
         try:
             from portfolio.blog import render_markdown
             from portfolio.models import Post as _Post
@@ -188,14 +197,27 @@ def blog_edit(request, slug):
             )
         except Exception:
             # Save of `post.body` already committed above; a render
-            # failure here shouldn't block the redirect. Live-render
-            # fallback in get_post() picks up the slack.
-            pass
+            # failure shouldn't block the redirect — but it must not be
+            # invisible either: the public page is now stale relative
+            # to what the author just saved.
+            import logging
+            logging.getLogger(__name__).exception(
+                'explicit-save render failed for %s', post.slug)
+            render_failed = True
 
         # Bust the get_all_posts listing cache so the listing
         # surfaces the fresh post immediately. Idempotent; cheap.
         from portfolio.blog import invalidate_post_cache
         invalidate_post_cache()
+
+        if render_failed:
+            # Both Save and Save&view return to the editor with a
+            # banner — sending the author to a stale public page is
+            # exactly the confusion being avoided. Retry = Save again.
+            from django.http import HttpResponseRedirect
+            from django.urls import reverse
+            return HttpResponseRedirect(
+                f'{reverse("blog_edit", args=[post.slug])}?render_failed=1')
 
         if request.POST.get('action') == 'view':
             # Cache-bust the redirect target so a mid-session browser
@@ -211,9 +233,14 @@ def blog_edit(request, slug):
             return resp
         return redirect('blog_edit', slug=post.slug)
 
-    return render(request, 'portfolio/blog_edit.html', _edit_context(
+    resp = render(request, 'portfolio/blog_edit.html', _edit_context(
         post, tag_csv=', '.join(t.name for t in post.tags.all()),
+        editor_instance=editor_instance,
     ))
+    # Never let the editor form itself be cached or bfcache-restored —
+    # a stale form body would silently overwrite newer content on save.
+    resp['Cache-Control'] = 'no-store'
+    return resp
 
 
 # ── Edit-lock helpers ───────────────────────────────────────────────
@@ -239,45 +266,69 @@ def _read_edit_lock(slug: str):
 
 
 def _lock_is_ours(lock: dict, request, tab_token: str) -> bool:
-    """A lock is 'ours' if the same authed user holds it AND it's the
-    same browser tab (tab_token). Two tabs of the same user count as
-    two sessions — split-window reality."""
+    """A lock is 'ours' if the same authed user holds it from the same
+    browser session (tab_token is session-scoped). Tab-level identity
+    is the lock's `instance` field — a token minted per editor render."""
     return (
         lock.get('user_id') == request.user.pk
         and lock.get('tab_token') == tab_token
     )
 
 
-def _write_edit_lock(slug: str, request, tab_token: str, fresh=False):
+def _write_edit_lock(slug: str, request, tab_token: str, fresh=False, instance=None):
     """Claim or refresh the lock. `fresh=True` resets `acquired_at` —
-    used when the caller is taking over from someone else."""
+    used when the caller is taking over from someone else. `instance`
+    stamps the holding tab; None preserves the existing instance on a
+    refresh (heartbeats don't re-mint tab identity)."""
     from django.core.cache import cache
     now_ts = timezone.now().timestamp()
     existing = cache.get(_lock_key(slug))
     if not fresh and existing and _lock_is_ours(existing, request, tab_token):
         acquired_at = existing.get('acquired_at', now_ts)
+        if instance is None:
+            instance = existing.get('instance')
     else:
         acquired_at = now_ts
     cache.set(_lock_key(slug), {
         'user_id': request.user.pk,
         'username': request.user.username,
         'tab_token': tab_token,
+        'instance': instance or '',
         'acquired_at': acquired_at,
         'last_heartbeat': now_ts,
     }, timeout=_LOCK_TTL_SECONDS)
 
 
-def _release_edit_lock(slug: str, request, tab_token: str):
+def _release_edit_lock(slug: str, request, tab_token: str, instance=''):
+    """Release, but only if the caller's tab actually holds the lock.
+    The instance check stops a closing stale tab's release beacon from
+    freeing a sibling tab's lock (both share the session tab_token).
+
+    A short tombstone records WHICH instance just released: a closing
+    dirty tab fires its release beacon and its final autosave beacon
+    concurrently, and if the autosave lands second its lock-refresh
+    would re-acquire the lock for a dead tab for the full TTL."""
     from django.core.cache import cache
     existing = cache.get(_lock_key(slug))
-    if existing and _lock_is_ours(existing, request, tab_token):
-        cache.delete(_lock_key(slug))
+    if not (existing and _lock_is_ours(existing, request, tab_token)):
+        return
+    held = existing.get('instance') or ''
+    if held and instance and held != instance:
+        return
+    cache.delete(_lock_key(slug))
+    if held or instance:
+        cache.set(f'edit_lock_released:{slug}', held or instance, timeout=15)
 
 
 def blog_edit_heartbeat(request, slug):
     """POST /blog/<slug>/edit/heartbeat/ — client pings every 60s to
     refresh the TTL. Also used to release on unload (body
-    {action: 'release'}). Silent no-op if someone else holds the lock."""
+    {action: 'release'}) and to reclaim the lock for a tab that lost it
+    (body {action: 'takeover'}).
+
+    Response shape: {ok: true, lock: 'ours'|'other'|'acquired',
+    holder?, same_user?} — the client uses `lock` to drive the
+    lost-lock overlay and wake-from-sleep recovery."""
     if request.method != 'POST':
         return JsonResponse({'ok': False, 'error': 'POST required'}, status=405)
     from portfolio.models import Post
@@ -290,18 +341,45 @@ def blog_edit_heartbeat(request, slug):
     tab_token = request.session.get('editor_tab_token')
     if not tab_token:
         return JsonResponse({'ok': False, 'error': 'no session token'}, status=400)
+    instance = request.POST.get('editor_instance', '')
     if request.POST.get('action') == 'release':
-        _release_edit_lock(slug, request, tab_token)
+        _release_edit_lock(slug, request, tab_token, instance=instance)
         return JsonResponse({'ok': True, 'released': True})
-    # Refresh the TTL but don't STEAL if someone else is the holder.
+    if request.POST.get('action') == 'takeover':
+        # Explicit user gesture from the lost-lock overlay — reclaim.
+        _write_edit_lock(slug, request, tab_token, fresh=True, instance=instance)
+        return JsonResponse({'ok': True, 'lock': 'acquired'})
     holder = _read_edit_lock(slug)
-    if holder and not _lock_is_ours(holder, request, tab_token):
-        return JsonResponse({'ok': True, 'note': 'not lock holder — skipping refresh'})
-    _write_edit_lock(slug, request, tab_token)
-    return JsonResponse({'ok': True})
+    if holder is None:
+        # TTL lapsed (laptop sleep, blocked heartbeats) — re-acquire.
+        # Unless THIS instance just released (straggling heartbeat from
+        # a closing tab racing its own release beacon).
+        from django.core.cache import cache as _cache
+        if instance and _cache.get(f'edit_lock_released:{slug}') == instance:
+            return JsonResponse({'ok': True, 'lock': 'other', 'holder': '',
+                                 'same_user': True})
+        _write_edit_lock(slug, request, tab_token, fresh=True, instance=instance)
+        return JsonResponse({'ok': True, 'lock': 'acquired'})
+    if not _lock_is_ours(holder, request, tab_token):
+        # Another user/browser holds it — don't steal.
+        return JsonResponse({
+            'ok': True, 'lock': 'other',
+            'holder': holder.get('username', ''),
+            'same_user': holder.get('user_id') == request.user.pk,
+        })
+    held_instance = holder.get('instance') or ''
+    if held_instance and instance and held_instance != instance:
+        # A sibling tab of the same browser claimed the lock.
+        return JsonResponse({
+            'ok': True, 'lock': 'other',
+            'holder': holder.get('username', ''),
+            'same_user': True,
+        })
+    _write_edit_lock(slug, request, tab_token, instance=instance or None)
+    return JsonResponse({'ok': True, 'lock': 'ours'})
 
 
-def _edit_context(post, tag_csv=''):
+def _edit_context(post, tag_csv='', editor_instance=''):
     """Shared context builder for the editor template."""
     import json as _json
     return {
@@ -310,6 +388,7 @@ def _edit_context(post, tag_csv=''):
         'tag_csv': tag_csv,
         'demos': DEMOS,
         'notation_json': _json.dumps(post.notation or []),
+        'editor_instance': editor_instance,
     }
 
 
@@ -332,10 +411,10 @@ def blog_autosave(request, slug):
     # Conflict detection intentionally OMITTED on autosave. Autosave
     # fires every ~1.5s and even a single editor tripped false-positive
     # conflicts (microsecond-precision modified_at round-trips,
-    # beforeunload beacons with stale base_version, etc.). The explicit
-    # Save path still checks (see blog_edit), which is where
-    # conflict-detection actually has teeth — autosave is a best-effort
-    # safety net, not a place to block work.
+    # beforeunload beacons with stale base_version, etc.). The lock
+    # NEVER gates a save — but the response does REPORT when this tab
+    # no longer holds the lock (lock_lost below) so the client can
+    # freeze itself after this final write lands.
 
     try:
         _apply_post_fields(post, request.POST)
@@ -351,10 +430,34 @@ def blog_autosave(request, slug):
             tag_str = request.POST.get('tags', '').strip()
             tag_list = [t.strip() for t in tag_str.split(',') if t.strip()] if tag_str else []
             post.tags.set(tag_list)
-        return JsonResponse({
-            'ok': True,
-            'saved_at': timezone.now().isoformat(),
-        })
+
+        payload = {'ok': True, 'saved_at': timezone.now().isoformat()}
+        instance = request.POST.get('editor_instance', '')
+        if instance:
+            tab_token = request.session.get('editor_tab_token', '')
+            holder = _read_edit_lock(slug)
+            held_instance = (holder or {}).get('instance') or ''
+            if holder and held_instance and held_instance != instance:
+                # This tab lost the lock (sibling tab or takeover). The
+                # save above still committed — this is the one bounded
+                # final write — but tell the client to freeze.
+                payload['lock_lost'] = True
+                payload['holder'] = holder.get('username', '')
+                payload['same_user'] = holder.get('user_id') == request.user.pk
+            elif holder is None or _lock_is_ours(holder, request, tab_token):
+                # Active typing keeps the lock alive even when the 60s
+                # heartbeat is blocked (cheap cache.set). Exceptions: a
+                # final unload flush (unloading=1) and an instance that
+                # just released (its final beacon raced the release
+                # beacon) must not resurrect a dead tab's lock.
+                from django.core.cache import cache as _cache
+                just_released = (
+                    holder is None
+                    and _cache.get(f'edit_lock_released:{slug}') == instance
+                )
+                if not just_released and not request.POST.get('unloading'):
+                    _write_edit_lock(slug, request, tab_token, instance=instance)
+        return JsonResponse(payload)
     except Exception as e:
         return JsonResponse({'ok': False, 'error': str(e)}, status=500)
 
@@ -673,29 +776,49 @@ def _strip_heavy_markers(body: str) -> str:
     return body
 
 
-# Per-process preview render cache. The editor is staff-only + single-
-# author so cross-user isolation isn't a concern. Key on (sha1(body),
-# is_explainer). Typing "." then backspacing is free; toggling between
-# two drafts you bounce between is free. LRU-ish: evict oldest entry
-# past capacity. 16 × ~30 KB html = ~0.5 MB RSS worst case.
+# Per-process preview render cache. The editor is staff-only + few-
+# author so cross-user isolation isn't a concern, but the SLUG is part
+# of the key: two collaborators editing different posts whose bodies
+# momentarily match must not see each other's cached preview, and the
+# notation hash busts the cache when the glossary drawer changes.
+# LRU-ish: evict oldest entry past capacity. 16 × ~30 KB html = ~0.5 MB
+# RSS worst case.
 _PREVIEW_CACHE_MAX = 16
-_preview_cache: "OrderedDict[tuple[str, bool], tuple[str, str]]" = OrderedDict()
+_preview_cache: "OrderedDict[tuple, tuple[str, str]]" = OrderedDict()
+# OrderedDict mutation is not thread-safe — the gthread deployment runs
+# 8 request threads in one process. The lock guards only the cache
+# touches, never the render (two threads racing the same key render
+# twice; the second insert harmlessly overwrites).
+import threading as _threading
+_preview_cache_lock = _threading.Lock()
 
 
-def _preview_render(body: str, is_explainer: bool) -> tuple[str, str]:
+def _preview_render(body: str, is_explainer: bool, post_slug=None,
+                    notation_entries=None) -> tuple[str, str]:
+    import json as _json
     from portfolio.blog import render_markdown
     key = (
+        post_slug or '',
         hashlib.sha1(body.encode('utf-8', errors='replace')).hexdigest(),
         is_explainer,
+        hashlib.sha1(_json.dumps(notation_entries or [], sort_keys=True)
+                     .encode('utf-8', errors='replace')).hexdigest(),
     )
-    hit = _preview_cache.get(key)
-    if hit is not None:
-        _preview_cache.move_to_end(key)
-        return hit
-    html, toc = render_markdown(body, is_explainer=is_explainer, preview=True)
-    _preview_cache[key] = (html, toc)
-    while len(_preview_cache) > _PREVIEW_CACHE_MAX:
-        _preview_cache.popitem(last=False)
+    with _preview_cache_lock:
+        hit = _preview_cache.get(key)
+        if hit is not None:
+            _preview_cache.move_to_end(key)
+            return hit
+    # notation_entries keeps preview/published parity for the per-post
+    # glossary (<div data-notation></div>) — population is pure Python,
+    # so the hot-path guarantee (no network, no matplotlib) holds.
+    html, toc = render_markdown(body, is_explainer=is_explainer, preview=True,
+                                post_slug=post_slug,
+                                notation_entries=notation_entries)
+    with _preview_cache_lock:
+        _preview_cache[key] = (html, toc)
+        while len(_preview_cache) > _PREVIEW_CACHE_MAX:
+            _preview_cache.popitem(last=False)
     return html, toc
 
 
@@ -725,7 +848,11 @@ def blog_preview(request):
     is_explainer = request.POST.get('is_explainer') == 'true'
     body = _strip_heavy_markers(body)
     t0 = time.perf_counter()
-    html, toc = _preview_render(body, is_explainer)
+    html, toc = _preview_render(
+        body, is_explainer,
+        post_slug=slug or None,
+        notation_entries=(post.notation or []) if post else None,
+    )
     elapsed_ms = int((time.perf_counter() - t0) * 1000)
     resp = JsonResponse({'html': html, 'toc': toc})
     resp['Server-Timing'] = f'render;dur={elapsed_ms}'
@@ -770,9 +897,45 @@ def blog_upload_image(request):
 
     # Use Django's configured default_storage — that's R2 in
     # production and FileSystemStorage in dev. Same API, survives
-    # deploys. `save()` auto-suffixes on name collisions.
+    # deploys. Reserve a stem whose .webp slot is ALSO free: if we let
+    # save() auto-suffix only the original (foo.png → foo_Xy.png), the
+    # render-time sibling derivation (foo_Xy.webp vs an older upload's
+    # foo.webp) could pair the image with the WRONG webp.
     from django.core.files.storage import default_storage
-    saved_name = default_storage.save(f'{subdir}/{fname}', f)
+    from django.utils.crypto import get_random_string
+    stem = safe_base
+    while (default_storage.exists(f'{subdir}/{stem}.{safe_ext}')
+           or default_storage.exists(f'{subdir}/{stem}.webp')):
+        stem = f'{safe_base}_{get_random_string(7)}'
+    saved_name = default_storage.save(f'{subdir}/{stem}.{safe_ext}', f)
+
+    # Generate a .webp sibling for PNG/JPEG so the save-time renderer can
+    # serve a <picture> with the smaller variant (`_wrap_imgs_with_picture`
+    # checks storage for the sibling). Generated HERE — before any render
+    # can reference it — because a <source> pointing at a missing file
+    # does NOT fall back to the <img>. Failure can never block the
+    # upload itself; GIF/AVIF/animated formats are excluded by ext.
+    if safe_ext in ('png', 'jpg', 'jpeg'):
+        try:
+            import io
+            from PIL import Image
+            from django.core.files.base import ContentFile
+            f.seek(0)
+            im = Image.open(f)
+            im.load()
+            if im.mode in ('P', 'CMYK'):
+                im = im.convert('RGBA' if im.mode == 'P' else 'RGB')
+            buf = io.BytesIO()
+            im.save(buf, 'WEBP', quality=82, method=6)
+            webp_name = saved_name.rsplit('.', 1)[0] + '.webp'
+            stored = default_storage.save(webp_name, ContentFile(buf.getvalue()))
+            if stored != webp_name:
+                # Slot got taken between exists() and save() — a
+                # mis-named sibling would never be served; drop it.
+                default_storage.delete(stored)
+        except Exception:
+            pass
+
     url = default_storage.url(saved_name)
     alt = request.POST.get('alt', '') or safe_base.replace('-', ' ')
     return JsonResponse({

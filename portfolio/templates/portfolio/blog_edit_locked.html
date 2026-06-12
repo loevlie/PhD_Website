@@ -21,7 +21,8 @@
 
 <div style="display: flex; gap: 10px; margin-top: 18px; justify-content: flex-end;">
     <a href="{% url 'blog_post' post.slug %}" style="padding: 10px 16px; border-radius: 6px; border: 1px solid var(--ctp-surface1, #45475a); color: var(--ctp-text, #cdd6f4); text-decoration: none; font-size: 0.9rem; font-family: 'Inter', system-ui, sans-serif;">View post instead</a>
-    <a href="{% url 'blog_edit' post.slug %}?takeover=1" class="acc-submit" style="text-decoration: none; display: inline-flex; align-items: center;">Take over the editor</a>
+    <a href="{% url 'blog_edit' post.slug %}?takeover=1" class="acc-submit" style="text-decoration: none; display: inline-flex; align-items: center;"
+       onclick="if (this.dataset.clicked) return false; if (!confirm('{{ lock.username|escapejs }} was active {{ age_s }}s ago — taking over freezes their tab and their next edit could be lost. Continue?')) return false; this.dataset.clicked = '1';">Take over the editor</a>
 </div>
 
 <hr class="acc-divider">

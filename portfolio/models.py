@@ -32,9 +32,19 @@ class DailySalt(models.Model):
     def for_today(cls):
         from datetime import date as _date
         import secrets
+        from django.core.cache import cache
         today = _date.today()
-        obj, _ = cls.objects.get_or_create(date=today, defaults={'salt': secrets.token_hex(32)})
-        return obj.salt
+        # Every pageview beacon calls this; the date-keyed cache entry
+        # removes the per-beacon get_or_create round-trip. Date-in-key
+        # makes midnight rollover automatic and preserves the privacy
+        # property: yesterday's key is simply never read again.
+        cache_key = f'dailysalt:{today.isoformat()}'
+        salt = cache.get(cache_key)
+        if salt is None:
+            obj, _ = cls.objects.get_or_create(date=today, defaults={'salt': secrets.token_hex(32)})
+            salt = obj.salt
+            cache.set(cache_key, salt, 86400)
+        return salt
 
     class Meta:
         ordering = ['-date']

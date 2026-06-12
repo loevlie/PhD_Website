@@ -1,5 +1,6 @@
 from django.contrib.sitemaps.views import sitemap
 from django.urls import include, path
+from django.views.decorators.cache import cache_control
 
 from . import views, analytics, analytics_dashboard
 from .feeds import BlogFeed
@@ -22,7 +23,9 @@ urlpatterns = [
     # Local preview before promoting one to /blog/.
     path('blog/exp/', views.blog_experiments_index, name='blog_experiments'),
     path('blog/exp/<slug:name>/', views.blog_experiment, name='blog_experiment'),
-    path('blog/feed/', BlogFeed(), name='blog_feed'),
+    # Crawler/feed-reader endpoints poll on schedules — a 1h public TTL
+    # (vs the 120s middleware default) keeps them off the worker.
+    path('blog/feed/', cache_control(public=True, max_age=3600)(BlogFeed()), name='blog_feed'),
     path('blog/new/', views.blog_new, name='blog_new'),
     path('blog/preview/', views.blog_preview, name='blog_preview'),
     path('blog/upload-image/', views.blog_upload_image, name='blog_upload_image'),
@@ -82,14 +85,14 @@ urlpatterns = [
     # / etc. Reuses the staff-only auth pattern (see views/studio.py).
     path('site/studio/', views.studio, name='studio'),
     path('site/reading/add/', views.reading_quickadd, name='reading_quickadd'),
-    path('sitemap.xml', sitemap, {'sitemaps': sitemaps}, name='sitemap'),
-    path('robots.txt', views.robots_txt, name='robots_txt'),
+    path('sitemap.xml', cache_control(public=True, max_age=3600)(sitemap), {'sitemaps': sitemaps}, name='sitemap'),
+    path('robots.txt', cache_control(public=True, max_age=86400)(views.robots_txt), name='robots_txt'),
     # "Ask this post" reader chat — SSE stream proxied to Claude Haiku,
     # rate-limited per-IP. Returns 503 when ANTHROPIC_API_KEY is unset so
     # the client can fall back to an "offline" message.
     path('blog/<slug:slug>/ask/', views.ask_post, name='ask_post'),
-    path('presentations/<slug:slug>/', views.presentation, name='presentation'),
-    path('googled2e3ddb216daf4c4.html', views.google_verify, name='google_verify'),
+    path('presentations/<slug:slug>/', cache_control(public=True, max_age=3600)(views.presentation), name='presentation'),
+    path('googled2e3ddb216daf4c4.html', cache_control(public=True, max_age=86400)(views.google_verify), name='google_verify'),
 
     # Public diagnostic surface — lightweight JSON snapshots of a post's
     # DB state so the author can verify Save actually landed without

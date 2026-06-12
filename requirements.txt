@@ -29,6 +29,12 @@ beautifulsoup4>=4.12
 # R2_BUCKET_NAME is set in the environment — local dev stays on disk.
 django-storages[s3]>=1.14
 
+# Image handling: Post.cover_image ImageField validation plus the WebP
+# sibling generated for every PNG/JPEG editor upload (blog_upload_image).
+# Already present transitively via matplotlib — pinned here so the
+# direct dependency is visible.
+Pillow>=10
+
 # Default scientific-Python stack available to /pyfig blocks. Each post
 # can also declare extras via a per-post deps file (see _render_pyfig).
 matplotlib>=3.9

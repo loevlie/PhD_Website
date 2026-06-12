@@ -40,8 +40,16 @@ If a post has an explicit cover (post.cover_src), that takes precedence.
 {% endblock %}
 
 {% block extra_head %}
+{% comment %}Syntax-highlight + math CSS gated on server-computed flags
+   (blog._content_flags) — derived from the exact content_html string
+   this template renders, so the gate can never drift from the content.
+   A math-free post skips ~295KB raw of KaTeX JS/CSS + font fetches.{% endcomment %}
+{% if post.has_code %}
 <link rel="stylesheet" href="{% static 'portfolio/css/pygments.css' %}">
+{% endif %}
+{% if post.has_math %}
 <link rel="stylesheet" href="{% static 'portfolio/vendor/katex/katex.min.css' %}">
+{% endif %}
 {% comment %}Demo embeds. Any post with a `<div data-demo="…">` marker
    (or the legacy `class="demo-embed" data-slug="…"` form) gets the
    self-contained demo stylesheet. The per-demo JS modules are gated
@@ -267,7 +275,11 @@ If a post has an explicit cover (post.cover_src), that takes precedence.
     <!-- Cover image -->
     {% if post.cover_src %}
     <div class="rounded-xl overflow-hidden border border-border mb-10 animate-fade-up-delay">
-        <img src="{{ post.cover_src }}" alt="{{ post.title }}" fetchpriority="high" class="w-full max-h-[400px] object-cover">
+        {% comment %}aspect-ratio reserves the cover's box before the bytes
+           arrive — kills the biggest layout shift on post pages. Inline
+           style on purpose: an arbitrary-value Tailwind class would need
+           a blog-tw.css rebuild.{% endcomment %}
+        <img src="{{ post.cover_src }}" alt="{{ post.title }}" fetchpriority="high" decoding="async" class="w-full max-h-[400px] object-cover" style="aspect-ratio: 1200 / 630">
     </div>
     {% endif %}
 
@@ -498,6 +510,14 @@ If a post has an explicit cover (post.cover_src), that takes precedence.
             s.src = 'https://giscus.app/client.js';
             s.crossOrigin = 'anonymous';
             s.async = true;
+            s.onerror = function () {
+                // Third-party outage shouldn't fail silently. The static
+                // link IS the recovery path — the observer is already
+                // disconnected, so there is no automatic retry.
+                mount.innerHTML = '<p class="text-sm text-content-muted">Comments failed to load — ' +
+                    '<a class="text-accent" href="https://github.com/loevlie/PhD_Website/discussions" rel="noopener">' +
+                    'open the discussion on GitHub</a>.</p>';
+            };
             var attrs = {
                 'data-repo': 'loevlie/PhD_Website',
                 'data-repo-id': 'R_kgDORfhvhw',
@@ -710,13 +730,15 @@ If a post has an explicit cover (post.cover_src), that takes precedence.
 </script>
 {% endwith %}
 
-<!-- KaTeX -->
+{% if post.has_math %}
+<!-- KaTeX — only on posts whose rendered HTML contains math markers -->
 <script defer src="{% static 'portfolio/vendor/katex/katex.min.js' %}"></script>
 <script defer src="{% static 'portfolio/vendor/katex/auto-render.min.js' %}"
     onload="renderMathInElement(document.querySelector('.blog-prose'), {
         delimiters: [{left:'$$',right:'$$',display:true},{left:'$',right:'$',display:false}],
         throwOnError: false
     });"></script>
+{% endif %}
 {% endblock %}
 
 {% block scripts %}
@@ -778,7 +800,15 @@ If a post has an explicit cover (post.cover_src), that takes precedence.
 <!-- Stacked notes — Andy Matuschak pattern. Click an internal blog link to
      push the target post as a side-by-side column instead of navigating.
      URL state via ?stack=slug1,slug2. Mobile (<900 px) falls back to nav. -->
-<script defer src="{% static 'portfolio/js/stacked-notes.js' %}"></script>
+{% comment %}Stacked columns fetch OTHER posts' articles in-page — those may
+   need KaTeX/pygments even when THIS post's gates skipped them. The data
+   attributes carry the hashed asset URLs so the script can lazy-load
+   them per column (it can't use {% static %} itself).{% endcomment %}
+<script defer src="{% static 'portfolio/js/stacked-notes.js' %}"
+    data-katex-css="{% static 'portfolio/vendor/katex/katex.min.css' %}"
+    data-katex-js="{% static 'portfolio/vendor/katex/katex.min.js' %}"
+    data-katex-autorender="{% static 'portfolio/vendor/katex/auto-render.min.js' %}"
+    data-pygments-css="{% static 'portfolio/css/pygments.css' %}"></script>
 <!-- Hover-revealed Copy button on each fenced code block. -->
 <script defer src="{% static 'portfolio/js/code-copy.js' %}"></script>
 <!-- Hover preview: tiny popover showing the destination URL when the

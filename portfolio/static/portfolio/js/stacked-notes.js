@@ -26,6 +26,12 @@
     const NARROW_BREAKPOINT = 900;
     const COLUMN_WIDTH = 540;
 
+    // Asset URLs for lazy-loading (passed via data attributes on our
+    // script tag — see blog_post.html). The HOST page only ships KaTeX/
+    // pygments when its own content needs them; a stacked column from
+    // another post may need them anyway.
+    const ASSET_CFG = (document.currentScript && document.currentScript.dataset) || {};
+
     // Only activate on individual blog post pages
     if (!/^\/blog\/[^/?]+\/?(\?|$)/.test(window.location.pathname + window.location.search)) {
         // Allow ?stack= on the homepage / blog index too — but skip if not
@@ -121,6 +127,7 @@
             const col = makeColumn(slug, article.outerHTML);
             placeholder.replaceWith(col);
             scrollToColumn(col);
+            await ensureColumnAssets(col);
             renderMath(col);
             wireLinksIn(col);
         } catch (e) {
@@ -152,6 +159,52 @@
         requestAnimationFrame(() => {
             col.scrollIntoView({ behavior: 'smooth', inline: 'end', block: 'nearest' });
         });
+    }
+
+    /* ---------- Lazy assets for stacked columns -------------------- */
+    function injectStylesheet(href) {
+        if (!href || document.querySelector('link[href="' + href + '"]')) return;
+        const link = document.createElement('link');
+        link.rel = 'stylesheet';
+        link.href = href;
+        document.head.appendChild(link);
+    }
+
+    function loadScript(src) {
+        return new Promise((resolve, reject) => {
+            const existing = document.querySelector('script[src="' + src + '"]');
+            if (existing) {
+                // Already requested (possibly by a concurrent push) —
+                // resolve when it lands.
+                if (existing.dataset.loaded === 'true') return resolve();
+                existing.addEventListener('load', resolve, { once: true });
+                existing.addEventListener('error', reject, { once: true });
+                return;
+            }
+            const s = document.createElement('script');
+            s.src = src;
+            s.onload = () => { s.dataset.loaded = 'true'; resolve(); };
+            s.onerror = reject;
+            document.head.appendChild(s);
+        });
+    }
+
+    async function ensureColumnAssets(col) {
+        // Pygments: pure CSS, inject when the column has highlighted code.
+        if (col.querySelector('.highlight')) {
+            injectStylesheet(ASSET_CFG.pygmentsCss);
+        }
+        // KaTeX: the host page may have skipped it entirely (has_math
+        // gate). Load CSS + JS + auto-render sequentially, then render.
+        if (col.querySelector('.math-inline, .math-display') && !window.renderMathInElement) {
+            injectStylesheet(ASSET_CFG.katexCss);
+            try {
+                if (ASSET_CFG.katexJs && ASSET_CFG.katexAutorender) {
+                    await loadScript(ASSET_CFG.katexJs);
+                    await loadScript(ASSET_CFG.katexAutorender);
+                }
+            } catch (e) { /* offline/CDN failure — raw $…$ is the fallback */ }
+        }
     }
 
     function renderMath(col) {

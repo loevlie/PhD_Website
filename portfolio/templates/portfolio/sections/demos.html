@@ -15,4 +15,9 @@
         </div>
     </div>
 </section>
+{% load static %}
+{% comment %}The demo module ships WITH the section that renders its root —
+base.html no longer loads it site-wide. The script self-guards with
+`if (!root) return;` so double-inclusion (e.g. demo_detail) is harmless.{% endcomment %}
+<script src="{% static 'portfolio/js/frozen-forecaster.js' %}" defer></script>
 {% endif %}

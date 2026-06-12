@@ -48,7 +48,7 @@ class OgImageUrlTagTests(TestCase):
 
     def test_falls_back_to_site_cover_when_missing(self):
         url = self.render('definitely-not-a-real-slug-zzz')
-        self.assertEqual(url, f'{settings.STATIC_URL}portfolio/images/og-cover.png')
+        self.assertEqual(url, f'{settings.STATIC_URL}portfolio/images/og-cover.jpg')
 
 
 class BlogPostOgMetaTests(TestCase):
@@ -75,7 +75,7 @@ class BlogPostOgMetaTests(TestCase):
         path = OG_DIR / f'{slug}.png'
         path.unlink(missing_ok=True)
         r = self.client.get(f'/blog/{slug}/')
-        self.assertContains(r, '/static/portfolio/images/og-cover.png')
+        self.assertContains(r, '/static/portfolio/images/og-cover.jpg')
 
     def test_post_with_explicit_image_takes_precedence(self):
         slug = 'meta-test-explicit'
